@@ -1,0 +1,14 @@
+.{
+    .name = "luajit",
+    .version = "0.0.0",
+    .dependencies = .{
+        .luajit_build = .{
+            .path = "../zig-luajit-build/"
+        }
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

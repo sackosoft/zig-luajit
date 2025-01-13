@@ -2,3 +2,5 @@ zig-out/
 .zig-cache/
 
 __pycache__/
+
+man2zig/api_key

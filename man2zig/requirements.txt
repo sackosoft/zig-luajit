@@ -1,2 +1,0 @@
-beautifulsoup4 # python3-bs4
-lxml           # python3-lxml

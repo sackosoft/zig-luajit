@@ -1,30 +1,4 @@
 
-/// Memory allocation function used by Lua states. The allocator must provide functionality similar to realloc.
-///
-/// Arguments:
-/// - ud: An opaque pointer passed to lua_newstate
-/// - ptr: Pointer to the block being allocated/reallocated/freed
-/// - osize: Original size of the block
-/// - nsize: New size of the block
-///
-/// Behavior:
-/// - If ptr is NULL, osize must be zero
-/// - When nsize is zero, must return NULL and free ptr if osize is non-zero
-/// - When nsize is non-zero:
-///   * Returns NULL if request cannot be fulfilled
-///   * Behaves like malloc if osize is zero
-///   * Behaves like realloc if both osize and nsize are non-zero
-/// - Lua assumes allocator never fails when osize >= nsize
-///
-/// From: void * (*lua_Alloc) (void *ud, void *ptr, size_t osize, size_t nsize);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Alloc
-pub const Alloc = *const fn (
-    ud: *anyopaque,
-    ptr: ?*anyopaque,
-    osize: usize,
-    nsize: usize
-) callconv(.C) ?*anyopaque;
-
 /// Sets a new panic function and returns the old one. If an error happens outside any protected environment,
 /// Lua calls a panic function and then calls exit(EXIT_FAILURE), thus exiting the host application.
 /// Your panic function can avoid this exit by never returning (e.g., doing a long jump).

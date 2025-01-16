@@ -643,12 +643,6 @@ pub fn toThread(lua: *Lua, index: i32) ?*Lua;
 /// Stack Behavior: [-0, +0, -]
 pub fn toUserdata(lua: *Lua, index: i32) ?*anyopaque;
 
-/// Returns the name of the type encoded by the value tp, which must be one the values returned by luaType().
-///
-/// From: const char *lua_typename(lua_State *L, int tp);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_typename
-/// Stack Behavior: [-0, +0, -]
-pub fn typeName(lua: *Lua, tp: LuaType) [*:0]const u8;
 
 /// The type of the writer function used by lua_dump. Every time it produces another piece of chunk,
 /// lua_dump calls the writer, passing along the buffer to be written (p), its size (sz),

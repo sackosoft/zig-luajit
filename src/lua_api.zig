@@ -37,15 +37,6 @@ pub fn call(lua: *Lua, nargs: i32, nresults: i32) void;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_CFunction
 pub const CFunction = *const fn (lua: *Lua) i32;
 
-/// Ensures that there are at least `extra` free stack slots in the stack. It returns false if it cannot grow the stack
-/// to that size. This function never shrinks the stack; if the stack is already larger than the new size, it is left
-/// unchanged.
-///
-/// From: int lua_checkstack(lua_State *L, int extra);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_checkstack
-/// Stack Behavior: [-0, +0, m]
-pub fn checkStack(lua: *Lua, extra: i32) bool;
-
 /// Destroys all objects in the given Lua state (calling the corresponding garbage-collection metamethods, if any)
 /// and frees all dynamic memory used by this state. On several platforms, you may not need to call this function,
 /// because all resources are naturally released when the host program ends. Long-running programs, such as a daemon
@@ -642,7 +633,6 @@ pub fn toThread(lua: *Lua, index: i32) ?*Lua;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_touserdata
 /// Stack Behavior: [-0, +0, -]
 pub fn toUserdata(lua: *Lua, index: i32) ?*anyopaque;
-
 
 /// The type of the writer function used by lua_dump. Every time it produces another piece of chunk,
 /// lua_dump calls the writer, passing along the buffer to be written (p), its size (sz),

@@ -35,6 +35,8 @@ const Lua = opaque {
         Thread = c.LUA_TTHREAD,
     };
 
+    const MaxStackSize = c.LUAI_MAXCSTACK;
+
     /// Creates a new Lua state with the provided allocator.
     ///
     /// The allocator is copied to the heap to ensure a stable address, as Lua requires
@@ -70,6 +72,24 @@ const Lua = opaque {
 
         if (alloc_copy) |alloc| {
             alloc.destroy(alloc);
+        }
+    }
+
+    /// Ensures that there are at least `extra` free stack slots in the stack by allocating additional slots. Returns
+    /// false if it cannot grow the stack to that size. This function never shrinks the stack;
+    /// if the stack is already larger than the new size, it is left unchanged.
+    ///
+    /// From: int lua_checkstack(lua_State *L, int extra);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_checkstack
+    /// Stack Behavior: [-0, +0, -]
+    pub fn checkStack(lua: *Lua, extra: i32) error{ OutOfMemory, StackOverflow }!void {
+        const state = asState(lua);
+        const size: i32 = @intCast(c.lua_gettop(state));
+        if (size + extra > MaxStackSize) {
+            return error.StackOverflow;
+        }
+        if (0 == c.lua_checkstack(asState(lua), @intCast(extra))) {
+            return error.OutOfMemory;
         }
     }
 
@@ -377,4 +397,45 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expectEqualSlices(u8, "function", lua.typeName(Lua.Type.Function));
     try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.Light_userdata));
     try std.testing.expectEqualSlices(u8, "thread", lua.typeName(Lua.Type.Thread));
+}
+
+test {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expectError(error.StackOverflow, lua.checkStack(9000));
+}
+
+fn initOOM(alloc: std.mem.Allocator, failing_alloc: std.mem.Allocator) OutOfMemory!*Lua {
+    const alloc_copy = try alloc.create(std.mem.Allocator);
+    errdefer alloc.destroy(alloc_copy);
+    alloc_copy.* = alloc;
+
+    const lua: ?*Lua = @ptrCast(c.lua_newstate(allocator_adapter, alloc_copy));
+    if (lua) |l| {
+        // Replace the functional allocator with a dead allocator
+        alloc_copy.* = failing_alloc;
+        c.lua_setallocf(asState(l), allocator_adapter, alloc_copy);
+        return l;
+    } else {
+        return error.OutOfMemory;
+    }
+}
+
+fn deinitOOM(lua: *Lua, alloc: std.mem.Allocator) void {
+    var alloc_copy: ?*std.mem.Allocator = undefined;
+    _ = c.lua_getallocf(@ptrCast(lua), @ptrCast(&alloc_copy)).?;
+
+    c.lua_close(@ptrCast(lua));
+
+    if (alloc_copy) |failing_allocator| {
+        alloc.destroy(failing_allocator);
+    }
+}
+
+test {
+    const lua = try initOOM(std.testing.allocator, std.testing.failing_allocator);
+    defer deinitOOM(lua, std.testing.allocator);
+
+    try std.testing.expectError(error.OutOfMemory, lua.checkStack(1));
 }

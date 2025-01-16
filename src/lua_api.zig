@@ -316,20 +316,6 @@ pub fn objLen(lua: *Lua, index: i32) usize;
 /// Stack Behavior: [-(nargs + 1), +(nresults|1), -]
 pub fn pCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) LuaError;
 
-/// Pops n elements from the stack.
-///
-/// From: void lua_pop(lua_State *L, int n);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pop
-/// Stack Behavior: [-n, +0, -]
-pub fn pop(lua: *Lua, n: i32) void;
-
-/// Pushes a boolean value with the given value onto the stack.
-///
-/// From: void lua_pushboolean(lua_State *L, int b);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushboolean
-/// Stack Behavior: [-0, +1, -]
-pub fn pushBoolean(lua: *Lua, value: bool) void;
-
 /// Pushes a new C closure onto the stack. When a C function is created, it is possible to associate
 /// some values with it, thus creating a C closure (see https://www.lua.org/manual/5.1/manual.html#3.4);
 /// these values are then accessible to the function whenever it is called. To associate values with
@@ -353,23 +339,6 @@ pub fn pushCClosure(lua: *Lua, func: CFunction, n: i32) void;
 /// Stack Behavior: [-0, +1, m]
 pub fn pushCFunction(lua: *Lua, f: CFunction) void;
 
-/// Pushes onto the stack a formatted string and returns a pointer to this string. Similar to the C function
-/// sprintf, but with important differences: memory allocation is handled by Lua via garbage collection,
-/// and conversion specifiers are restricted to: '%%' (%), '%s' (zero-terminated string), '%f' (lua_Number),
-/// '%p' (pointer as hex), '%d' (int), and '%c' (int as character).
-///
-/// From: const char *lua_pushfstring(lua_State *L, const char *fmt, ...);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushfstring
-/// Stack Behavior: [-0, +1, m]
-pub fn pushFString(lua: *Lua, comptime fmt: []const u8, ...) []const u8;
-
-/// Pushes a number with value n onto the stack.
-///
-/// From: void lua_pushinteger(lua_State *L, lua_Integer n);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushinteger
-/// Stack Behavior: [-0, +1, -]
-pub fn pushInteger(lua: *Lua, n: LuaInteger) void;
-
 /// Pushes a light userdata onto the stack. Userdata represent C values in Lua. A light userdata 
 /// represents a pointer. It is a value (like a number): you do not create it, it has no individual 
 /// metatable, and it is not collected (as it was never created). A light userdata is equal to "any" 
@@ -387,29 +356,6 @@ pub fn pushLightUserdata(lua: *Lua, p: *anyopaque) void;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushliteral
 /// Stack Behavior: [-0, +1, m]
 pub fn pushLiteral(lua: *Lua, s: []const u8) void;
-
-/// Pushes the string pointed to by `s` with size `len` onto the stack. Lua makes (or reuses) an internal 
-/// copy of the given string, so the memory at `s` can be freed or reused immediately after the function returns. 
-/// The string can contain embedded zeros.
-///
-/// From: void lua_pushlstring(lua_State *L, const char *s, size_t len);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlstring
-/// Stack Behavior: [-0, +1, m]
-pub fn pushLString(lua: *Lua, s: [*]const u8, len: usize) void;
-
-/// Pushes a nil value onto the stack.
-///
-/// From: void lua_pushnil(lua_State *L);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnil
-/// Stack Behavior: [-0, +1, -]
-pub fn pushNil(lua: *Lua) void;
-
-/// Pushes a number with value n onto the stack.
-///
-/// From: void lua_pushnumber(lua_State *L, lua_Number n);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnumber
-/// Stack Behavior: [-0, +1, -]
-pub fn pushNumber(lua: *Lua, n: f64) void;
 
 /// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
 /// so the memory at the source string can be freed or reused immediately after the function returns.
@@ -433,6 +379,25 @@ pub fn pushThread(lua: *Lua) bool;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushvalue
 /// Stack Behavior: [-0, +1, -]
 pub fn pushValue(lua: *Lua, index: i32) void;
+
+/// Pushes onto the stack a formatted string and returns a pointer to this string. Similar to the C function
+/// sprintf, but with important differences: memory allocation is handled by Lua via garbage collection,
+/// and conversion specifiers are restricted to: '%%' (%), '%s' (zero-terminated string), '%f' (lua_Number),
+/// '%p' (pointer as hex), '%d' (int), and '%c' (int as character).
+///
+/// From: const char *lua_pushfstring(lua_State *L, const char *fmt, ...);
+/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushfstring
+/// Stack Behavior: [-0, +1, m]
+pub fn pushFString(lua: *Lua, comptime fmt: []const u8, ...) []const u8;
+
+/// Pushes the string pointed to by `s` with size `len` onto the stack. Lua makes (or reuses) an internal 
+/// copy of the given string, so the memory at `s` can be freed or reused immediately after the function returns. 
+/// The string can contain embedded zeros.
+///
+/// From: void lua_pushlstring(lua_State *L, const char *s, size_t len);
+/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlstring
+/// Stack Behavior: [-0, +1, m]
+pub fn pushLString(lua: *Lua, s: [*]const u8, len: usize) void;
 
 /// Equivalent to pushFString, except that it receives a va_list instead of a variable number of arguments.
 ///

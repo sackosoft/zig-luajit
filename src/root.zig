@@ -8,9 +8,22 @@ fn asState(lua: *Lua) *c.lua_State {
 
 const OutOfMemory = error{OutOfMemory};
 
+pub const LuaNumber = c.LUA_NUMBER;
+pub const LuaInteger = c.LUA_INTEGER;
+pub const LuaType = enum(i5) {
+    None = c.LUA_TNONE,
+    Nil = c.LUA_TNIL,
+    Boolean = c.LUA_TBOOLEAN,
+    Light_userdata = c.LUA_TLIGHTUSERDATA,
+    Number = c.LUA_TNUMBER,
+    String = c.LUA_TSTRING,
+    Table = c.LUA_TTABLE,
+    Function = c.LUA_TFUNCTION,
+    Userdata = c.LUA_TUSERDATA,
+    Thread = c.LUA_TTHREAD,
+};
+
 const allocator_adapter = @import("allocator_adapter.zig").alloc;
-const types = @import("types.zig");
-const LuaType = types.LuaType;
 
 /// A Lua state represents the entire context of a Lua interpreter.
 /// Each state is completely independent and has no global variables.
@@ -187,6 +200,51 @@ const Lua = opaque {
     pub fn isUserdata(lua: *Lua, index: i32) bool {
         return 1 == c.lua_isuserdata(asState(lua), index);
     }
+
+    /// Pushes a nil value onto the stack.
+    ///
+    /// From: void lua_pushnil(lua_State *L);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnil
+    /// Stack Behavior: [-0, +1, -]
+    pub fn pushNil(lua: *Lua) void {
+        c.lua_pushnil(asState(lua));
+    }
+
+    /// Pushes a boolean value with the given value onto the stack.
+    ///
+    /// From: void lua_pushboolean(lua_State *L, int b);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushboolean
+    /// Stack Behavior: [-0, +1, -]
+    pub fn pushBoolean(lua: *Lua, value: bool) void {
+        c.lua_pushboolean(asState(lua), @intFromBool(value));
+    }
+
+    /// Pushes the integer with value n onto the stack.
+    ///
+    /// From: void lua_pushinteger(lua_State *L, lua_Integer n);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushinteger
+    /// Stack Behavior: [-0, +1, -]
+    pub fn pushInteger(lua: *Lua, n: LuaInteger) void {
+        c.lua_pushinteger(asState(lua), @intCast(n));
+    }
+
+    /// Pushes the floating point number with value n onto the stack.
+    ///
+    /// From: void lua_pushnumber(lua_State *L, lua_Number n);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnumber
+    /// Stack Behavior: [-0, +1, -]
+    pub fn pushNumber(lua: *Lua, n: LuaNumber) void {
+        c.lua_pushnumber(asState(lua), @floatCast(n));
+    }
+
+    /// Pops n elements from the stack.
+    ///
+    /// From: void lua_pop(lua_State *L, int n);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pop
+    /// Stack Behavior: [-n, +0, -]
+    pub fn pop(lua: *Lua, n: i32) void {
+        c.lua_pop(asState(lua), n);
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -220,4 +278,69 @@ test "Lua type checking functions should work for an empty stack." {
     try std.testing.expect(!lua.isTable(1));
     try std.testing.expect(!lua.isThread(1));
     try std.testing.expect(!lua.isUserdata(1));
+}
+
+test "Lua type checking functions return true when stack contains value" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const alloc = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    const lua = try Lua.init(alloc);
+    defer lua.deinit();
+
+    lua.pushNil();
+    try std.testing.expect(lua.typeOf(1) == LuaType.Nil);
+    try std.testing.expect(lua.isNil(1));
+    try std.testing.expect(lua.isNoneOrNil(1));
+    try std.testing.expect(!(lua.typeOf(1) == LuaType.None));
+    try std.testing.expect(!lua.isNone(1));
+    lua.pop(1);
+
+    lua.pushBoolean(true);
+    try std.testing.expect(lua.typeOf(1) == LuaType.Boolean);
+    try std.testing.expect(lua.isBoolean(1));
+    try std.testing.expect(!lua.isNil(1));
+    try std.testing.expect(!lua.isNoneOrNil(1));
+    try std.testing.expect(!lua.isNone(1));
+    try std.testing.expect(!lua.isCFunction(1));
+    try std.testing.expect(!lua.isFunction(1));
+    try std.testing.expect(!lua.isLightUserdata(1));
+    try std.testing.expect(!lua.isNumber(1));
+    try std.testing.expect(!lua.isString(1));
+    try std.testing.expect(!lua.isTable(1));
+    try std.testing.expect(!lua.isThread(1));
+    try std.testing.expect(!lua.isUserdata(1));
+    lua.pop(1);
+
+    lua.pushInteger(42);
+    try std.testing.expect(lua.typeOf(1) == LuaType.Number);
+    try std.testing.expect(lua.isNumber(1));
+    try std.testing.expect(lua.isString(1));
+    try std.testing.expect(!lua.isNil(1));
+    try std.testing.expect(!lua.isNoneOrNil(1));
+    try std.testing.expect(!lua.isNone(1));
+    try std.testing.expect(!lua.isBoolean(1));
+    try std.testing.expect(!lua.isCFunction(1));
+    try std.testing.expect(!lua.isFunction(1));
+    try std.testing.expect(!lua.isLightUserdata(1));
+    try std.testing.expect(!lua.isTable(1));
+    try std.testing.expect(!lua.isThread(1));
+    try std.testing.expect(!lua.isUserdata(1));
+    lua.pop(1);
+
+    lua.pushNumber(42.4);
+    try std.testing.expect(lua.typeOf(1) == LuaType.Number);
+    try std.testing.expect(lua.isNumber(1));
+    try std.testing.expect(lua.isString(1));
+    try std.testing.expect(!lua.isNil(1));
+    try std.testing.expect(!lua.isNoneOrNil(1));
+    try std.testing.expect(!lua.isNone(1));
+    try std.testing.expect(!lua.isBoolean(1));
+    try std.testing.expect(!lua.isCFunction(1));
+    try std.testing.expect(!lua.isFunction(1));
+    try std.testing.expect(!lua.isLightUserdata(1));
+    try std.testing.expect(!lua.isTable(1));
+    try std.testing.expect(!lua.isThread(1));
+    try std.testing.expect(!lua.isUserdata(1));
+    lua.pop(1);
 }

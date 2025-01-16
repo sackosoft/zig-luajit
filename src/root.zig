@@ -8,21 +8,6 @@ fn asState(lua: *Lua) *c.lua_State {
 
 const OutOfMemory = error{OutOfMemory};
 
-pub const LuaNumber = c.LUA_NUMBER;
-pub const LuaInteger = c.LUA_INTEGER;
-pub const LuaType = enum(i5) {
-    None = c.LUA_TNONE,
-    Nil = c.LUA_TNIL,
-    Boolean = c.LUA_TBOOLEAN,
-    Light_userdata = c.LUA_TLIGHTUSERDATA,
-    Number = c.LUA_TNUMBER,
-    String = c.LUA_TSTRING,
-    Table = c.LUA_TTABLE,
-    Function = c.LUA_TFUNCTION,
-    Userdata = c.LUA_TUSERDATA,
-    Thread = c.LUA_TTHREAD,
-};
-
 const allocator_adapter = @import("allocator_adapter.zig").alloc;
 
 /// A Lua state represents the entire context of a Lua interpreter.
@@ -35,6 +20,21 @@ const allocator_adapter = @import("allocator_adapter.zig").alloc;
 /// From: `typedef struct lua_State lua_State;`
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_State
 const Lua = opaque {
+    pub const Number = c.LUA_NUMBER;
+    pub const Integer = c.LUA_INTEGER;
+    pub const Type = enum(i5) {
+        None = c.LUA_TNONE,
+        Nil = c.LUA_TNIL,
+        Boolean = c.LUA_TBOOLEAN,
+        Light_userdata = c.LUA_TLIGHTUSERDATA,
+        Number = c.LUA_TNUMBER,
+        String = c.LUA_TSTRING,
+        Table = c.LUA_TTABLE,
+        Function = c.LUA_TFUNCTION,
+        Userdata = c.LUA_TUSERDATA,
+        Thread = c.LUA_TTHREAD,
+    };
+
     /// Creates a new Lua state with the provided allocator.
     ///
     /// The allocator is copied to the heap to ensure a stable address, as Lua requires
@@ -73,6 +73,22 @@ const Lua = opaque {
         }
     }
 
+    /// Returns the name of the type encoded by the value tp, which must be one the values returned by luaType().
+    ///
+    /// From: const char *lua_typename(lua_State *L, int tp);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_typename
+    /// Stack Behavior: [-0, +0, -]
+    pub fn typeName(lua: *Lua, t: Lua.Type) [*:0]const u8 {
+        _ = lua;
+
+        const type_to_name: [][*:0]const u8 = .{
+            "no value", "nil",      "boolean",  "userdata", "number", "string",
+            "table",    "function", "userdata", "thread",   "proto",  "cdata",
+        };
+
+        return type_to_name[@intFromEnum(t) + 1];
+    }
+
     /// Returns the type of the value in the given acceptable index, or LUA_TNONE for a non-valid index
     /// (that is, an index to an "empty" stack position). The types returned are coded by constants:
     /// LUA_TNIL, LUA_TNUMBER, LUA_TBOOLEAN, LUA_TSTRING, LUA_TTABLE, LUA_TFUNCTION,
@@ -83,7 +99,7 @@ const Lua = opaque {
     /// From: int lua_type(lua_State *L, int index);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_type
     /// Stack Behavior: [-0, +0, -]
-    pub fn typeOf(lua: *Lua, index: i32) LuaType {
+    pub fn typeOf(lua: *Lua, index: i32) Lua.Type {
         const t = c.lua_type(asState(lua), index);
         return @enumFromInt(t);
     }
@@ -94,7 +110,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnil
     /// Stack Behavior: [-0, +0, -]
     pub fn isNil(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.Nil;
+        return lua.typeOf(index) == Lua.Type.Nil;
     }
 
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the current stack)
@@ -104,7 +120,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnoneornil
     /// Stack Behavior: [-0, +0, -]
     pub fn isNoneOrNil(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.None or lua.typeOf(index) == LuaType.Nil;
+        return lua.typeOf(index) == Lua.Type.None or lua.typeOf(index) == Lua.Type.Nil;
     }
 
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the current stack),
@@ -114,7 +130,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnone
     /// Stack Behavior: [-0, +0, -]
     pub fn isNone(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.None;
+        return lua.typeOf(index) == Lua.Type.None;
     }
 
     /// Returns true if the value at the given acceptable index has type boolean, false otherwise.
@@ -123,7 +139,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isboolean
     /// Stack Behavior: [-0, +0, -]
     pub fn isBoolean(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.Boolean;
+        return lua.typeOf(index) == Lua.Type.Boolean;
     }
 
     /// Returns true if the value at the given acceptable index is a function (either C or Lua), and false otherwise.
@@ -132,7 +148,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isfunction
     /// Stack Behavior: [-0, +0, -]
     pub fn isFunction(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.Function;
+        return lua.typeOf(index) == Lua.Type.Function;
     }
 
     /// Returns true if the value at the given acceptable index is a light userdata, false otherwise.
@@ -141,7 +157,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_islightuserdata
     /// Stack Behavior: [-0, +0, -]
     pub fn isLightUserdata(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.Light_userdata;
+        return lua.typeOf(index) == Lua.Type.Light_userdata;
     }
 
     /// Returns true if the value at the given acceptable index is a table, false otherwise.
@@ -150,7 +166,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_istable
     /// Stack Behavior: [-0, +0, -]
     pub fn isTable(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.Table;
+        return lua.typeOf(index) == Lua.Type.Table;
     }
 
     /// Returns true if the value at the given acceptable index is a thread, and false otherwise.
@@ -159,7 +175,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isthread
     /// Stack Behavior: [-0, +0, -]
     pub fn isThread(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == LuaType.Thread;
+        return lua.typeOf(index) == Lua.Type.Thread;
     }
 
     /// Returns true if the value at the given acceptable index is a number or a string convertible to a number,
@@ -224,7 +240,7 @@ const Lua = opaque {
     /// From: void lua_pushinteger(lua_State *L, lua_Integer n);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushinteger
     /// Stack Behavior: [-0, +1, -]
-    pub fn pushInteger(lua: *Lua, n: LuaInteger) void {
+    pub fn pushInteger(lua: *Lua, n: Lua.Integer) void {
         c.lua_pushinteger(asState(lua), @intCast(n));
     }
 
@@ -233,7 +249,7 @@ const Lua = opaque {
     /// From: void lua_pushnumber(lua_State *L, lua_Number n);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnumber
     /// Stack Behavior: [-0, +1, -]
-    pub fn pushNumber(lua: *Lua, n: LuaNumber) void {
+    pub fn pushNumber(lua: *Lua, n: Lua.Number) void {
         c.lua_pushnumber(asState(lua), @floatCast(n));
     }
 
@@ -248,23 +264,22 @@ const Lua = opaque {
 };
 
 test "Lua can be initialized with an allocator" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const alloc = gpa.allocator();
-    defer _ = gpa.deinit();
+    const lua = Lua.init(std.testing.allocator);
+    defer (lua catch unreachable).deinit();
 
-    const lua = try Lua.init(alloc);
-    defer lua.deinit();
+    try std.testing.expect(lua != error.OutOfMemory);
+}
+
+test "Lua returns error when allocation fails" {
+    const lua = Lua.init(std.testing.failing_allocator);
+    try std.testing.expect(lua == error.OutOfMemory);
 }
 
 test "Lua type checking functions should work for an empty stack." {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const alloc = gpa.allocator();
-    defer _ = gpa.deinit();
-
-    const lua = try Lua.init(alloc);
+    const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    try std.testing.expect(lua.typeOf(1) == LuaType.None);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.None);
     try std.testing.expect(lua.isNone(1));
     try std.testing.expect(lua.isNoneOrNil(1));
 
@@ -281,23 +296,19 @@ test "Lua type checking functions should work for an empty stack." {
 }
 
 test "Lua type checking functions return true when stack contains value" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const alloc = gpa.allocator();
-    defer _ = gpa.deinit();
-
-    const lua = try Lua.init(alloc);
+    const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
     lua.pushNil();
-    try std.testing.expect(lua.typeOf(1) == LuaType.Nil);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.Nil);
     try std.testing.expect(lua.isNil(1));
     try std.testing.expect(lua.isNoneOrNil(1));
-    try std.testing.expect(!(lua.typeOf(1) == LuaType.None));
+    try std.testing.expect(!(lua.typeOf(1) == Lua.Type.None));
     try std.testing.expect(!lua.isNone(1));
     lua.pop(1);
 
     lua.pushBoolean(true);
-    try std.testing.expect(lua.typeOf(1) == LuaType.Boolean);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.Boolean);
     try std.testing.expect(lua.isBoolean(1));
     try std.testing.expect(!lua.isNil(1));
     try std.testing.expect(!lua.isNoneOrNil(1));
@@ -313,7 +324,7 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushInteger(42);
-    try std.testing.expect(lua.typeOf(1) == LuaType.Number);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.Number);
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
     try std.testing.expect(!lua.isNil(1));
@@ -329,7 +340,7 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushNumber(42.4);
-    try std.testing.expect(lua.typeOf(1) == LuaType.Number);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.Number);
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
     try std.testing.expect(!lua.isNil(1));

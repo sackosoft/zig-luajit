@@ -1,14 +1,14 @@
 const c = @import("c");
 
-const LuaType = enum(i5) {
-    none = c.LUA_TNONE,
-    nil = c.LUA_TNIL,
-    boolean = c.LUA_TBOOLEAN,
-    light_userdata = c.LUA_TLIGHTUSERDATA,
-    number = c.LUA_TNUMBER,
-    string = c.LUA_TSTRING,
-    table = c.LUA_TTABLE,
-    function = c.LUA_TFUNCTION,
-    userdata = c.LUA_TUSERDATA,
-    thread = c.LUA_TTHREAD,
+pub const LuaType = enum(i5) {
+    None = c.LUA_TNONE,
+    Nil = c.LUA_TNIL,
+    Boolean = c.LUA_TBOOLEAN,
+    Light_userdata = c.LUA_TLIGHTUSERDATA,
+    Number = c.LUA_TNUMBER,
+    String = c.LUA_TSTRING,
+    Table = c.LUA_TTABLE,
+    Function = c.LUA_TFUNCTION,
+    Userdata = c.LUA_TUSERDATA,
+    Thread = c.LUA_TTHREAD,
 };

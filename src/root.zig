@@ -2,6 +2,9 @@ const std = @import("std");
 const testing = std.testing;
 
 const c = @import("c");
+fn asState(lua: *Lua) *c.lua_State {
+    return @ptrCast(lua);
+}
 
 const OutOfMemory = error{OutOfMemory};
 
@@ -68,52 +71,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_type
     /// Stack Behavior: [-0, +0, -]
     pub fn typeOf(lua: *Lua, index: i32) LuaType {
-        const t = c.lua_type(@ptrCast(lua), @as(c_int, @intCast(index)));
-        return std.meta.intToEnum(LuaType, t) catch unreachable;
-    }
-
-    /// Returns true if the value at the given acceptable index has type boolean, false otherwise.
-    ///
-    /// From: int lua_isboolean(lua_State *L, int index);
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isboolean
-    /// Stack Behavior: [-0, +0, -]
-    pub fn isBoolean(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
-    }
-
-    /// Returns true if the value at the given acceptable index is a C function, false otherwise.
-    ///
-    /// From: int lua_iscfunction(lua_State *L, int index);
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_iscfunction
-    /// Stack Behavior: [-0, +0, -]
-    pub fn isCFunction(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
-    }
-
-    /// Returns true if the value at the given acceptable index is a function (either C or Lua), and false otherwise.
-    ///
-    /// From: int lua_isfunction(lua_State *L, int index);
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isfunction
-    /// Stack Behavior: [-0, +0, -]
-    pub fn isFunction(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
-    }
-
-    /// Returns true if the value at the given acceptable index is a light userdata, false otherwise.
-    ///
-    /// From: int lua_islightuserdata(lua_State *L, int index);
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_islightuserdata
-    /// Stack Behavior: [-0, +0, -]
-    pub fn isLightUserdata(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+        const t = c.lua_type(asState(lua), index);
+        return @enumFromInt(t);
     }
 
     /// Returns true if the value at the given acceptable index is nil, and false otherwise.
@@ -122,9 +81,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnil
     /// Stack Behavior: [-0, +0, -]
     pub fn isNil(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+        return lua.typeOf(index) == LuaType.Nil;
     }
 
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the current stack)
@@ -134,9 +91,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnoneornil
     /// Stack Behavior: [-0, +0, -]
     pub fn isNoneOrNil(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+        return lua.typeOf(index) == LuaType.None or lua.typeOf(index) == LuaType.Nil;
     }
 
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the current stack),
@@ -146,9 +101,52 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnone
     /// Stack Behavior: [-0, +0, -]
     pub fn isNone(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+        return lua.typeOf(index) == LuaType.None;
+    }
+
+    /// Returns true if the value at the given acceptable index has type boolean, false otherwise.
+    ///
+    /// From: int lua_isboolean(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isboolean
+    /// Stack Behavior: [-0, +0, -]
+    pub fn isBoolean(lua: *Lua, index: i32) bool {
+        return lua.typeOf(index) == LuaType.Boolean;
+    }
+
+    /// Returns true if the value at the given acceptable index is a function (either C or Lua), and false otherwise.
+    ///
+    /// From: int lua_isfunction(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isfunction
+    /// Stack Behavior: [-0, +0, -]
+    pub fn isFunction(lua: *Lua, index: i32) bool {
+        return lua.typeOf(index) == LuaType.Function;
+    }
+
+    /// Returns true if the value at the given acceptable index is a light userdata, false otherwise.
+    ///
+    /// From: int lua_islightuserdata(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_islightuserdata
+    /// Stack Behavior: [-0, +0, -]
+    pub fn isLightUserdata(lua: *Lua, index: i32) bool {
+        return lua.typeOf(index) == LuaType.Light_userdata;
+    }
+
+    /// Returns true if the value at the given acceptable index is a table, false otherwise.
+    ///
+    /// From: int lua_istable(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_istable
+    /// Stack Behavior: [-0, +0, -]
+    pub fn isTable(lua: *Lua, index: i32) bool {
+        return lua.typeOf(index) == LuaType.Table;
+    }
+
+    /// Returns true if the value at the given acceptable index is a thread, and false otherwise.
+    ///
+    /// From: int lua_isthread(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isthread
+    /// Stack Behavior: [-0, +0, -]
+    pub fn isThread(lua: *Lua, index: i32) bool {
+        return lua.typeOf(index) == LuaType.Thread;
     }
 
     /// Returns true if the value at the given acceptable index is a number or a string convertible to a number,
@@ -158,9 +156,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnumber
     /// Stack Behavior: [-0, +0, -]
     pub fn isNumber(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+        return 1 == c.lua_isnumber(asState(lua), index);
     }
 
     /// Returns true if the value at the given acceptable index is a string or a number
@@ -170,31 +166,16 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isstring
     /// Stack Behavior: [-0, +0, -]
     pub fn isString(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+        return 1 == c.lua_isstring(asState(lua), index);
     }
 
-    /// Returns true if the value at the given acceptable index is a table, false otherwise.
+    /// Returns true if the value at the given acceptable index is a C function, false otherwise.
     ///
-    /// From: int lua_istable(lua_State *L, int index);
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_istable
+    /// From: int lua_iscfunction(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_iscfunction
     /// Stack Behavior: [-0, +0, -]
-    pub fn isTable(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
-    }
-
-    /// Returns true if the value at the given acceptable index is a thread, and false otherwise.
-    ///
-    /// From: int lua_isthread(lua_State *L, int index);
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isthread
-    /// Stack Behavior: [-0, +0, -]
-    pub fn isThread(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+    pub fn isCFunction(lua: *Lua, index: i32) bool {
+        return 1 == c.lua_iscfunction(asState(lua), index);
     }
 
     /// Returns true if the value at the given acceptable index is a userdata
@@ -204,13 +185,20 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isuserdata
     /// Stack Behavior: [-0, +0, -]
     pub fn isUserdata(lua: *Lua, index: i32) bool {
-        _ = lua;
-        _ = index;
-        return false;
+        return 1 == c.lua_isuserdata(asState(lua), index);
     }
 };
 
-test "Lua JIT is avialable" {
+test "Lua can be initialized with an allocator" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const alloc = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    const lua = try Lua.init(alloc);
+    defer lua.deinit();
+}
+
+test "Lua type checking functions should work for an empty stack." {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     defer _ = gpa.deinit();
@@ -218,5 +206,18 @@ test "Lua JIT is avialable" {
     const lua = try Lua.init(alloc);
     defer lua.deinit();
 
-    std.debug.print("Running test\n", .{});
+    try std.testing.expect(lua.typeOf(1) == LuaType.None);
+    try std.testing.expect(lua.isNone(1));
+    try std.testing.expect(lua.isNoneOrNil(1));
+
+    try std.testing.expect(!lua.isNil(1));
+    try std.testing.expect(!lua.isBoolean(1));
+    try std.testing.expect(!lua.isCFunction(1));
+    try std.testing.expect(!lua.isFunction(1));
+    try std.testing.expect(!lua.isLightUserdata(1));
+    try std.testing.expect(!lua.isNumber(1));
+    try std.testing.expect(!lua.isString(1));
+    try std.testing.expect(!lua.isTable(1));
+    try std.testing.expect(!lua.isThread(1));
+    try std.testing.expect(!lua.isUserdata(1));
 }

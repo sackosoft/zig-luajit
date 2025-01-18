@@ -332,15 +332,6 @@ pub fn pushLightUserdata(lua: *Lua, p: *anyopaque) void;
 /// Stack Behavior: [-0, +1, m]
 pub fn pushLiteral(lua: *Lua, s: []const u8) void;
 
-/// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
-/// so the memory at the source string can be freed or reused immediately after the function returns.
-/// The string cannot contain embedded zeros; it is assumed to end at the first zero.
-///
-/// From: void lua_pushstring(lua_State *L, const char *s);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushstring
-/// Stack Behavior: [-0, +1, m]
-pub fn pushString(lua: *Lua, s: [*:0]const u8) void;
-
 /// Pushes the thread represented by L onto the stack. Returns 1 if this thread is the main thread of its state.
 ///
 /// From: int lua_pushthread(lua_State *L);
@@ -364,15 +355,6 @@ pub fn pushValue(lua: *Lua, index: i32) void;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushfstring
 /// Stack Behavior: [-0, +1, m]
 pub fn pushFString(lua: *Lua, comptime fmt: []const u8, ...) []const u8;
-
-/// Pushes the string pointed to by `s` with size `len` onto the stack. Lua makes (or reuses) an internal 
-/// copy of the given string, so the memory at `s` can be freed or reused immediately after the function returns. 
-/// The string can contain embedded zeros.
-///
-/// From: void lua_pushlstring(lua_State *L, const char *s, size_t len);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlstring
-/// Stack Behavior: [-0, +1, m]
-pub fn pushLString(lua: *Lua, s: [*]const u8, len: usize) void;
 
 /// Equivalent to pushFString, except that it receives a va_list instead of a variable number of arguments.
 ///
@@ -559,15 +541,7 @@ pub fn toCFunction(lua: *Lua, index: i32) ?*const fn(*Lua) i32;
 /// Stack Behavior: [-0, +0, -]
 pub fn toInteger(lua: *Lua, index: i32) i64;
 
-/// Converts the Lua value at the given acceptable index to a string. If len is not null,
-/// it also sets *len with the string length. The Lua value must be a string or a number;
-/// otherwise, the function returns null. If the value is a number, this function also
-/// changes the actual value in the stack to a string.
-///
-/// From: const char *lua_tolstring(lua_State *L, int index, size_t *len);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tolstring
-/// Stack Behavior: [-0, +0, m]
-pub fn toLString(lua: *Lua, index: i32, len: ?*usize) ?[:0]const u8;
+
 
 /// Converts the Lua value at the given acceptable index to a Number. The Lua value must be a number
 /// or a string convertible to a number (see https://www.lua.org/manual/5.1/manual.html#2.2.1);
@@ -587,13 +561,6 @@ pub fn toNumber(lua: *Lua, index: i32) f64;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_topointer
 /// Stack Behavior: [-0, +0, -]
 pub fn toPointer(lua: *Lua, index: i32) ?*anyopaque;
-
-/// Equivalent to `tolString` with `len` equal to `null`.
-///
-/// From: const char *lua_tostring(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tostring
-/// Stack Behavior: [-0, +0, m]
-pub fn toString(lua: *Lua, index: i32) ?[:0]const u8;
 
 /// Converts the value at the given acceptable index to a Lua thread. This value must be a thread;
 /// otherwise, the function returns null.

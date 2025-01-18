@@ -276,7 +276,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnil
     /// Stack Behavior: [-0, +1, -]
     pub fn pushNil(lua: *Lua) void {
-        c.lua_pushnil(asState(lua));
+        return c.lua_pushnil(asState(lua));
     }
 
     /// Pushes a boolean value with the given value onto the stack.
@@ -285,7 +285,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushboolean
     /// Stack Behavior: [-0, +1, -]
     pub fn pushBoolean(lua: *Lua, value: bool) void {
-        c.lua_pushboolean(asState(lua), @intFromBool(value));
+        return c.lua_pushboolean(asState(lua), @intFromBool(value));
     }
 
     /// Pushes the integer with value n onto the stack.
@@ -294,7 +294,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushinteger
     /// Stack Behavior: [-0, +1, -]
     pub fn pushInteger(lua: *Lua, n: Lua.Integer) void {
-        c.lua_pushinteger(asState(lua), @intCast(n));
+        return c.lua_pushinteger(asState(lua), @intCast(n));
     }
 
     /// Pushes the floating point number with value n onto the stack.
@@ -303,7 +303,79 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnumber
     /// Stack Behavior: [-0, +1, -]
     pub fn pushNumber(lua: *Lua, n: Lua.Number) void {
-        c.lua_pushnumber(asState(lua), @floatCast(n));
+        return c.lua_pushnumber(asState(lua), @floatCast(n));
+    }
+
+    /// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
+    /// so the provided slice can be freed or reused immediately after the function returns. The given string cannot
+    /// contain embedded zeros; it is assumed to end at the first zero ('\x00') byte.
+    ///
+    /// From: void lua_pushstring(lua_State *L, const char *s);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushstring
+    /// Stack Behavior: [-0, +1, m]
+    pub fn pushString(lua: *Lua, string: [*:0]const u8) void {
+        return c.lua_pushstring(asState(lua), @ptrCast(string));
+    }
+
+    /// Converts the Lua value at the given acceptable index to a string. The value at the specified index
+    /// must be a string or a number. If the value is a number, this function also changes the actual value
+    /// in the stack to a string. If the value at the specified index is not a string or a number, an error
+    /// will be returned.
+    ///
+    /// Returns a slice of a string inside the Lua instance. This string will not contain any zero ('\x00')
+    /// bytes except for the terminating byte. Because Lua has garbage collection, there is no
+    /// guarantee that the returned slice will be valid when the corresponding value is removed from the stack.
+    ///
+    /// Callers should avoid using `toString()` while traversing tables, since this function may change the value
+    /// on the stack and alter the behavior of (or break) the traversal.
+    ///
+    /// From: const char *lua_tostring(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tostring
+    /// Stack Behavior: [-0, +0, m]
+    pub fn toString(lua: *Lua, index: i32) error{NotStringOrNumber}![*:0]const u8 {
+        const string: ?[*:0]const u8 = c.lua_tolstring(asState(lua), index, null);
+        if (string) |s| {
+            return s;
+        } else {
+            return error.NotStringOrNumber;
+        }
+    }
+
+    /// Pushes the bytes in the given slice onto the stack as a string. Lua makes (or reuses) an internal
+    /// copy of the given string, so the provided slice may freed or reused immediately after the function returns.
+    /// The string may contain embedded zeros, it is not interpreted as a c-style string ending at the first zero.
+    ///
+    /// From: void lua_pushlstring(lua_State *L, const char *s, size_t len);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlstring
+    /// Stack Behavior: [-0, +1, m]
+    pub fn pushLString(lua: *Lua, string: []const u8) void {
+        return c.lua_pushlstring(asState(lua), @ptrCast(string.ptr), @intCast(string.len));
+    }
+
+    /// Converts the Lua value at the given acceptable index to a string. The value at the specified index
+    /// must be a string or a number. If the value is a number, this function also changes the actual value
+    /// in the stack to a string. If the value at the specified index is not a string or a number, an error
+    /// will be returned.
+    ///
+    /// Returns zero-terminated slice pointing to a string inside the Lua instance. This string may contain
+    /// any number of zero ('\x00') bytes within it in addition to the terminating byte. Because Lua has garbage
+    /// collection, there is no guarantee that the returned slice will be valid when the corresponding value
+    /// is removed from the stack.
+    ///
+    /// Callers should avoid using `toString()` while traversing tables, since this function may change the value
+    /// on the stack and alter the behavior of (or break) the traversal.
+    ///
+    /// From: const char *lua_tolstring(lua_State *L, int index, size_t *len);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tolstring
+    /// Stack Behavior: [-0, +0, m]
+    pub fn toLString(lua: *Lua, index: i32) error{NotStringOrNumber}![:0]const u8 {
+        var len: usize = undefined;
+        const string: ?[*]const u8 = c.lua_tolstring(asState(lua), index, &len);
+        if (string) |s| {
+            return s[0..len :0];
+        } else {
+            return error.NotStringOrNumber;
+        }
     }
 
     /// Pops n elements from the stack.
@@ -432,6 +504,14 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expect(!lua.isUserdata(1));
     lua.pop(1);
 
+    lua.pushString("abc");
+    try std.testing.expect(lua.isString(1));
+    lua.pop(1);
+
+    lua.pushLString("abc");
+    try std.testing.expect(lua.isString(1));
+    lua.pop(1);
+
     try std.testing.expectEqualSlices(u8, "no value", lua.typeName(Lua.Type.None));
     try std.testing.expectEqualSlices(u8, "nil", lua.typeName(Lua.Type.Nil));
     try std.testing.expectEqualSlices(u8, "boolean", lua.typeName(Lua.Type.Boolean));
@@ -454,6 +534,49 @@ test {
     try std.testing.expect(lua.isBoolean(1) and lua.isBoolean(-2));
     try std.testing.expect(lua.isNumber(2) and lua.isNumber(-1));
     lua.pop(2);
+}
+
+test "zero terminated strings" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected: [*:0]const u8 = "abc\x00def";
+
+    lua.pushString(expected);
+    const actual = try lua.toString(1);
+    const actual_len = std.mem.indexOfSentinel(u8, 0, actual);
+    const expected_len = std.mem.indexOfSentinel(u8, 0, expected);
+    try std.testing.expect(expected_len == actual_len);
+    try std.testing.expectEqualSlices(u8, expected[0..expected_len :0], actual[0..actual_len :0]);
+    lua.pop(1);
+}
+
+test "slices strings" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected: [:0]const u8 = "abc\x00def";
+
+    lua.pushLString(expected);
+    const actual = try lua.toLString(1);
+    try std.testing.expect(expected.len == actual.len);
+    try std.testing.expectEqualSlices(u8, expected, actual);
+    lua.pop(1);
+}
+
+test "slices strings to terminated strings" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected: [:0]const u8 = "abc\x00def";
+
+    lua.pushLString(expected);
+    const actual = try lua.toString(1);
+    const actual_len = std.mem.indexOfSentinel(u8, 0, actual);
+    try std.testing.expect(expected.len != actual_len);
+    try std.testing.expect(expected.len == 7);
+    try std.testing.expect(actual_len == 3);
+    lua.pop(1);
 }
 
 test "checkStack should return StackOverflow when requested space is too large" {

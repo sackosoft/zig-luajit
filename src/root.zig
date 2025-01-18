@@ -6,8 +6,6 @@ fn asState(lua: *Lua) *c.lua_State {
     return @ptrCast(lua);
 }
 
-const OutOfMemory = error{OutOfMemory};
-
 const aa = @import("allocator_adapter.zig");
 
 /// A Lua state represents the entire context of a Lua interpreter.
@@ -45,7 +43,7 @@ const Lua = opaque {
     ///
     /// Caller owns the returned Lua state and must call deinit() to free resources.
     ///
-    pub fn init(alloc: std.mem.Allocator) OutOfMemory!*Lua {
+    pub fn init(alloc: std.mem.Allocator) error{OutOfMemory}!*Lua {
         // alloc could be stack-allocated by the caller, but Lua requires a stable address.
         // We will create a pinned copy of the allocator on the heap.
         const ud = try alloc.create(aa.UserData);
@@ -56,17 +54,28 @@ const Lua = opaque {
         return if (lua) |p| p else error.OutOfMemory;
     }
 
-    /// Returns the memory-allocation function of a given state. If ud is not NULL, Lua stores in *ud
-    /// the opaque pointer passed to lua_newstate.
+    /// Returns the memory-allocation function and user data configured in the given lua instance.
+    /// If userdata is not NULL, Lua internally saves the user data pointer passed to lua_newstate.
     ///
     /// From: lua_Alloc lua_getallocf(lua_State *L, void **ud);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getallocf
     /// Stack Behavior: [-0, +0, -]
-    pub fn getAllocF(lua: *Lua) aa.AdapterData {
+    fn getAllocF(lua: *Lua) aa.AdapterData {
         var ad: aa.AdapterData = undefined;
         const alloc_fn = c.lua_getallocf(@ptrCast(lua), @ptrCast(&ad.userdata));
         ad.alloc_fn = @ptrCast(alloc_fn);
         return ad;
+    }
+
+    /// Changes the allocator function of the lua instance.
+    /// Changing the user data is currently prohibited. User data specified in the input will be ignored.
+    ///
+    /// From: void lua_setallocf(lua_State *L, lua_Alloc f, void *ud);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setallocf
+    /// Stack Behavior: [-0, +0, -]
+    fn setAllocF(lua: *Lua, f: *const aa.AllocFn) void {
+        const current = lua.getAllocF();
+        c.lua_setallocf(asState(lua), f, current.userdata);
     }
 
     /// Closes the Lua state and frees all resources.
@@ -411,42 +420,20 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expectEqualSlices(u8, "thread", lua.typeName(Lua.Type.Thread));
 }
 
-test {
+test "checkStack should return StackOverflow when requested space is too large" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
     try std.testing.expectError(error.StackOverflow, lua.checkStack(9000));
 }
 
-// fn initOOM(alloc: std.mem.Allocator) OutOfMemory!*Lua {
-//     const alloc_copy = try alloc.create(std.mem.Allocator);
-//     errdefer alloc.destroy(alloc_copy);
-//     alloc_copy.* = alloc;
-//
-//     const lua: ?*Lua = @ptrCast(c.lua_newstate(allocator_adapter, alloc_copy));
-//     if (lua) |l| {
-//         // Replace the functional allocator with a dead allocator
-//         c.lua_setallocf(asState(l), allocator_adapter, alloc_copy);
-//         return l;
-//     } else {
-//         return error.OutOfMemory;
-//     }
-// }
-//
-// fn deinitOOM(lua: *Lua, alloc: std.mem.Allocator) void {
-//     var alloc_copy: ?*std.mem.Allocator = undefined;
-//     _ = c.lua_getallocf(@ptrCast(lua), @ptrCast(&alloc_copy)).?;
-//
-//     c.lua_close(@ptrCast(lua));
-//
-//     if (alloc_copy) |failing_allocator| {
-//         alloc.destroy(failing_allocator);
-//     }
-// }
-//
-// test {
-//     const lua = try initOOM(std.testing.allocator, std.testing.failing_allocator);
-//     defer deinitOOM(lua, std.testing.allocator);
-//
-//     try std.testing.expectError(error.OutOfMemory, lua.checkStack(500));
-// }
+test "checkStack should return OOM when allocation fails." {
+    const lua = try Lua.init(std.testing.allocator);
+    lua.setAllocF(aa.fail_alloc);
+    defer {
+        lua.setAllocF(aa.alloc);
+        lua.deinit();
+    }
+
+    try std.testing.expectError(error.OutOfMemory, lua.checkStack(100));
+}

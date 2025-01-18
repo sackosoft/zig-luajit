@@ -352,6 +352,20 @@ test "Lua type checking functions return true when stack contains value" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
+    lua.pushNumber(125);
+    lua.pushBoolean(true);
+    lua.pushNil();
+    try std.testing.expect(lua.isNil(-1));
+    try std.testing.expect(lua.isBoolean(-2));
+    try std.testing.expect(lua.isNumber(-3));
+    try std.testing.expect(lua.isNil(3));
+    try std.testing.expect(lua.isBoolean(2));
+    try std.testing.expect(lua.isNumber(1));
+    lua.pop(2);
+    try std.testing.expect(lua.isNumber(-1));
+    try std.testing.expect(lua.isNumber(1));
+    lua.pop(1);
+
     lua.pushNil();
     try std.testing.expect(lua.typeOf(1) == Lua.Type.Nil);
     try std.testing.expect(lua.isNil(1));

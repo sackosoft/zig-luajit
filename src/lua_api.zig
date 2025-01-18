@@ -125,14 +125,6 @@ pub const GcMode = enum(i32) {
     setStepMul = 7     // LUA_GCSETSTEPMUL: sets new step multiplier for collector
 };
 
-/// Returns the memory-allocation function of a given state. If ud is not NULL, Lua stores in *ud
-/// the opaque pointer passed to lua_newstate.
-///
-/// From: lua_Alloc lua_getallocf(lua_State *L, void **ud);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getallocf
-/// Stack Behavior: [-0, +0, -]
-pub fn getAllocF(lua: *Lua, ud: ?**anyopaque) *const AllocFunction;
-
 /// Pushes onto the stack the environment table of the value at the given index.
 ///
 /// From: void lua_getfenv(lua_State *L, int index);
@@ -481,13 +473,6 @@ pub fn replace(lua: *Lua, index: i32) void;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_resume
 /// Stack Behavior: [-?, +?, -]
 pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
-
-/// Changes the allocator function of a given state to the specified allocator with user data.
-///
-/// From: void lua_setallocf(lua_State *L, lua_Alloc f, void *ud);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setallocf
-/// Stack Behavior: [-0, +0, -]
-pub fn setAllocF(lua: *Lua, allocator: Alloc, user_data: *anyopaque) void;
 
 /// Pops a table from the stack and sets it as the new environment for the value at the given index.
 /// Returns true if the value is a function, thread, or userdata, otherwise returns false.

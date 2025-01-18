@@ -312,7 +312,17 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pop
     /// Stack Behavior: [-n, +0, -]
     pub fn pop(lua: *Lua, n: i32) void {
-        c.lua_pop(asState(lua), n);
+        return c.lua_pop(asState(lua), n);
+    }
+
+    /// Moves the top element into the given valid index, shifting up the elements above this index to open space.
+    /// Cannot be called with a pseudo-index, because a pseudo-index is not an actual stack position.
+    ///
+    /// From: void lua_insert(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_insert
+    /// Stack Behavior: [-1, +1, -]
+    pub fn insert(lua: *Lua, index: i32) void {
+        return c.lua_insert(asState(lua), index);
     }
 };
 
@@ -432,6 +442,18 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expectEqualSlices(u8, "function", lua.typeName(Lua.Type.Function));
     try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.Light_userdata));
     try std.testing.expectEqualSlices(u8, "thread", lua.typeName(Lua.Type.Thread));
+}
+
+test {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    lua.pushBoolean(true);
+    lua.insert(-2);
+    try std.testing.expect(lua.isBoolean(1) and lua.isBoolean(-2));
+    try std.testing.expect(lua.isNumber(2) and lua.isNumber(-1));
+    lua.pop(2);
 }
 
 test "checkStack should return StackOverflow when requested space is too large" {

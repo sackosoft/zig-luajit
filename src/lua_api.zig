@@ -172,14 +172,6 @@ pub fn getTable(lua: *Lua, index: i32) LuaType;
 /// Stack Behavior: [-0, +0, -]
 pub fn getTop(lua: *Lua) i32;
 
-/// Moves the top element into the given valid index, shifting up the elements above this index to open space.
-/// Cannot be called with a pseudo-index, because a pseudo-index is not an actual stack position.
-///
-/// From: void lua_insert(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_insert
-/// Stack Behavior: [-1, +1, -]
-pub fn insert(lua: *Lua, index: i32) void;
-
 /// The type used by the Lua API to represent integral values. 
 /// By default it is a signed integral type that the machine handles "comfortably".
 ///

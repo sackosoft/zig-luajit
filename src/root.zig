@@ -288,6 +288,7 @@ const Lua = opaque {
         return c.lua_pushboolean(asState(lua), @intFromBool(value));
     }
 
+    /// Errors indicating the actual type of a value found on the stack when attempting to find a boolean.
     pub const NotBooleanError = error{
         NoneIsNotBoolean,
         NilIsNotBoolean,
@@ -299,6 +300,17 @@ const Lua = opaque {
         UserdataIsNotBoolean,
         ThreadIsNotBoolean,
     };
+
+    /// Converts the Lua value at the given acceptable index to a boolean with strict type checking. Returns `true`
+    /// when the stack contains a `true` boolean value at the specified index. Returns `false` when the stack contains
+    /// a `false` boolean value at the specified index. Otherwise an error indicating the type of unexpected value found
+    /// on the stack at the specified index.
+    ///
+    /// Callers may use `toBoolean()` when seeking only to check the "truthyness" of the value on the stack at the
+    /// specified index.
+    ///
+    /// (zig-luajit extension method)
+    /// Stack Behavior: [-0, +0, -]
     pub fn toBooleanStrict(lua: *Lua, index: i32) NotBooleanError!bool {
         return switch (lua.typeOf(index)) {
             .Boolean => lua.toBoolean(index),
@@ -315,7 +327,7 @@ const Lua = opaque {
         };
     }
 
-    /// Converts the Lua value at the given acceptable index to a boolean value (0 or 1). This function checks for the
+    /// Converts the Lua value at the given acceptable index to a boolean. This function checks for the
     /// "truthyness" of the value on the stack. Returns `true` for any Lua value different from false and nil; otherwise
     /// returns `false`. Returns `false` when called with a non-valid index.
     ///
@@ -358,6 +370,19 @@ const Lua = opaque {
         return c.lua_pushstring(asState(lua), @ptrCast(string));
     }
 
+    /// Errors indicating the actual type of a value found on the stack when attempting to find a string.
+    /// Numbers are implicitly converted to strings and this conversion is not defined as an error by the underlying API.
+    pub const NotStringError = error{
+        NoneIsNotString,
+        NilIsNotString,
+        BooleanIsNotString,
+        LightUserdataIsNotString,
+        TableIsNotString,
+        FunctionIsNotString,
+        UserdataIsNotString,
+        ThreadIsNotString,
+    };
+
     /// Converts the Lua value at the given acceptable index to a string. The value at the specified index
     /// must be a string or a number. If the value is a number, this function also changes the actual value
     /// in the stack to a string. If the value at the specified index is not a string or a number, an error
@@ -378,7 +403,7 @@ const Lua = opaque {
         if (string) |s| {
             return s;
         } else {
-            return error.ValueNotConvertableToString;
+            return typeIsNotString(lua.typeOf(index));
         }
     }
 
@@ -409,14 +434,29 @@ const Lua = opaque {
     /// From: const char *lua_tolstring(lua_State *L, int index, size_t *len);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tolstring
     /// Stack Behavior: [-0, +0, m]
-    pub fn toLString(lua: *Lua, index: i32) error{ValueNotConvertableToString}![:0]const u8 {
+    pub fn toLString(lua: *Lua, index: i32) NotStringError![:0]const u8 {
         var len: usize = undefined;
         const string: ?[*]const u8 = c.lua_tolstring(asState(lua), index, &len);
         if (string) |s| {
             return s[0..len :0];
         } else {
-            return error.ValueNotConvertableToString;
+            return typeIsNotString(lua.typeOf(index));
         }
+    }
+
+    fn typeIsNotString(t: Lua.Type) NotStringError {
+        return switch (t) {
+            .Number, .String => unreachable,
+
+            .None => error.NoneIsNotString,
+            .Nil => error.NilIsNotString,
+            .Boolean => error.BooleanIsNotString,
+            .LightUserdata => error.LightUserdataIsNotString,
+            .Table => error.TableIsNotString,
+            .Function => error.FunctionIsNotString,
+            .Userdata => error.UserdataIsNotString,
+            .Thread => error.ThreadIsNotString,
+        };
     }
 
     /// Pops n elements from the stack.

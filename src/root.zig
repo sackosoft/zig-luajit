@@ -24,7 +24,7 @@ const Lua = opaque {
         None = c.LUA_TNONE,
         Nil = c.LUA_TNIL,
         Boolean = c.LUA_TBOOLEAN,
-        Light_userdata = c.LUA_TLIGHTUSERDATA,
+        LightUserdata = c.LUA_TLIGHTUSERDATA,
         Number = c.LUA_TNUMBER,
         String = c.LUA_TSTRING,
         Table = c.LUA_TTABLE,
@@ -210,7 +210,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_islightuserdata
     /// Stack Behavior: [-0, +0, -]
     pub fn isLightUserdata(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == Lua.Type.Light_userdata;
+        return lua.typeOf(index) == Lua.Type.LightUserdata;
     }
 
     /// Returns true if the value at the given acceptable index is a table, false otherwise.
@@ -288,6 +288,47 @@ const Lua = opaque {
         return c.lua_pushboolean(asState(lua), @intFromBool(value));
     }
 
+    pub const NotBooleanError = error{
+        NoneIsNotBoolean,
+        NilIsNotBoolean,
+        LightUserdataIsNotBoolean,
+        NumberIsNotBoolean,
+        StringIsNotBoolean,
+        TableIsNotBoolean,
+        FunctionIsNotBoolean,
+        UserdataIsNotBoolean,
+        ThreadIsNotBoolean,
+    };
+    pub fn toBooleanStrict(lua: *Lua, index: i32) NotBooleanError!bool {
+        return switch (lua.typeOf(index)) {
+            .Boolean => lua.toBoolean(index),
+
+            .None => error.NoneIsNotBoolean,
+            .Nil => error.NilIsNotBoolean,
+            .LightUserdata => error.LightUserdataIsNotBoolean,
+            .Number => error.NumberIsNotBoolean,
+            .String => error.StringIsNotBoolean,
+            .Table => error.TableIsNotBoolean,
+            .Function => error.FunctionIsNotBoolean,
+            .Userdata => error.UserdataIsNotBoolean,
+            .Thread => error.ThreadIsNotBoolean,
+        };
+    }
+
+    /// Converts the Lua value at the given acceptable index to a boolean value (0 or 1). This function checks for the
+    /// "truthyness" of the value on the stack. Returns `true` for any Lua value different from false and nil; otherwise
+    /// returns `false`. Returns `false` when called with a non-valid index.
+    ///
+    /// Callers may use `toBooleanStrict()` when seeking only to return the content of a boolean value on the stack.
+    /// Callers may also use `typeOf()` or `isBoolean()` to check the value on the stack before evaluating its value.
+    ///
+    /// From: int lua_toboolean(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_toboolean
+    /// Stack Behavior: [-0, +0, -]
+    pub fn toBoolean(lua: *Lua, index: i32) bool {
+        return 1 == c.lua_toboolean(asState(lua), index);
+    }
+
     /// Pushes the integer with value n onto the stack.
     ///
     /// From: void lua_pushinteger(lua_State *L, lua_Integer n);
@@ -332,12 +373,12 @@ const Lua = opaque {
     /// From: const char *lua_tostring(lua_State *L, int index);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tostring
     /// Stack Behavior: [-0, +0, m]
-    pub fn toString(lua: *Lua, index: i32) error{NotStringOrNumber}![*:0]const u8 {
+    pub fn toString(lua: *Lua, index: i32) error{ValueNotConvertableToString}![*:0]const u8 {
         const string: ?[*:0]const u8 = c.lua_tolstring(asState(lua), index, null);
         if (string) |s| {
             return s;
         } else {
-            return error.NotStringOrNumber;
+            return error.ValueNotConvertableToString;
         }
     }
 
@@ -368,13 +409,13 @@ const Lua = opaque {
     /// From: const char *lua_tolstring(lua_State *L, int index, size_t *len);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tolstring
     /// Stack Behavior: [-0, +0, m]
-    pub fn toLString(lua: *Lua, index: i32) error{NotStringOrNumber}![:0]const u8 {
+    pub fn toLString(lua: *Lua, index: i32) error{ValueNotConvertableToString}![:0]const u8 {
         var len: usize = undefined;
         const string: ?[*]const u8 = c.lua_tolstring(asState(lua), index, &len);
         if (string) |s| {
             return s[0..len :0];
         } else {
-            return error.NotStringOrNumber;
+            return error.ValueNotConvertableToString;
         }
     }
 
@@ -520,8 +561,41 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expectEqualSlices(u8, "string", lua.typeName(Lua.Type.String));
     try std.testing.expectEqualSlices(u8, "table", lua.typeName(Lua.Type.Table));
     try std.testing.expectEqualSlices(u8, "function", lua.typeName(Lua.Type.Function));
-    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.Light_userdata));
+    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.LightUserdata));
     try std.testing.expectEqualSlices(u8, "thread", lua.typeName(Lua.Type.Thread));
+}
+
+test "toBoolean and toBooleanStrict" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expect(!lua.toBoolean(1));
+    try std.testing.expectError(error.NoneIsNotBoolean, lua.toBooleanStrict(1));
+
+    lua.pushBoolean(true);
+    try std.testing.expect(lua.toBoolean(1));
+    try std.testing.expect(try lua.toBooleanStrict(1));
+    lua.pop(1);
+
+    lua.pushBoolean(false);
+    try std.testing.expect(!lua.toBoolean(1));
+    try std.testing.expect(!try lua.toBooleanStrict(1));
+    lua.pop(1);
+
+    lua.pushNil();
+    try std.testing.expect(!lua.toBoolean(1));
+    try std.testing.expectError(error.NilIsNotBoolean, lua.toBooleanStrict(1));
+    lua.pop(1);
+
+    lua.pushNumber(42);
+    try std.testing.expect(lua.toBoolean(1));
+    try std.testing.expectError(error.NumberIsNotBoolean, lua.toBooleanStrict(1));
+    lua.pop(1);
+
+    lua.pushString("Hello, world!");
+    try std.testing.expect(lua.toBoolean(1));
+    try std.testing.expectError(error.StringIsNotBoolean, lua.toBooleanStrict(1));
+    lua.pop(1);
 }
 
 test {

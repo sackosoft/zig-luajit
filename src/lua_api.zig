@@ -514,15 +514,6 @@ pub const Lua = opaque {};
 /// Stack Behavior: [-0, +0, -]
 pub fn status(lua: *Lua) i32;
 
-/// Converts the Lua value at the given acceptable index to a boolean value (0 or 1). 
-/// Returns 1 for any Lua value different from false and nil; otherwise returns 0. 
-/// Returns 0 when called with a non-valid index. 
-/// (If you want to accept only actual boolean values, use isBoolean to test the value's type.)
-///
-/// From: int lua_toboolean(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_toboolean
-/// Stack Behavior: [-0, +0, -]
-pub fn toBoolean(lua: *Lua, index: i32) bool;
 
 /// Converts a value at the given acceptable index to a C function. 
 /// That value must be a C function; otherwise, returns null.

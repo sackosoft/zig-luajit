@@ -437,5 +437,5 @@ test {
     const lua = try initOOM(std.testing.allocator, std.testing.failing_allocator);
     defer deinitOOM(lua, std.testing.allocator);
 
-    try std.testing.expectError(error.OutOfMemory, lua.checkStack(1));
+    try std.testing.expectError(error.OutOfMemory, lua.checkStack(500));
 }

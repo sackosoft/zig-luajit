@@ -24,17 +24,17 @@ const max = @alignOf(std.c.max_align_t);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Alloc
 pub fn alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) callconv(.C) ?*align(max) anyopaque {
     const allocator: *std.mem.Allocator = @ptrCast(@alignCast(ud.?));
+    const aligned_ptr = @as(?[*]align(max) u8, @ptrCast(@alignCast(ptr)));
+    if (aligned_ptr) |p| {
+        if (nsize != 0) {
+            const old_mem = p[0..osize];
+            return (allocator.realloc(old_mem, nsize) catch return null).ptr;
+        }
 
-    // Free case
-    if (nsize == 0) {
-        if (ptr) |p| allocator.free(@as([*]align(max) u8, @ptrCast(@alignCast(p)))[0..osize]);
+        allocator.free(p[0..osize]);
         return null;
+    } else {
+        // Malloc case
+        return (allocator.alignedAlloc(u8, max, nsize) catch return null).ptr;
     }
-
-    // Malloc case
-    if (ptr == null) return (allocator.alignedAlloc(u8, max, nsize) catch return null).ptr;
-
-    // Realloc case
-    const old_mem = @as([*]align(max) u8, @ptrCast(@alignCast(ptr.?)))[0..osize];
-    return (allocator.realloc(old_mem, nsize) catch return null).ptr;
 }

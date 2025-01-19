@@ -350,6 +350,7 @@ const Lua = opaque {
         return c.lua_pushinteger(asState(lua), @intCast(n));
     }
 
+    /// Errors indicating the actual type of a value found on the stack when attempting to find a number.
     pub const NotNumberError = error{
         StringIsNotNumber,
         NoneIsNotNumber,
@@ -362,20 +363,19 @@ const Lua = opaque {
         ThreadIsNotNumber,
     };
 
-    /// Converts the Lua value at the given acceptable index to the signed integral type lua_Integer.
-    ///
-    /// Strings may be automatically coerced to integer (see https://www.lua.org/manual/5.1/manual.html#2.2.1).
-    /// If the value at the specified index on the stack is not a string or a number, the value `0` is returned.
-    /// If the value is a floating point number, it is truncated in some non-specified way.
+    /// Converts the Lua value at the given acceptable index to the signed integral type lua_Integer. If
+    /// the value at the specified index on the stack is not an integer or number, an error is returned.
     ///
     /// From: lua_Integer lua_tointeger(lua_State *L, int index);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
     /// Stack Behavior: [-0, +0, -]
     pub fn toIntegerStrict(lua: *Lua, index: i32) NotNumberError!Lua.Integer {
-        return switch (lua.typeOf(index)) {
-            Lua.Type.Number => c.lua_tointeger(asState(lua), index),
-            else => |t| typeIsNotNumber(t),
-        };
+        const t = lua.typeOf(index);
+        if (t == Lua.Type.Number) {
+            return c.lua_tointeger(asState(lua), index);
+        } else {
+            return typeIsNotNumber(t);
+        }
     }
 
     fn typeIsNotNumber(t: Lua.Type) NotNumberError {
@@ -413,6 +413,32 @@ const Lua = opaque {
     /// Stack Behavior: [-0, +1, -]
     pub fn pushNumber(lua: *Lua, n: Lua.Number) void {
         return c.lua_pushnumber(asState(lua), @floatCast(n));
+    }
+
+    /// Converts the Lua value at the given acceptable index to a Number. If the value at the specified
+    /// index is not an integer or a number, an error is returned.
+    ///
+    /// From: lua_Number lua_tonumber(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
+    /// Stack Behavior: [-0, +0, -]
+    pub fn toNumberStrict(lua: *Lua, index: i32) NotNumberError!Lua.Number {
+        const t = lua.typeOf(index);
+        if (t == Lua.Type.Number) {
+            return c.lua_tonumber(asState(lua), index);
+        } else {
+            return typeIsNotNumber(t);
+        }
+    }
+
+    /// Converts the Lua value at the given acceptable index to a Number. The Lua value must be a number
+    /// or a string convertible to a number (see https://www.lua.org/manual/5.1/manual.html#2.2.1);
+    /// otherwise, returns 0.
+    ///
+    /// From: lua_Number lua_tonumber(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
+    /// Stack Behavior: [-0, +0, -]
+    pub fn toNumber(lua: *Lua, index: i32) Lua.Number {
+        return c.lua_tonumber(asState(lua), index);
     }
 
     /// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
@@ -724,6 +750,44 @@ test "toInteger and toIntegerStrict" {
     lua.pushNil();
     try std.testing.expectEqual(0, lua.toInteger(1));
     try std.testing.expectError(error.NilIsNotNumber, lua.toIntegerStrict(1));
+    lua.pop(1);
+}
+
+test "toNumber and toNumberStrict" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expectEqual(0.0, lua.toNumber(1));
+    try std.testing.expectError(error.NoneIsNotNumber, lua.toNumberStrict(1));
+
+    lua.pushInteger(10);
+    try std.testing.expectEqual(10.0, lua.toNumber(1));
+    try std.testing.expectEqual(10.0, try lua.toNumberStrict(1));
+    lua.pop(1);
+
+    lua.pushNumber(10.2);
+    try std.testing.expectEqual(10.2, lua.toNumber(1));
+    try std.testing.expectEqual(10.2, try lua.toNumberStrict(1));
+    lua.pop(1);
+
+    lua.pushString("45");
+    try std.testing.expectEqual(45.0, lua.toNumber(1));
+    try std.testing.expectError(error.StringIsNotNumber, lua.toNumberStrict(1));
+    lua.pop(1);
+
+    lua.pushString("45.54");
+    try std.testing.expectEqual(45.54, lua.toNumber(1));
+    try std.testing.expectError(error.StringIsNotNumber, lua.toNumberStrict(1));
+    lua.pop(1);
+
+    lua.pushBoolean(false);
+    try std.testing.expectEqual(0, lua.toNumber(1));
+    try std.testing.expectError(error.BooleanIsNotNumber, lua.toNumberStrict(1));
+    lua.pop(1);
+
+    lua.pushNil();
+    try std.testing.expectEqual(0, lua.toNumber(1));
+    try std.testing.expectError(error.NilIsNotNumber, lua.toNumberStrict(1));
     lua.pop(1);
 }
 

@@ -524,18 +524,6 @@ pub fn status(lua: *Lua) i32;
 pub fn toCFunction(lua: *Lua, index: i32) ?*const fn(*Lua) i32;
 
 
-
-
-
-/// Converts the Lua value at the given acceptable index to a Number. The Lua value must be a number
-/// or a string convertible to a number (see https://www.lua.org/manual/5.1/manual.html#2.2.1);
-/// otherwise, returns 0.
-///
-/// From: lua_Number lua_tonumber(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
-/// Stack Behavior: [-0, +0, -]
-pub fn toNumber(lua: *Lua, index: i32) f64;
-
 /// Converts the value at the given acceptable index to a generic pointer. The value can be a userdata,
 /// a table, a thread, or a function; otherwise, returns null. Different objects will give different pointers.
 /// There is no way to convert the pointer back to its original value. Typically this function is used

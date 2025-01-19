@@ -541,6 +541,27 @@ const Lua = opaque {
         };
     }
 
+    /// Creates a new empty table and pushes it onto the stack. It is equivalent to calling `createTable` with
+    /// initial array and hash table sizes of 0.
+    ///
+    /// From: void lua_newtable(lua_State *L);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newtable
+    /// Stack Behavior: [-0, +1, m]
+    pub fn newTable(lua: *Lua) void {
+        return c.lua_newtable(asState(lua));
+    }
+
+    /// Creates a new empty table and pushes it onto the stack. The new table has space pre-allocated
+    /// for `n_array` array elements and `n_hash` non-array elements. This pre-allocation is useful when you
+    /// know exactly how many elements the table will have. Otherwise you can use the `newTable` function.
+    ///
+    /// From: void lua_createtable(lua_State *L, int narr, int nrec);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_createtable
+    /// Stack Behavior: [-0, +1, m]
+    pub fn createTable(lua: *Lua, n_array: i32, n_hash: i32) void {
+        return c.lua_createtable(asState(lua), n_array, n_hash);
+    }
+
     /// Pops n elements from the stack.
     ///
     /// From: void lua_pop(lua_State *L, int n);
@@ -673,6 +694,16 @@ test "Lua type checking functions return true when stack contains value" {
 
     lua.pushLString("abc");
     try std.testing.expect(lua.isString(1));
+    lua.pop(1);
+
+    lua.newTable();
+    try std.testing.expect(lua.isTable(1));
+    try std.testing.expectEqual(Lua.Type.Table, lua.typeOf(1));
+    lua.pop(1);
+
+    lua.createTable(1, 0);
+    try std.testing.expect(lua.isTable(1));
+    try std.testing.expectEqual(Lua.Type.Table, lua.typeOf(1));
     lua.pop(1);
 
     try std.testing.expectEqualSlices(u8, "no value", lua.typeName(Lua.Type.None));

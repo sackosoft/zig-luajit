@@ -67,15 +67,6 @@ pub fn concat(lua: *Lua, n: i32) void;
 /// Stack Behavior: [-0, +(0|1), -]
 pub fn cpCall(lua: *Lua, func: CFn, userdata: ?*anyopaque) LuaError;
 
-/// Creates a new empty table and pushes it onto the stack. The new table has space pre-allocated
-/// for narr array elements and nrec non-array elements. This pre-allocation is useful when you
-/// know exactly how many elements the table will have. Otherwise you can use the function lua_newtable.
-///
-/// From: void lua_createtable(lua_State *L, int narr, int nrec);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_createtable
-/// Stack Behavior: [-0, +1, m]
-pub fn createTable(lua: *Lua, array_elements: i32, hash_elements: i32) void;
-
 /// Dumps a function as a binary chunk. Receives a Lua function on the top of the stack and produces a
 /// binary chunk that, if loaded again, results in a function equivalent to the one dumped. As it produces
 /// parts of the chunk, lua_dump calls function writer (see https://www.lua.org/manual/5.1/manual.html#lua_Writer)
@@ -209,14 +200,6 @@ pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]co
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newstate
 /// Stack Behavior: [-0, +0, -]
 pub fn newState(allocator: Alloc, userData: ?*anyopaque) ?*Lua;
-
-/// Creates a new empty table and pushes it onto the stack. 
-/// It is equivalent to calling createTable with initial array and hash table sizes of 0.
-///
-/// From: void lua_newtable(lua_State *L);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newtable
-/// Stack Behavior: [-0, +1, m]
-pub fn newTable(lua: *Lua) void;
 
 /// Creates a new thread, pushes it on the stack, and returns a pointer to a Lua state that represents this new thread.
 /// The new state shares all global objects (such as tables) with the original state, but has an independent execution stack.

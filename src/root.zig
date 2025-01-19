@@ -398,7 +398,7 @@ const Lua = opaque {
     /// From: const char *lua_tostring(lua_State *L, int index);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tostring
     /// Stack Behavior: [-0, +0, m]
-    pub fn toString(lua: *Lua, index: i32) error{ValueNotConvertableToString}![*:0]const u8 {
+    pub fn toString(lua: *Lua, index: i32) NotStringError![*:0]const u8 {
         const string: ?[*:0]const u8 = c.lua_tolstring(asState(lua), index, null);
         if (string) |s| {
             return s;
@@ -690,6 +690,20 @@ test "slices strings to terminated strings" {
     try std.testing.expect(expected.len != actual_len);
     try std.testing.expect(expected.len == 7);
     try std.testing.expect(actual_len == 3);
+    lua.pop(1);
+}
+
+test "toString errors" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushNil();
+    lua.pushBoolean(true);
+    try std.testing.expectError(error.BooleanIsNotString, lua.toString(-1));
+    try std.testing.expectError(error.BooleanIsNotString, lua.toLString(-1));
+    lua.pop(1);
+    try std.testing.expectError(error.NilIsNotString, lua.toLString(-1));
+    try std.testing.expectError(error.NilIsNotString, lua.toLString(-1));
     lua.pop(1);
 }
 

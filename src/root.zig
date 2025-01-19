@@ -967,4 +967,7 @@ test "tables" {
 
     lua.pushInteger(1);
     try std.testing.expectEqual(Lua.Type.String, lua.getTable(-2));
+    lua.pop(1);
+    lua.pushInteger(1);
+    try std.testing.expectEqual(Lua.Type.String, lua.getTableRaw(-2));
 }

@@ -228,24 +228,7 @@ pub const Number = f64;
 
 
 
-/// Calls a function in protected mode. If there are no errors during the call, behaves exactly like lua_call.
-/// However, if there is any error, catches it, pushes a single value on the stack (the error message),
-/// and returns an error code. Always removes the function and its arguments from the stack.
-///
-/// If `errfunc` is 0, the error message returned on the stack is exactly the original error message.
-/// Otherwise, `errfunc` is the stack index of an error handler function. In case of runtime errors,
-/// this function will be called with the error message and its return value will be the message returned
-/// on the stack. Typically used to add more debug information to the error message.
-///
-/// Returns 0 on success or one of the following error codes:
-/// - LUA_ERRRUN: runtime error
-/// - LUA_ERRMEM: memory allocation error
-/// - LUA_ERRERR: error while running the error handler function
-///
-/// From: int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pcall
-/// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
-pub fn pCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) LuaError;
+
 
 /// Pushes a new C closure onto the stack. When a C function is created, it is possible to associate
 /// some values with it, thus creating a C closure (see https://www.lua.org/manual/5.1/manual.html#3.4);

@@ -228,6 +228,19 @@ const Lua = opaque {
         return lua.typeOf(index) == Lua.Type.Thread;
     }
 
+    /// Returns true if the value at the given acceptable index is a number and an integer; that is, the number
+    /// has no fractional part.
+    ///
+    /// (zig-luajit extension method)
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn isInteger(lua: *Lua, index: i32) bool {
+        return lua.isNumber(index) //
+        and blk: {
+            const n = lua.toNumber(index);
+            break :blk n == @as(Lua.Number, @floatFromInt(@as(Lua.Integer, @intFromFloat(n))));
+        };
+    }
+
     /// Returns true if the value at the given acceptable index is a number or a string convertible to a number,
     /// false otherwise.
     ///
@@ -363,6 +376,7 @@ const Lua = opaque {
     /// Converts the Lua value at the given acceptable index to the signed integral type `Lua.Integer`. If
     /// the value at the specified index on the stack is not an integer or number, an error is returned.
     ///
+    /// (zig-luajit extension method)
     /// From: lua_Integer lua_tointeger(lua_State *L, int index);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
     /// Stack Behavior: `[-0, +0, -]`
@@ -415,6 +429,7 @@ const Lua = opaque {
     /// Converts the Lua value at the given acceptable index to a Number. If the value at the specified
     /// index is not an integer or a number, an error is returned.
     ///
+    /// (zig-luajit extension method)
     /// From: lua_Number lua_tonumber(lua_State *L, int index);
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
     /// Stack Behavior: `[-0, +0, -]`
@@ -667,6 +682,7 @@ test "Lua type checking functions should work for an empty stack." {
     try std.testing.expect(!lua.isCFunction(1));
     try std.testing.expect(!lua.isFunction(1));
     try std.testing.expect(!lua.isLightUserdata(1));
+    try std.testing.expect(!lua.isInteger(1));
     try std.testing.expect(!lua.isNumber(1));
     try std.testing.expect(!lua.isString(1));
     try std.testing.expect(!lua.isTable(1));
@@ -718,6 +734,7 @@ test "Lua type checking functions return true when stack contains value" {
 
     lua.pushInteger(42);
     try std.testing.expect(lua.typeOf(1) == Lua.Type.Number);
+    try std.testing.expect(lua.isInteger(1));
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
     try std.testing.expect(!lua.isNil(1));
@@ -736,6 +753,7 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expect(lua.typeOf(1) == Lua.Type.Number);
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
+    try std.testing.expect(!lua.isInteger(1));
     try std.testing.expect(!lua.isNil(1));
     try std.testing.expect(!lua.isNoneOrNil(1));
     try std.testing.expect(!lua.isNone(1));

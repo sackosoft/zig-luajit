@@ -6,7 +6,7 @@
 ///
 /// From: lua_CFunction lua_atpanic(lua_State *L, lua_CFunction panicf);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_atpanic
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn atPanic(lua: *Lua, panicf: CFunction) CFunction;
 
 /// Calls a function. To call a function, first push the function onto the stack, then push its arguments 
@@ -19,7 +19,7 @@ pub fn atPanic(lua: *Lua, panicf: CFunction) CFunction;
 ///
 /// From: void lua_call(lua_State *L, int nargs, int nresults);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_call
-/// Stack Behavior: [-(nargs + 1), +nresults, e]
+/// Stack Behavior: `[-(nargs + 1), +nresults, e]`
 pub fn call(lua: *Lua, nargs: i32, nresults: i32) void;
 
 /// Type for C functions that can be called by Lua. A C function follows a specific protocol for
@@ -44,7 +44,7 @@ pub const CFunction = *const fn (lua: *Lua) i32;
 ///
 /// From: void lua_close(lua_State *L);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_close
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn close(lua: *Lua) void;
 
 /// Concatenates the n values at the top of the stack, pops them, and leaves the result at the top.
@@ -54,7 +54,7 @@ pub fn close(lua: *Lua) void;
 ///
 /// From: void lua_concat(lua_State *L, int n);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_concat
-/// Stack Behavior: [-n, +1, e]
+/// Stack Behavior: `[-n, +1, e]`
 pub fn concat(lua: *Lua, n: i32) void;
 
 /// Calls the C function `func` in protected mode. `func` starts with only one element in its stack,
@@ -64,7 +64,7 @@ pub fn concat(lua: *Lua, n: i32) void;
 ///
 /// From: int lua_cpcall(lua_State *L, lua_CFunction func, void *ud);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_cpcall
-/// Stack Behavior: [-0, +(0|1), -]
+/// Stack Behavior: `[-0, +(0|1), -]`
 pub fn cpCall(lua: *Lua, func: CFn, userdata: ?*anyopaque) LuaError;
 
 /// Dumps a function as a binary chunk. Receives a Lua function on the top of the stack and produces a
@@ -75,7 +75,7 @@ pub fn cpCall(lua: *Lua, func: CFn, userdata: ?*anyopaque) LuaError;
 ///
 /// From: int lua_dump(lua_State *L, lua_Writer writer, void *data);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_dump
-/// Stack Behavior: [-0, +0, m]
+/// Stack Behavior: `[-0, +0, m]`
 pub fn dump(lua: *Lua, writer: LuaWriter, data: *anyopaque) i32;
 
 /// Returns whether the two values in acceptable indices index1 and index2 are equal, 
@@ -84,7 +84,7 @@ pub fn dump(lua: *Lua, writer: LuaWriter, data: *anyopaque) i32;
 ///
 /// From: int lua_equal(lua_State *L, int index1, int index2);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_equal
-/// Stack Behavior: [-0, +0, e]
+/// Stack Behavior: `[-0, +0, e]`
 pub fn equal(lua: *Lua, index1: i32, index2: i32) bool;
 
 /// Generates a Lua error. The error message (which can actually be a Lua value of any type)
@@ -94,14 +94,14 @@ pub fn equal(lua: *Lua, index1: i32, index2: i32) bool;
 ///
 /// From: int lua_error(lua_State *L);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_error
-/// Stack Behavior: [-1, +0, v]
+/// Stack Behavior: `[-1, +0, v]`
 pub fn raiseError(lua: *Lua) noreturn;
 
 /// Controls the garbage collector with various tasks depending on the specified mode.
 ///
 /// From: int lua_gc(lua_State *L, int what, int data);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gc
-/// Stack Behavior: [-0, +0, e]
+/// Stack Behavior: `[-0, +0, e]`
 pub fn gc(lua: *Lua, what: GcMode, data: i32) i32;
 
 /// Represents the different garbage collection control modes
@@ -120,7 +120,7 @@ pub const GcMode = enum(i32) {
 ///
 /// From: void lua_getfenv(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getfenv
-/// Stack Behavior: [-0, +1, -]
+/// Stack Behavior: `[-0, +1, -]`
 pub fn getfenv(lua: *Lua, index: i32) void;
 
 /// Pushes onto the stack the value t[k], where t is the value at the given valid index.
@@ -128,14 +128,14 @@ pub fn getfenv(lua: *Lua, index: i32) void;
 ///
 /// From: void lua_getfield(lua_State *L, int index, const char *k);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getfield
-/// Stack Behavior: [-0, +1, e]
+/// Stack Behavior: `[-0, +1, e]`
 pub fn getField(lua: *Lua, index: i32, k: [:0]const u8) LuaType;
 
 /// Pushes onto the stack the value of the global name.
 ///
 /// From: void lua_getglobal(lua_State *L, const char *name);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getglobal
-/// Stack Behavior: [-0, +1, e]
+/// Stack Behavior: `[-0, +1, e]`
 pub fn getGlobal(lua: *Lua, name: [*:0]const u8) LuaType;
 
 /// Pushes onto the stack the metatable of the value at the given acceptable index. If the index is not valid,
@@ -143,25 +143,8 @@ pub fn getGlobal(lua: *Lua, name: [*:0]const u8) LuaType;
 ///
 /// From: int lua_getmetatable(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getmetatable
-/// Stack Behavior: [-0, +(0|1), -]
+/// Stack Behavior: `[-0, +(0|1), -]`
 pub fn getMetatable(lua: *Lua, index: i32) bool;
-
-/// Pushes onto the stack the value t[k], where t is the value at the given valid index and k is the value
-/// at the top of the stack. This function pops the key from the stack (putting the resulting value in its place).
-/// As in Lua, this function may trigger a metamethod for the "index" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
-///
-/// From: void lua_gettable(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gettable
-/// Stack Behavior: [-1, +1, e]
-pub fn getTable(lua: *Lua, index: i32) LuaType;
-
-/// Returns the index of the top element in the stack. Because indices start at 1,
-/// this result is equal to the number of elements in the stack (and so 0 means an empty stack).
-///
-/// From: int lua_gettop(lua_State *L);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gettop
-/// Stack Behavior: [-0, +0, -]
-pub fn getTop(lua: *Lua) i32;
 
 /// The type used by the Lua API to represent integral values. 
 /// By default it is a signed integral type that the machine handles "comfortably".
@@ -176,7 +159,7 @@ pub const Integer = isize;
 ///
 /// From: int lua_lessthan(lua_State *L, int index1, int index2);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_lessthan
-/// Stack Behavior: [-0, +0, e]
+/// Stack Behavior: `[-0, +0, e]`
 pub fn lessThan(lua: *Lua, index1: i32, index2: i32) bool;
 
 /// Loads a Lua chunk. If there are no errors, pushes the compiled chunk as a Lua function on top of the stack.
@@ -189,7 +172,7 @@ pub fn lessThan(lua: *Lua, index1: i32, index2: i32) bool;
 ///
 /// From: int lua_load(lua_State *L, lua_Reader reader, void *data, const char *chunkname);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_load
-/// Stack Behavior: [-0, +1, -]
+/// Stack Behavior: `[-0, +1, -]`
 pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]const u8) lua.Status;
 
 /// Creates a new, independent Lua state. Returns null if the state cannot be created due to lack of memory.
@@ -198,7 +181,7 @@ pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]co
 ///
 /// From: lua_State *lua_newstate(lua_Alloc f, void *ud);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newstate
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn newState(allocator: Alloc, userData: ?*anyopaque) ?*Lua;
 
 /// Creates a new thread, pushes it on the stack, and returns a pointer to a Lua state that represents this new thread.
@@ -207,7 +190,7 @@ pub fn newState(allocator: Alloc, userData: ?*anyopaque) ?*Lua;
 ///
 /// From: lua_State *lua_newthread(lua_State *L);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newthread
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn newThread(lua: *Lua) *Lua;
 
 /// Allocates a new block of memory with the given size, pushes onto the stack a new full userdata with the block
@@ -220,7 +203,7 @@ pub fn newThread(lua: *Lua) *Lua;
 ///
 /// From: void *lua_newuserdata(lua_State *L, size_t size);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newuserdata
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn newUserdata(lua: *Lua, size: usize) *anyopaque;
 
 /// Pops a key from the stack, and pushes a key-value pair from the table at the given index
@@ -233,7 +216,7 @@ pub fn newUserdata(lua: *Lua, size: usize) *anyopaque;
 ///
 /// From: int lua_next(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_next
-/// Stack Behavior: [-1, +(2|0), e]
+/// Stack Behavior: `[-1, +(2|0), e]`
 pub fn next(lua: *Lua, index: i32) bool;
 
 /// The type of numbers in Lua. By default, this is a double-precision floating point number,
@@ -252,7 +235,7 @@ pub const Number = f64;
 ///
 /// From: size_t lua_objlen(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_objlen
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn objLen(lua: *Lua, index: i32) usize;
 
 /// Calls a function in protected mode. If there are no errors during the call, behaves exactly like lua_call.
@@ -271,7 +254,7 @@ pub fn objLen(lua: *Lua, index: i32) usize;
 ///
 /// From: int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pcall
-/// Stack Behavior: [-(nargs + 1), +(nresults|1), -]
+/// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
 pub fn pCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) LuaError;
 
 /// Pushes a new C closure onto the stack. When a C function is created, it is possible to associate
@@ -284,7 +267,7 @@ pub fn pCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) LuaError;
 ///
 /// From: void lua_pushcclosure(lua_State *L, lua_CFunction fn, int n);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushcclosure
-/// Stack Behavior: [-n, +1, m]
+/// Stack Behavior: `[-n, +1, m]`
 pub fn pushCClosure(lua: *Lua, func: CFunction, n: i32) void;
 
 /// Pushes a C function onto the stack. This function receives a pointer to a C function and pushes 
@@ -294,7 +277,7 @@ pub fn pushCClosure(lua: *Lua, func: CFunction, n: i32) void;
 ///
 /// From: void lua_pushcfunction(lua_State *L, lua_CFunction f);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushcfunction
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn pushCFunction(lua: *Lua, f: CFunction) void;
 
 /// Pushes a light userdata onto the stack. Userdata represent C values in Lua. A light userdata 
@@ -304,7 +287,7 @@ pub fn pushCFunction(lua: *Lua, f: CFunction) void;
 ///
 /// From: void lua_pushlightuserdata(lua_State *L, void *p);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlightuserdata
-/// Stack Behavior: [-0, +1, -]
+/// Stack Behavior: `[-0, +1, -]`
 pub fn pushLightUserdata(lua: *Lua, p: *anyopaque) void;
 
 /// Pushes a string literal directly onto the stack. This is equivalent to `lua_pushlstring`, but can be used
@@ -312,21 +295,21 @@ pub fn pushLightUserdata(lua: *Lua, p: *anyopaque) void;
 ///
 /// From: void lua_pushliteral(lua_State *L, const char *s);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushliteral
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn pushLiteral(lua: *Lua, s: []const u8) void;
 
 /// Pushes the thread represented by L onto the stack. Returns 1 if this thread is the main thread of its state.
 ///
 /// From: int lua_pushthread(lua_State *L);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushthread
-/// Stack Behavior: [-0, +1, -]
+/// Stack Behavior: `[-0, +1, -]`
 pub fn pushThread(lua: *Lua) bool;
 
 /// Pushes a copy of the element at the given valid index onto the stack.
 ///
 /// From: void lua_pushvalue(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushvalue
-/// Stack Behavior: [-0, +1, -]
+/// Stack Behavior: `[-0, +1, -]`
 pub fn pushValue(lua: *Lua, index: i32) void;
 
 /// Pushes onto the stack a formatted string and returns a pointer to this string. Similar to the C function
@@ -336,14 +319,14 @@ pub fn pushValue(lua: *Lua, index: i32) void;
 ///
 /// From: const char *lua_pushfstring(lua_State *L, const char *fmt, ...);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushfstring
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn pushFString(lua: *Lua, comptime fmt: []const u8, ...) []const u8;
 
 /// Equivalent to pushFString, except that it receives a va_list instead of a variable number of arguments.
 ///
 /// From: const char *lua_pushvfstring(lua_State *L, const char *fmt, va_list argp);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushvfstring
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn pushVFString(lua: *Lua, fmt: [*]const u8, argp: std.builtin.VaList) [*]const u8;
 
 /// Returns whether the two values in acceptable indices are primitively equal (that is, without calling metamethods).
@@ -351,7 +334,7 @@ pub fn pushVFString(lua: *Lua, fmt: [*]const u8, argp: std.builtin.VaList) [*]co
 ///
 /// From: int lua_rawequal(lua_State *L, int index1, int index2);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawequal
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn rawEqual(lua: *Lua, index1: i32, index2: i32) bool;
 
 /// Pushes onto the stack the value t[n], where t is the value at the given valid index. 
@@ -359,29 +342,22 @@ pub fn rawEqual(lua: *Lua, index1: i32, index2: i32) bool;
 ///
 /// From: void lua_rawgeti(lua_State *L, int index, int n);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawgeti
-/// Stack Behavior: [-0, +1, -]
+/// Stack Behavior: `[-0, +1, -]`
 pub fn rawGetI(lua: *Lua, index: i32, n: i32) void;
-
-/// Similar to lua_gettable, but does a raw access (i.e., without metamethods).
-///
-/// From: void lua_rawget(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawget
-/// Stack Behavior: [-1, +1, -]
-pub fn rawGet(lua: *Lua, index: i32) LuaType;
 
 /// Does the equivalent of t[n] = v, where t is the value at the given valid index and v is the value
 /// at the top of the stack. The assignment is raw; that is, it does not invoke metamethods.
 ///
 /// From: void lua_rawseti(lua_State *L, int index, int n);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawseti
-/// Stack Behavior: [-1, +0, m]
+/// Stack Behavior: `[-1, +0, m]`
 pub fn rawSetI(lua: *Lua, index: i32, n: i32) void;
 
 /// Similar to `lua_settable`, but does a raw assignment (i.e., without metamethods).
 ///
 /// From: void lua_rawset(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawset
-/// Stack Behavior: [-2, +0, m]
+/// Stack Behavior: `[-2, +0, m]`
 pub fn rawSet(lua: *Lua, index: i32) void;
 
 /// A reader function type used by `lua_load` for loading chunks of code. The function is called repeatedly
@@ -397,7 +373,7 @@ pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]con
 ///
 /// From: void lua_register(lua_State *L, const char *name, lua_CFunction f);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_register
-/// Stack Behavior: [-0, +0, e]
+/// Stack Behavior: `[-0, +0, e]`
 pub fn register(lua: *Lua, name: [*:0]const u8, func: CFunction) void;
 
 /// Removes the element at the given valid index, shifting down the elements above this index to fill the gap.
@@ -405,7 +381,7 @@ pub fn register(lua: *Lua, name: [*:0]const u8, func: CFunction) void;
 ///
 /// From: void lua_remove(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_remove
-/// Stack Behavior: [-1, +0, -]
+/// Stack Behavior: `[-1, +0, -]`
 pub fn remove(lua: *Lua, index: i32) void;
 
 /// Moves the top element into the given position (and pops it), without shifting any element
@@ -413,7 +389,7 @@ pub fn remove(lua: *Lua, index: i32) void;
 ///
 /// From: void lua_replace(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_replace
-/// Stack Behavior: [-1, +0, -]
+/// Stack Behavior: `[-1, +0, -]`
 pub fn replace(lua: *Lua, index: i32) void;
 
 /// Starts and resumes a coroutine in a given thread. To start a coroutine, you first create a new thread
@@ -428,7 +404,7 @@ pub fn replace(lua: *Lua, index: i32) void;
 ///
 /// From: int lua_resume(lua_State *L, int narg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_resume
-/// Stack Behavior: [-?, +?, -]
+/// Stack Behavior: `[-?, +?, -]`
 pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 
 /// Pops a table from the stack and sets it as the new environment for the value at the given index.
@@ -436,7 +412,7 @@ pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 ///
 /// From: int lua_setfenv(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfenv
-/// Stack Behavior: [-1, +0, -]
+/// Stack Behavior: `[-1, +0, -]`
 pub fn setFenv(lua: *Lua, index: i32) bool;
 
 /// Does the equivalent to t[k] = v, where t is the value at the given valid index and v is the value at the 
@@ -445,38 +421,29 @@ pub fn setFenv(lua: *Lua, index: i32) bool;
 ///
 /// From: void lua_setfield(lua_State *L, int index, const char *k);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfield
-/// Stack Behavior: [-1, +0, e]
+/// Stack Behavior: `[-1, +0, e]`
 pub fn setField(lua: *Lua, index: i32, key: [:0]const u8) void;
 
 /// Pops a value from the stack and sets it as the new value of global `name`.
 ///
 /// From: void lua_setglobal(lua_State *L, const char *name);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setglobal
-/// Stack Behavior: [-1, +0, e]
+/// Stack Behavior: `[-1, +0, e]`
 pub fn setGlobal(lua: *Lua, name: [:0]const u8) void;
 
 /// Pops a table from the stack and sets it as the new metatable for the value at the given acceptable index.
 ///
 /// From: int lua_setmetatable(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setmetatable
-/// Stack Behavior: [-1, +0, -]
+/// Stack Behavior: `[-1, +0, -]`
 pub fn setMetatable(lua: *Lua, index: i32) i32;
-
-/// Does the equivalent to t[k] = v, where t is the value at the given valid index, v is the value at the top
-/// of the stack, and k is the value just below the top. This function pops both the key and the value from
-/// the stack. As in Lua, this function may trigger a metamethod for the "newindex" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
-///
-/// From: void lua_settable(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settable
-/// Stack Behavior: [-2, +0, e]
-pub fn setTable(lua: *Lua, index: i32) void;
 
 /// Accepts any acceptable index, or 0, and sets the stack top to this index. If the new top is larger
 /// than the old one, then the new elements are filled with nil. If index is 0, then all stack elements are removed.
 ///
 /// From: void lua_settop(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settop
-/// Stack Behavior: [-?, +?, -]
+/// Stack Behavior: `[-?, +?, -]`
 pub fn setTop(lua: *Lua, index: i32) void;
 
 /// Opaque structure that keeps the whole state of a Lua interpreter. The Lua library is fully reentrant:
@@ -494,7 +461,7 @@ pub const Lua = opaque {};
 ///
 /// From: int lua_status(lua_State *L);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_status
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn status(lua: *Lua) i32;
 
 
@@ -503,7 +470,7 @@ pub fn status(lua: *Lua) i32;
 ///
 /// From: lua_CFunction lua_tocfunction(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tocfunction
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn toCFunction(lua: *Lua, index: i32) ?*const fn(*Lua) i32;
 
 
@@ -514,7 +481,7 @@ pub fn toCFunction(lua: *Lua, index: i32) ?*const fn(*Lua) i32;
 ///
 /// From: const void *lua_topointer(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_topointer
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn toPointer(lua: *Lua, index: i32) ?*anyopaque;
 
 /// Converts the value at the given acceptable index to a Lua thread. This value must be a thread;
@@ -522,7 +489,7 @@ pub fn toPointer(lua: *Lua, index: i32) ?*anyopaque;
 ///
 /// From: lua_State *lua_tothread(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tothread
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn toThread(lua: *Lua, index: i32) ?*Lua;
 
 /// If the value at the given acceptable index is a full userdata, returns its block address.
@@ -530,7 +497,7 @@ pub fn toThread(lua: *Lua, index: i32) ?*Lua;
 ///
 /// From: void *lua_touserdata(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_touserdata
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn toUserdata(lua: *Lua, index: i32) ?*anyopaque;
 
 /// The type of the writer function used by lua_dump. Every time it produces another piece of chunk,
@@ -547,7 +514,7 @@ pub const Writer = *const fn (lua: *Lua, buffer: *const anyopaque, size: usize, 
 ///
 /// From: void lua_xmove(lua_State *from, lua_State *to, int n);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_xmove
-/// Stack Behavior: [-?, +?, -]
+/// Stack Behavior: `[-?, +?, -]`
 pub fn xmove(from: *Lua, to: *Lua, n: i32) void;
 
 /// Yields a coroutine. This function should only be called as the return expression of a C function.
@@ -557,5 +524,5 @@ pub fn xmove(from: *Lua, to: *Lua, n: i32) void;
 ///
 /// From: int lua_yield(lua_State *L, int nresults);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_yield
-/// Stack Behavior: [-?, +?, -]
+/// Stack Behavior: `[-?, +?, -]`
 pub fn yield(lua: *Lua, nresults: i32) i32;

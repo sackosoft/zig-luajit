@@ -3,21 +3,21 @@
 ///
 /// From: void luaL_addchar(luaL_Buffer *B, char c);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addchar
-/// Stack Behavior: [-0, +0, m]
+/// Stack Behavior: `[-0, +0, m]`
 pub fn addChar(buffer: *LuaBuffer, char: u8) void;
 
 /// Adds the string pointed to by `s` with length `l` to the buffer `B`. The string may contain embedded zeros.
 ///
 /// From: void luaL_addlstring(luaL_Buffer *B, const char *s, size_t l);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addlstring
-/// Stack Behavior: [-0, +0, m]
+/// Stack Behavior: `[-0, +0, m]`
 pub fn addLString(buffer: *Buffer, s: [*]const u8, l: usize) void;
 
 /// Adds to the buffer B a string of length n previously copied to the buffer area.
 ///
 /// From: void luaL_addsize(luaL_Buffer *B, size_t n);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addsize
-/// Stack Behavior: [-0, +0, m]
+/// Stack Behavior: `[-0, +0, m]`
 pub fn addSize(buffer: *Buffer, n: usize) void;
 
 /// Adds the zero-terminated string pointed to by s to the buffer B.
@@ -25,7 +25,7 @@ pub fn addSize(buffer: *Buffer, n: usize) void;
 ///
 /// From: void luaL_addstring(luaL_Buffer *B, const char *s);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addstring
-/// Stack Behavior: [-0, +0, m]
+/// Stack Behavior: `[-0, +0, m]`
 pub fn addString(buffer: *Buffer, s: [*:0]const u8) void;
 
 /// Adds the value at the top of the stack to the buffer B (see https://www.lua.org/manual/5.1/manual.html#luaL_Buffer).
@@ -34,7 +34,7 @@ pub fn addString(buffer: *Buffer, s: [*:0]const u8) void;
 ///
 /// From: void luaL_addvalue(luaL_Buffer *B);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addvalue
-/// Stack Behavior: [-1, +0, m]
+/// Stack Behavior: `[-1, +0, m]`
 pub fn addValue(buffer: *Buffer) void;
 
 /// Checks whether the condition is true. If not, raises an error with a specific message indicating
@@ -42,7 +42,7 @@ pub fn addValue(buffer: *Buffer) void;
 ///
 /// From: void luaL_argcheck(lua_State *L, int cond, int narg, const char *extramsg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argcheck
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn argCheck(lua: *Lua, condition: bool, arg_number: i32, extra_message: ?[]const u8) void;
 
 /// Raises an error with the message "bad argument #narg to func (extramsg)". The function
@@ -51,7 +51,7 @@ pub fn argCheck(lua: *Lua, condition: bool, arg_number: i32, extra_message: ?[]c
 ///
 /// From: int luaL_argerror(lua_State *L, int narg, const char *extramsg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argerror
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn argError(lua: *Lua, narg: i32, extramsg: []const u8) noreturn;
 
 /// Type for a string buffer. A string buffer allows building Lua strings piecemeal.
@@ -71,7 +71,7 @@ pub const Buffer = opaque {};
 ///
 /// From: void luaL_buffinit(lua_State *L, luaL_Buffer *B);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_buffinit
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
 
 /// Calls a metamethod. If the object at the given index has a metatable and this metatable has a
@@ -81,35 +81,35 @@ pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
 ///
 /// From: int luaL_callmeta(lua_State *L, int obj, const char *e);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_callmeta
-/// Stack Behavior: [-0, +(0|1), e]
+/// Stack Behavior: `[-0, +(0|1), e]`
 pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 
 /// Checks whether the function has an argument of any type (including nil) at the specified position.
 ///
 /// From: void luaL_checkany(lua_State *L, int narg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkany
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkAny(lua: *Lua, narg: i32) void;
 
 /// Checks whether the function argument `narg` is a number and returns this number cast to a `lua_Integer`.
 ///
 /// From: lua_Integer luaL_checkinteger(lua_State *L, int narg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkinteger
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkInteger(lua: *Lua, narg: i32) LuaInteger;
 
 /// Checks whether the function argument narg is a number and returns this number cast to an int.
 ///
 /// From: int luaL_checkint(lua_State *L, int narg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkint
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkInt(lua: *Lua, narg: i32) i32;
 
 /// Checks whether the function argument narg is a number and returns this number cast to a long.
 ///
 /// From: long luaL_checklong(lua_State *L, int narg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checklong
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkLong(lua: *Lua, narg: i32) c_long;
 
 /// Checks whether the function argument narg is a string and returns this string;
@@ -118,14 +118,14 @@ pub fn checkLong(lua: *Lua, narg: i32) c_long;
 ///
 /// From: const char *luaL_checklstring(lua_State *L, int narg, size_t *l);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checklstring
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkLString(lua: *Lua, narg: i32, length: ?*usize) [*:0]const u8;
 
 /// Checks whether the function argument narg is a number and returns this number.
 ///
 /// From: lua_Number luaL_checknumber(lua_State *L, int narg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checknumber
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkNumber(lua: *Lua, narg: i32) f64;
 
 /// Checks whether the function argument `narg` is a string and searches for this string in the array `lst`
@@ -137,7 +137,7 @@ pub fn checkNumber(lua: *Lua, narg: i32) f64;
 ///
 /// From: int luaL_checkoption(lua_State *L, int narg, const char *def, const char *const lst[]);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkoption
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkOption(lua: *Lua, narg: i32, def: ?[:0]const u8, lst: []const [:0]const u8) i32;
 
 /// Grows the stack size to top + sz elements, raising an error if the stack cannot grow to that size.
@@ -145,7 +145,7 @@ pub fn checkOption(lua: *Lua, narg: i32, def: ?[:0]const u8, lst: []const [:0]co
 ///
 /// From: void luaL_checkstack(lua_State *L, int sz, const char *msg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkstack
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkStack(lua: *Lua, sz: i32, msg: [*:0]const u8) void;
 
 /// Checks whether the function argument `narg` is a string and returns this string. 
@@ -153,7 +153,7 @@ pub fn checkStack(lua: *Lua, sz: i32, msg: [*:0]const u8) void;
 ///
 /// From: const char *luaL_checkstring(lua_State *L, int narg);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkstring
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkString(lua: *Lua, narg: i32) []const u8;
 
 /// Checks whether the function argument `narg` has type `t`.
@@ -161,14 +161,14 @@ pub fn checkString(lua: *Lua, narg: i32) []const u8;
 ///
 /// From: void luaL_checktype(lua_State *L, int narg, int t);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checktype
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkType(lua: *Lua, narg: i32, t: i32) void;
 
 /// Checks whether the function argument is a userdata of the specified type.
 ///
 /// From: void *luaL_checkudata(lua_State *L, int narg, const char *tname);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkudata
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn checkUserData(lua: *Lua, narg: i32, tname: [*:0]const u8) *anyopaque;
 
 /// Loads and runs the given file. It is equivalent to calling `luaL_loadfile(L, filename)` and then `lua_pcall(L, 0, LUA_MULTRET, 0)`.
@@ -176,7 +176,7 @@ pub fn checkUserData(lua: *Lua, narg: i32, tname: [*:0]const u8) *anyopaque;
 ///
 /// From: int luaL_dofile(lua_State *L, const char *filename);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dofile
-/// Stack Behavior: [-0, +?, m]
+/// Stack Behavior: `[-0, +?, m]`
 pub fn doFile(lua: *Lua, filename: [*:0]const u8) LuaError!void;
 
 /// Loads and runs the given string. If no errors occur, returns 0; otherwise, returns 1.
@@ -184,7 +184,7 @@ pub fn doFile(lua: *Lua, filename: [*:0]const u8) LuaError!void;
 ///
 /// From: int luaL_dostring(lua_State *L, const char *str);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dostring
-/// Stack Behavior: [-0, +?, m]
+/// Stack Behavior: `[-0, +?, m]`
 pub fn doString(lua: *Lua, str: [:0]const u8) LuaError!void;
 
 /// Raises an error with the given error message format and optional arguments. The error message follows
@@ -193,7 +193,7 @@ pub fn doString(lua: *Lua, str: [:0]const u8) LuaError!void;
 ///
 /// From: int luaL_error(lua_State *L, const char *fmt, ...);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_error
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn lError(lua: *Lua, comptime fmt: []const u8, ...) noreturn;
 
 /// Pushes onto the stack the field `e` from the metatable of the object at index `obj`.
@@ -202,14 +202,14 @@ pub fn lError(lua: *Lua, comptime fmt: []const u8, ...) noreturn;
 ///
 /// From: int luaL_getmetafield(lua_State *L, int obj, const char *e);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_getmetafield
-/// Stack Behavior: [-0, +(0|1), m]
+/// Stack Behavior: `[-0, +(0|1), m]`
 pub fn getMetaField(lua: *Lua, obj: i32, e: [:0]const u8) i32;
 
 /// Pushes onto the stack the metatable associated with name tname in the registry.
 ///
 /// From: void luaL_getmetatable(lua_State *L, const char *tname);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_getmetatable
-/// Stack Behavior: [-0, +1, -]
+/// Stack Behavior: `[-0, +1, -]`
 pub fn getMetatable(lua: *Lua, name: [*:0]const u8) void;
 
 /// Creates a copy of string s by replacing any occurrence of the string p with the string r.
@@ -217,7 +217,7 @@ pub fn getMetatable(lua: *Lua, name: [*:0]const u8) void;
 ///
 /// From: const char *luaL_gsub(lua_State *L, const char *s, const char *p, const char *r);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_gsub
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn gSub(lua: *Lua, s: []const u8, p: []const u8, r: []const u8) []const u8;
 
 /// Loads a buffer as a Lua chunk using lua_load to load the chunk in the buffer pointed to by buff with size sz.
@@ -225,7 +225,7 @@ pub fn gSub(lua: *Lua, s: []const u8, p: []const u8, r: []const u8) []const u8;
 ///
 /// From: int luaL_loadbuffer(lua_State *L, const char *buff, size_t sz, const char *name);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadbuffer
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn loadBuffer(lua: *Lua, buff: [*]const u8, sz: usize, name: [*:0]const u8) LuaError;
 
 /// Loads a file as a Lua chunk. Uses lua_load to load the chunk in the file named filename.
@@ -235,7 +235,7 @@ pub fn loadBuffer(lua: *Lua, buff: [*]const u8, sz: usize, name: [*:0]const u8) 
 ///
 /// From: int luaL_loadfile(lua_State *L, const char *filename);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadfile
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn loadFile(lua: *Lua, filename: ?[:0]const u8) LuaError;
 
 /// Loads a string as a Lua chunk using lua_load for the zero-terminated string.
@@ -243,7 +243,7 @@ pub fn loadFile(lua: *Lua, filename: ?[:0]const u8) LuaError;
 ///
 /// From: int luaL_loadstring(lua_State *L, const char *s);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadstring
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn loadString(lua: *Lua, source: [*:0]const u8) LuaError;
 
 /// If the registry already has the key tname, returns 0. Otherwise, creates a new table to be used as a
@@ -252,7 +252,7 @@ pub fn loadString(lua: *Lua, source: [*:0]const u8) LuaError;
 ///
 /// From: int luaL_newmetatable(lua_State *L, const char *tname);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_newmetatable
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn newMetatable(lua: *Lua, tname: [*:0]const u8) i32;
 
 /// Creates a new Lua state using the standard C realloc function for memory allocation and sets a default
@@ -260,14 +260,14 @@ pub fn newMetatable(lua: *Lua, tname: [*:0]const u8) i32;
 ///
 /// From: lua_State *luaL_newstate(void);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_newstate
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn newState() ?*Lua;
 
 /// Opens all standard Lua libraries into the given state.
 ///
 /// From: void luaL_openlibs(lua_State *L);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_openlibs
-/// Stack Behavior: [-0, +0, m]
+/// Stack Behavior: `[-0, +0, m]`
 pub fn openLibs(lua: *Lua) void;
 
 /// If the function argument narg is a number, returns this number cast to a lua_Integer.
@@ -275,7 +275,7 @@ pub fn openLibs(lua: *Lua) void;
 ///
 /// From: lua_Integer luaL_optinteger(lua_State *L, int narg, lua_Integer d);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optinteger
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn optInteger(lua: *Lua, narg: i32, default: LuaInteger) LuaInteger;
 
 /// If the function argument `narg` is a number, returns this number cast to an `i32`.
@@ -283,7 +283,7 @@ pub fn optInteger(lua: *Lua, narg: i32, default: LuaInteger) LuaInteger;
 ///
 /// From: int luaL_optint(lua_State *L, int narg, int d);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optint
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn optInt(lua: *Lua, narg: i32, default: i32) i32;
 
 /// If the function argument narg is a number, returns this number cast to a long.
@@ -292,7 +292,7 @@ pub fn optInt(lua: *Lua, narg: i32, default: i32) i32;
 ///
 /// From: long luaL_optlong(lua_State *L, int narg, long d);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optlong
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn optLong(lua: *Lua, narg: i32, default: i64) i64;
 
 /// If the function argument narg is a string, returns this string. If this argument is absent or is nil,
@@ -300,7 +300,7 @@ pub fn optLong(lua: *Lua, narg: i32, default: i64) i64;
 ///
 /// From: const char *luaL_optlstring(lua_State *L, int narg, const char *d, size_t *l);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optlstring
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn optLString(lua: *Lua, narg: i32, default: ?[]const u8, length: ?*usize) ?[]const u8;
 
 /// If the function argument is a number, returns this number. If the argument is absent or is nil, 
@@ -308,7 +308,7 @@ pub fn optLString(lua: *Lua, narg: i32, default: ?[]const u8, length: ?*usize) ?
 ///
 /// From: lua_Number luaL_optnumber(lua_State *L, int narg, lua_Number d);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optnumber
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn optNumber(lua: *Lua, narg: i32, default: f64) f64;
 
 /// If the function argument narg is a string, returns this string. If this argument is absent or is nil,
@@ -316,7 +316,7 @@ pub fn optNumber(lua: *Lua, narg: i32, default: f64) f64;
 ///
 /// From: const char *luaL_optstring(lua_State *L, int narg, const char *d);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optstring
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn optString(lua: *Lua, narg: i32, d: ?[:0]const u8) ?[:0]const u8;
 
 /// Returns an address to a space of size LUAL_BUFFERSIZE where you can copy a string to be added to buffer B.
@@ -325,14 +325,14 @@ pub fn optString(lua: *Lua, narg: i32, d: ?[:0]const u8) ?[:0]const u8;
 ///
 /// From: char *luaL_prepbuffer(luaL_Buffer *B);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_prepbuffer
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn prepBuffer(buffer: *Buffer) [*]u8;
 
 /// Finishes the use of buffer B leaving the final string on the top of the stack.
 ///
 /// From: void luaL_pushresult(luaL_Buffer *B);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_pushresult
-/// Stack Behavior: [-?, +1, m]
+/// Stack Behavior: `[-?, +1, m]`
 pub fn pushResult(buffer: *LuaBuffer) void;
 
 /// Creates and returns a reference, in the table at index t, for the object at the top of the stack (and pops the object).
@@ -344,7 +344,7 @@ pub fn pushResult(buffer: *LuaBuffer) void;
 ///
 /// From: int luaL_ref(lua_State *L, int t);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_ref
-/// Stack Behavior: [-1, +0, m]
+/// Stack Behavior: `[-1, +0, m]`
 pub fn ref(lua: *Lua, table_index: i32) i32;
 
 /// Opens a library. When called with libname equal to null, it simply registers all functions in the list l
@@ -356,7 +356,7 @@ pub fn ref(lua: *Lua, table_index: i32) i32;
 ///
 /// From: void luaL_register(lua_State *L, const char *libname, const luaL_Reg *l);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_register
-/// Stack Behavior: [-(0|1), +1, m]
+/// Stack Behavior: `[-(0|1), +1, m]`
 pub fn register(lua: *Lua, lib_name: ?[:0]const u8, funcs: []const LuaReg) void;
 
 /// Type for arrays of functions to be registered by `luaL_register`. 
@@ -375,7 +375,7 @@ pub const Reg = extern struct {
 ///
 /// From: const char *luaL_typename(lua_State *L, int index);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_typename
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn typeName(lua: *Lua, index: i32) ?[:0]const u8;
 
 /// Generates an error with a message like "location: bad argument narg to 'func' (tname expected, got rt)",
@@ -384,7 +384,7 @@ pub fn typeName(lua: *Lua, index: i32) ?[:0]const u8;
 ///
 /// From: int luaL_typerror(lua_State *L, int narg, const char *tname);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_typerror
-/// Stack Behavior: [-0, +0, v]
+/// Stack Behavior: `[-0, +0, v]`
 pub fn typeError(lua: *Lua, narg: i32, tname: [*:0]const u8) i32;
 
 /// Releases a reference from the table at a specified index. The entry is removed from the table, 
@@ -394,7 +394,7 @@ pub fn typeError(lua: *Lua, narg: i32, tname: [*:0]const u8) i32;
 ///
 /// From: void luaL_unref(lua_State *L, int t, int ref);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_unref
-/// Stack Behavior: [-0, +0, -]
+/// Stack Behavior: `[-0, +0, -]`
 pub fn unref(lua: *Lua, table_index: i32, reference: i32) void;
 
 /// Pushes onto the stack a string identifying the current position of the control at level `lvl` in the call stack.
@@ -404,5 +404,5 @@ pub fn unref(lua: *Lua, table_index: i32, reference: i32) void;
 ///
 /// From: void luaL_where(lua_State *L, int lvl);
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_where
-/// Stack Behavior: [-0, +1, m]
+/// Stack Behavior: `[-0, +1, m]`
 pub fn where(lua: *Lua, lvl: i32) void;

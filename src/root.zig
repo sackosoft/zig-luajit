@@ -624,6 +624,22 @@ const Lua = opaque {
     pub fn insert(lua: *Lua, index: i32) void {
         return c.lua_insert(asState(lua), index);
     }
+
+    /// Returns the "length" of the value at the given acceptable index:
+    /// * for strings, this is the string length;
+    /// * for numbers, after an implicit coversion to a string value this is the string length;
+    /// * for tables, this is the result of the length operator ('#');
+    /// * for userdata, this is the size of the block of memory allocated for the userdata;
+    /// * for other values, it is 0.
+    ///
+    /// Note: This function was renamed from `objlen` for clarity and discoverability.
+    ///
+    /// From: size_t lua_objlen(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_objlen
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn lengthOf(lua: *Lua, index: i32) usize {
+        return @intCast(c.lua_objlen(asState(lua), index));
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -970,4 +986,31 @@ test "tables" {
     lua.pop(1);
     lua.pushInteger(1);
     try std.testing.expectEqual(Lua.Type.String, lua.getTableRaw(-2));
+}
+
+test "lengthOf" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.newTable();
+    lua.pushInteger(1);
+    lua.pushString("Hello, world!");
+    lua.setTable(-3);
+    lua.pushInteger(2);
+    lua.pushString("Ayo");
+    try std.testing.expectEqual(3, lua.lengthOf(-1));
+    lua.setTable(-3);
+    try std.testing.expectEqual(2, lua.lengthOf(-1));
+    lua.pop(1);
+
+    lua.pushInteger(257);
+    try std.testing.expectEqual(3, lua.lengthOf(-1)); // Implicit conversion to string
+    lua.pop(1);
+    lua.pushNumber(145.125);
+    try std.testing.expectEqual(7, lua.lengthOf(-1)); // Implicit conversion to string
+    lua.pop(1);
+    try std.testing.expectEqual(0, lua.lengthOf(-1));
+    lua.pushNil();
+    try std.testing.expectEqual(0, lua.lengthOf(-1));
+    lua.pop(1);
 }

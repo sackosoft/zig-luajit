@@ -226,17 +226,7 @@ pub fn next(lua: *Lua, index: i32) bool;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Number
 pub const Number = f64;
 
-/// Returns the "length" of the value at the given acceptable index:
-/// for strings, this is the string length;
-/// for tables, this is the result of the length operator ('#');
-/// for userdata, this is the size of the block of memory allocated
-/// for the userdata;
-/// for other values, it is 0.
-///
-/// From: size_t lua_objlen(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_objlen
-/// Stack Behavior: `[-0, +0, -]`
-pub fn objLen(lua: *Lua, index: i32) usize;
+
 
 /// Calls a function in protected mode. If there are no errors during the call, behaves exactly like lua_call.
 /// However, if there is any error, catches it, pushes a single value on the stack (the error message),

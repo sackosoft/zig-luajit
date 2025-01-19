@@ -350,6 +350,62 @@ const Lua = opaque {
         return c.lua_pushinteger(asState(lua), @intCast(n));
     }
 
+    pub const NotNumberError = error{
+        StringIsNotNumber,
+        NoneIsNotNumber,
+        NilIsNotNumber,
+        BooleanIsNotNumber,
+        LightUserdataIsNotNumber,
+        TableIsNotNumber,
+        FunctionIsNotNumber,
+        UserdataIsNotNumber,
+        ThreadIsNotNumber,
+    };
+
+    /// Converts the Lua value at the given acceptable index to the signed integral type lua_Integer.
+    ///
+    /// Strings may be automatically coerced to integer (see https://www.lua.org/manual/5.1/manual.html#2.2.1).
+    /// If the value at the specified index on the stack is not a string or a number, the value `0` is returned.
+    /// If the value is a floating point number, it is truncated in some non-specified way.
+    ///
+    /// From: lua_Integer lua_tointeger(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
+    /// Stack Behavior: [-0, +0, -]
+    pub fn toIntegerStrict(lua: *Lua, index: i32) NotNumberError!Lua.Integer {
+        return switch (lua.typeOf(index)) {
+            Lua.Type.Number => c.lua_tointeger(asState(lua), index),
+            else => |t| typeIsNotNumber(t),
+        };
+    }
+
+    fn typeIsNotNumber(t: Lua.Type) NotNumberError {
+        return switch (t) {
+            .Number => unreachable,
+            .String => error.StringIsNotNumber,
+            .None => error.NoneIsNotNumber,
+            .Nil => error.NilIsNotNumber,
+            .Boolean => error.BooleanIsNotNumber,
+            .LightUserdata => error.LightUserdataIsNotNumber,
+            .Table => error.TableIsNotNumber,
+            .Function => error.FunctionIsNotNumber,
+            .Userdata => error.UserdataIsNotNumber,
+            .Thread => error.ThreadIsNotNumber,
+        };
+    }
+
+    /// Converts the Lua value at the given acceptable index to the signed integral type lua_Integer.
+    ///
+    /// Strings may be automatically coerced to integer (see https://www.lua.org/manual/5.1/manual.html#2.2.1).
+    /// If the value at the specified index on the stack is not a string or a number, the value `0` is returned.
+    /// If the value is a floating point number, it is truncated in some non-specified way.
+    ///
+    /// From: lua_Integer lua_tointeger(lua_State *L, int index);
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
+    /// Stack Behavior: [-0, +0, -]
+    pub fn toInteger(lua: *Lua, index: i32) Lua.Integer {
+        return c.lua_tointeger(asState(lua), index);
+    }
+
     /// Pushes the floating point number with value n onto the stack.
     ///
     /// From: void lua_pushnumber(lua_State *L, lua_Number n);
@@ -635,6 +691,39 @@ test "toBoolean and toBooleanStrict" {
     lua.pushString("Hello, world!");
     try std.testing.expect(lua.toBoolean(1));
     try std.testing.expectError(error.StringIsNotBoolean, lua.toBooleanStrict(1));
+    lua.pop(1);
+}
+
+test "toInteger and toIntegerStrict" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expectEqual(0, lua.toInteger(1));
+    try std.testing.expectError(error.NoneIsNotNumber, lua.toIntegerStrict(1));
+
+    lua.pushInteger(10);
+    try std.testing.expectEqual(10, lua.toInteger(1));
+    try std.testing.expectEqual(10, try lua.toIntegerStrict(1));
+    lua.pop(1);
+
+    lua.pushNumber(10.2);
+    try std.testing.expectEqual(10, lua.toInteger(1));
+    try std.testing.expectEqual(10, try lua.toIntegerStrict(1));
+    lua.pop(1);
+
+    lua.pushString("45");
+    try std.testing.expectEqual(45, lua.toInteger(1));
+    try std.testing.expectError(error.StringIsNotNumber, lua.toIntegerStrict(1));
+    lua.pop(1);
+
+    lua.pushBoolean(false);
+    try std.testing.expectEqual(0, lua.toInteger(1));
+    try std.testing.expectError(error.BooleanIsNotNumber, lua.toIntegerStrict(1));
+    lua.pop(1);
+
+    lua.pushNil();
+    try std.testing.expectEqual(0, lua.toInteger(1));
+    try std.testing.expectError(error.NilIsNotNumber, lua.toIntegerStrict(1));
     lua.pop(1);
 }
 

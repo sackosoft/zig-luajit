@@ -523,14 +523,7 @@ pub fn status(lua: *Lua) i32;
 /// Stack Behavior: [-0, +0, -]
 pub fn toCFunction(lua: *Lua, index: i32) ?*const fn(*Lua) i32;
 
-/// Converts the Lua value at the given acceptable index to the signed integral type lua_Integer.
-/// The Lua value must be a number or a string convertible to a number (see https://www.lua.org/manual/5.1/manual.html#2.2.1);
-/// otherwise, returns 0. If the number is not an integer, it is truncated in some non-specified way.
-///
-/// From: lua_Integer lua_tointeger(lua_State *L, int index);
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
-/// Stack Behavior: [-0, +0, -]
-pub fn toInteger(lua: *Lua, index: i32) i64;
+
 
 
 

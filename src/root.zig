@@ -776,14 +776,15 @@ const Lua = opaque {
     /// From: `int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pcall
     /// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
-    pub fn pCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) CallError!void {
-        const status: LuaStatus = @enumFromInt(c.lua_pcall(asState(lua), nargs, nresults, errfunc));
+    pub fn protectedCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) ProtectedCallError!void {
+        const res = c.lua_pcall(asState(lua), nargs, nresults, errfunc);
+        const status: LuaStatus = @enumFromInt(res);
         return switch (status) {
-            .OK => void,
+            .OK => return,
             .ERRRUN => error.Runtime,
             .ERRMEM => error.OutOfMemory,
             .ERRERR => error.ErrorHandlerFailure,
-            else => @panic("Lua returned unexpected status code from protected call" ++ status),
+            else => std.debug.panic("Lua returned unexpected status code from protected call: {d}\n", .{res}),
         };
     }
 };
@@ -1176,7 +1177,7 @@ fn dummyCClosure(lua: *Lua) callconv(.c) i32 {
     return 1;
 }
 
-test "c functions and closures" {
+test "c functions and closures with call" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -1194,6 +1195,30 @@ test "c functions and closures" {
     try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
     try std.testing.expect(lua.isFunction(1) and lua.isFunction(-1));
     lua.call(0, 1);
+    try std.testing.expectEqual(1, lua.getTop());
+    const actual = lua.toInteger(-1);
+    try std.testing.expectEqual(expected, actual);
+    lua.pop(1);
+}
+
+test "c functions and closures with protectedCall" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushCFunction(dummyCFunction);
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
+    try std.testing.expect(lua.isFunction(1) and lua.isFunction(-1));
+    try lua.protectedCall(0, 0, 0);
+    try std.testing.expectEqual(0, lua.getTop());
+
+    const expected: i64 = 42;
+    lua.pushInteger(expected);
+    lua.pushCClosure(dummyCClosure, 1);
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
+    try std.testing.expect(lua.isFunction(1) and lua.isFunction(-1));
+    try lua.protectedCall(0, 1, 0);
     try std.testing.expectEqual(1, lua.getTop());
     const actual = lua.toInteger(-1);
     try std.testing.expectEqual(expected, actual);

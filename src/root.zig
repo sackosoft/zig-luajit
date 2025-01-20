@@ -507,7 +507,7 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushcfunction
     /// Stack Behavior: `[-0, +1, m]`
     pub fn pushCFunction(lua: *Lua, f: CFunction) void {
-        return lua.pushCClosure(f, 0);
+        return c.lua_pushcclosure(asState(lua), @ptrCast(f), 0);
     }
 
     /// Pushes a new C closure onto the stack. When a C function is created, it is possible to associate
@@ -786,6 +786,162 @@ const Lua = opaque {
             .ERRERR => error.ErrorHandlerFailure,
             else => std.debug.panic("Lua returned unexpected status code from protected call: {d}\n", .{res}),
         };
+    }
+
+    /// Opens all standard Lua libraries into the given state. Callers may prefer to open individual
+    /// libraries instead, depending on their needs:
+    /// * `openBaseLib`
+    /// * `openPackageLib`
+    /// * `openStringLib`
+    /// * `openTableLib`
+    /// * `openMathLib`
+    /// * `openIOLib`
+    /// * `openOSLib`
+    /// * `openDebugLib`
+    /// * etc.
+    ///
+    /// From: `void luaL_openlibs(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_openlibs
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openLibs(lua: *Lua) void {
+        return c.luaL_openlibs(asState(lua));
+    }
+
+    /// Opens the standard library basic module, which includes the coroutine sub-library.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_base(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openBaseLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_base, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library math module, which contains functions like `sin`, `log` etc.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_math(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openMathLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_math, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library string manipulation module, which contains functions like `format`.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_string(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openStringLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_string, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library table manipulation module.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_table(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openTableLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_table, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library input and output module, containing functions to access the file
+    /// system and network.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_io(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openIOLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_io, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library operating system facilities module.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_os(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openOSLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_os, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library package library.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_package(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openPackageLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_package, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library debug facilities module.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_debug(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openDebugLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_debug, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library (LuaJIT) bit manipulation module.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_bit(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openBitLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_bit, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library (LuaJIT) Just-In-Time compiler control module.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_jit(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openJITLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_jit, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library (LuaJIT) foreign function interface manipulation module, which contains
+    /// functions calling external C functions and the use of C data structures from pure Lua code.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_ffi(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openFFILib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_ffi, 0);
+        lua.call(0, 0);
+    }
+
+    /// Opens the standard library (LuaJIT) string buffer library, which contains functions for performing
+    /// high-performance manipulation of string-like data. Unlike Lua strings, which are constants, string
+    /// buffers are mutable sequences of 8-bit (binary-transparent) characters. Data can be stored,
+    /// formatted and encoded into a string buffer and later converted, extracted or decoded.
+    ///
+    /// (zig-luajit extension method)
+    /// From: `int luaopen_string_buffer(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#5
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn openStringBufferLib(lua: *Lua) void {
+        c.lua_pushcclosure(asState(lua), c.luaopen_string_buffer, 0);
+        lua.call(0, 0);
     }
 };
 
@@ -1223,4 +1379,39 @@ test "c functions and closures with protectedCall" {
     const actual = lua.toInteger(-1);
     try std.testing.expectEqual(expected, actual);
     lua.pop(1);
+}
+
+test "openLibs doesn't effect the stack" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openLibs();
+    try std.testing.expectEqual(0, lua.getTop());
+}
+
+test "openLibs can be called multiple times" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openLibs();
+    try std.testing.expectEqual(0, lua.getTop());
+    lua.openLibs();
+    try std.testing.expectEqual(0, lua.getTop());
+}
+
+test "openBase can be called multiple times" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openLibs();
+    try std.testing.expectEqual(0, lua.getTop());
+    lua.openBase();
+    try std.testing.expectEqual(0, lua.getTop());
+    lua.openBase();
+    try std.testing.expectEqual(0, lua.getTop());
+
+    const expected = 42;
+    lua.pushInteger(expected);
+    const actual = lua.toInteger(-1);
+    try std.testing.expectEqual(expected, actual);
 }

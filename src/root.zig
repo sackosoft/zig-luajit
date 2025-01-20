@@ -270,7 +270,7 @@ const Lua = opaque {
         return 1 == c.lua_isstring(asState(lua), index);
     }
 
-    /// Returns true if the value at the given acceptable index is a C function, false otherwise.
+    /// Returns `true` if the value at the given acceptable index is a C function, returns `false` otherwise.
     ///
     /// From: `int lua_iscfunction(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_iscfunction
@@ -812,6 +812,7 @@ test "Lua type checking functions should work for an empty stack." {
     try std.testing.expect(!lua.isBoolean(1));
     try std.testing.expect(!lua.isCFunction(1));
     try std.testing.expect(!lua.isFunction(1));
+    try std.testing.expect(!lua.isFunction(1));
     try std.testing.expect(!lua.isLightUserdata(1));
     try std.testing.expect(!lua.isInteger(1));
     try std.testing.expect(!lua.isNumber(1));
@@ -1180,17 +1181,21 @@ test "c functions and closures" {
     defer lua.deinit();
 
     lua.pushCFunction(dummyCFunction);
+    try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
+    try std.testing.expect(lua.isFunction(1) and lua.isFunction(-1));
     lua.call(0, 0);
-    lua.pop(1);
+    try std.testing.expectEqual(0, lua.getTop());
 
     const expected: i64 = 42;
     lua.pushInteger(expected);
     lua.pushCClosure(dummyCClosure, 1);
+    try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
+    try std.testing.expect(lua.isFunction(1) and lua.isFunction(-1));
     lua.call(0, 1);
-
+    try std.testing.expectEqual(1, lua.getTop());
     const actual = lua.toInteger(-1);
     try std.testing.expectEqual(expected, actual);
-    lua.pop(2);
+    lua.pop(1);
 }

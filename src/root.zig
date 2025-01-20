@@ -33,6 +33,15 @@ const Lua = opaque {
         Thread = c.LUA_TTHREAD,
     };
 
+    const LuaStatus = enum(i32) {
+        OK = 0,
+        YIELD = 1,
+        ERRRUN = 2,
+        ERRSYNTAX = 3,
+        ERRMEM = 4,
+        ERRERR = 5,
+    };
+
     const MaxStackSize = c.LUAI_MAXCSTACK;
 
     /// Creates a new Lua state with the provided allocator.
@@ -56,7 +65,7 @@ const Lua = opaque {
     /// Returns the memory-allocation function and user data configured in the given lua instance.
     /// If userdata is not null, Lua internally saves the user data pointer passed to `lua_newstate`.
     ///
-    /// From: lua_Alloc lua_getallocf(lua_State *L, void **ud);
+    /// From: `lua_Alloc lua_getallocf(lua_State *L, void **ud);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getallocf
     /// Stack Behavior: `[-0, +0, -]`
     fn getAllocF(lua: *Lua) aa.AdapterData {
@@ -69,7 +78,7 @@ const Lua = opaque {
     /// Changes the allocator function of the lua instance.
     /// Changing the user data is currently prohibited. User data specified in the input will be ignored.
     ///
-    /// From: void lua_setallocf(lua_State *L, lua_Alloc f, void *ud);
+    /// From: `void lua_setallocf(lua_State *L, lua_Alloc f, void *ud);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setallocf
     /// Stack Behavior: `[-0, +0, -]`
     fn setAllocF(lua: *Lua, f: *const aa.AllocFn) void {
@@ -99,7 +108,7 @@ const Lua = opaque {
     /// false if it cannot grow the stack to that size. This function never shrinks the stack; if the stack is already
     /// larger than the new size, it is left unchanged.
     ///
-    /// From: int lua_checkstack(lua_State *L, int extra);
+    /// From: `int lua_checkstack(lua_State *L, int extra);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_checkstack
     /// Stack Behavior: `[-0, +0, -]`
     pub fn checkStack(lua: *Lua, extra: i32) error{ OutOfMemory, StackOverflow }!void {
@@ -116,7 +125,7 @@ const Lua = opaque {
     /// Returns the name of the type encoded by the value `t`.
     /// Caller *does not* own the returned slice.
     ///
-    /// From: const char *lua_typename(lua_State *L, int tp);
+    /// From: `const char *lua_typename(lua_State *L, int tp);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_typename
     /// Stack Behavior: `[-0, +0, -]`
     pub fn typeName(lua: *Lua, t: Lua.Type) [:0]const u8 {
@@ -146,7 +155,7 @@ const Lua = opaque {
     ///
     /// Note: This function was renamed from `type` due to naming conflicts with Zig's `type` keyword.
     ///
-    /// From: int lua_type(lua_State *L, int index);
+    /// From: `int lua_type(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_type
     /// Stack Behavior: `[-0, +0, -]`
     pub fn typeOf(lua: *Lua, index: i32) Lua.Type {
@@ -156,7 +165,7 @@ const Lua = opaque {
 
     /// Returns true if the value at the given acceptable index is nil, and false otherwise.
     ///
-    /// From: int lua_isnil(lua_State *L, int index);
+    /// From: `int lua_isnil(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnil
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isNil(lua: *Lua, index: i32) bool {
@@ -166,7 +175,7 @@ const Lua = opaque {
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the
     /// current stack) or if the value at this index is nil, and false otherwise.
     ///
-    /// From: int lua_isnoneornil(lua_State *L, int index);
+    /// From: `int lua_isnoneornil(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnoneornil
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isNoneOrNil(lua: *Lua, index: i32) bool {
@@ -176,7 +185,7 @@ const Lua = opaque {
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the
     /// current stack), and false otherwise.
     ///
-    /// From: int lua_isnone(lua_State *L, int index);
+    /// From: `int lua_isnone(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnone
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isNone(lua: *Lua, index: i32) bool {
@@ -185,7 +194,7 @@ const Lua = opaque {
 
     /// Returns true if the value at the given acceptable index has type boolean, false otherwise.
     ///
-    /// From: int lua_isboolean(lua_State *L, int index);
+    /// From: `int lua_isboolean(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isboolean
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isBoolean(lua: *Lua, index: i32) bool {
@@ -194,7 +203,7 @@ const Lua = opaque {
 
     /// Returns true if the value at the given acceptable index is a function (either C or Lua), and false otherwise.
     ///
-    /// From: int lua_isfunction(lua_State *L, int index);
+    /// From: `int lua_isfunction(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isfunction
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isFunction(lua: *Lua, index: i32) bool {
@@ -203,7 +212,7 @@ const Lua = opaque {
 
     /// Returns true if the value at the given acceptable index is a light userdata, false otherwise.
     ///
-    /// From: int lua_islightuserdata(lua_State *L, int index);
+    /// From: `int lua_islightuserdata(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_islightuserdata
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isLightUserdata(lua: *Lua, index: i32) bool {
@@ -212,7 +221,7 @@ const Lua = opaque {
 
     /// Returns true if the value at the given acceptable index is a table, false otherwise.
     ///
-    /// From: int lua_istable(lua_State *L, int index);
+    /// From: `int lua_istable(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_istable
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isTable(lua: *Lua, index: i32) bool {
@@ -221,7 +230,7 @@ const Lua = opaque {
 
     /// Returns true if the value at the given acceptable index is a thread, and false otherwise.
     ///
-    /// From: int lua_isthread(lua_State *L, int index);
+    /// From: `int lua_isthread(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isthread
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isThread(lua: *Lua, index: i32) bool {
@@ -244,7 +253,7 @@ const Lua = opaque {
     /// Returns true if the value at the given acceptable index is a number or a string convertible to a number,
     /// false otherwise.
     ///
-    /// From: int lua_isnumber(lua_State *L, int index);
+    /// From: `int lua_isnumber(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnumber
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isNumber(lua: *Lua, index: i32) bool {
@@ -254,7 +263,7 @@ const Lua = opaque {
     /// Returns true if the value at the given acceptable index is a string or a number
     /// (which is always convertible to a string), and false otherwise.
     ///
-    /// From: int lua_isstring(lua_State *L, int index);
+    /// From: `int lua_isstring(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isstring
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isString(lua: *Lua, index: i32) bool {
@@ -263,7 +272,7 @@ const Lua = opaque {
 
     /// Returns true if the value at the given acceptable index is a C function, false otherwise.
     ///
-    /// From: int lua_iscfunction(lua_State *L, int index);
+    /// From: `int lua_iscfunction(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_iscfunction
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isCFunction(lua: *Lua, index: i32) bool {
@@ -273,7 +282,7 @@ const Lua = opaque {
     /// Returns true if the value at the given acceptable index is a userdata
     /// (either full or light), and false otherwise.
     ///
-    /// From: int lua_isuserdata(lua_State *L, int index);
+    /// From: `int lua_isuserdata(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isuserdata
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isUserdata(lua: *Lua, index: i32) bool {
@@ -282,7 +291,7 @@ const Lua = opaque {
 
     /// Pushes a nil value onto the stack.
     ///
-    /// From: void lua_pushnil(lua_State *L);
+    /// From: `void lua_pushnil(lua_State *L);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnil
     /// Stack Behavior: `[-0, +1, -]`
     pub fn pushNil(lua: *Lua) void {
@@ -291,7 +300,7 @@ const Lua = opaque {
 
     /// Pushes a boolean value with the given value onto the stack.
     ///
-    /// From: void lua_pushboolean(lua_State *L, int b);
+    /// From: `void lua_pushboolean(lua_State *L, int b);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushboolean
     /// Stack Behavior: `[-0, +1, -]`
     pub fn pushBoolean(lua: *Lua, value: bool) void {
@@ -344,7 +353,7 @@ const Lua = opaque {
     /// Callers may use `toBooleanStrict()` when seeking only to return the content of a boolean value on the stack.
     /// Callers may also use `typeOf()` or `isBoolean()` to check the value on the stack before evaluating its value.
     ///
-    /// From: int lua_toboolean(lua_State *L, int index);
+    /// From: `int lua_toboolean(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_toboolean
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toBoolean(lua: *Lua, index: i32) bool {
@@ -353,7 +362,7 @@ const Lua = opaque {
 
     /// Pushes the integer with value n onto the stack.
     ///
-    /// From: void lua_pushinteger(lua_State *L, lua_Integer n);
+    /// From: `void lua_pushinteger(lua_State *L, lua_Integer n);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushinteger
     /// Stack Behavior: `[-0, +1, -]`
     pub fn pushInteger(lua: *Lua, n: Lua.Integer) void {
@@ -377,7 +386,7 @@ const Lua = opaque {
     /// the value at the specified index on the stack is not an integer or number, an error is returned.
     ///
     /// (zig-luajit extension method)
-    /// From: lua_Integer lua_tointeger(lua_State *L, int index);
+    /// From: `lua_Integer lua_tointeger(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toIntegerStrict(lua: *Lua, index: i32) NotNumberError!Lua.Integer {
@@ -410,7 +419,7 @@ const Lua = opaque {
     /// If the value at the specified index on the stack is not a string or a number, the value `0` is returned.
     /// If the value is a floating point number, it is truncated in some non-specified way.
     ///
-    /// From: lua_Integer lua_tointeger(lua_State *L, int index);
+    /// From: `lua_Integer lua_tointeger(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toInteger(lua: *Lua, index: i32) Lua.Integer {
@@ -419,7 +428,7 @@ const Lua = opaque {
 
     /// Pushes the floating point number with value n onto the stack.
     ///
-    /// From: void lua_pushnumber(lua_State *L, lua_Number n);
+    /// From: `void lua_pushnumber(lua_State *L, lua_Number n);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushnumber
     /// Stack Behavior: `[-0, +1, -]`
     pub fn pushNumber(lua: *Lua, n: Lua.Number) void {
@@ -430,7 +439,7 @@ const Lua = opaque {
     /// index is not an integer or a number, an error is returned.
     ///
     /// (zig-luajit extension method)
-    /// From: lua_Number lua_tonumber(lua_State *L, int index);
+    /// From: `lua_Number lua_tonumber(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toNumberStrict(lua: *Lua, index: i32) NotNumberError!Lua.Number {
@@ -446,18 +455,81 @@ const Lua = opaque {
     /// or a string convertible to a number (see https://www.lua.org/manual/5.1/manual.html#2.2.1);
     /// otherwise, returns 0.
     ///
-    /// From: lua_Number lua_tonumber(lua_State *L, int index);
+    /// From: `lua_Number lua_tonumber(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toNumber(lua: *Lua, index: i32) Lua.Number {
         return c.lua_tonumber(asState(lua), index);
     }
 
+    /// Type for C functions that can be called by Lua. A C function follows a specific protocol for
+    /// receiving arguments from and returning values to Lua via the stack.
+    ///
+    /// The function receives arguments from Lua in direct order on the stack.
+    /// - The first argument is at index 1
+    /// - lua_gettop(L) returns the total number of arguments
+    ///
+    /// To return values, the function pushes results onto the stack in direct order
+    /// and returns the number of results. Any other values on the stack below the
+    /// results will be discarded by Lua.
+    ///
+    /// From: `typedef int (*lua_CFunction) (lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_CFunction
+    pub const CFunction = *const fn (lua: *Lua) callconv(.c) i32;
+
+    /// Returns the pseudo-index to the specified up value of a C function closure.
+    ///
+    /// When a C function is created, it is possible to associate some values with it, thus creating a "closure"
+    /// (see https://www.lua.org/manual/5.1/manual.html#lua_pushcclosure and https://www.lua.org/manual/5.1/manual.html#3.4).
+    /// When this happens, the values are popped from the stack and managed by the Lua runtime. C functions may
+    /// reference these "upvalues" by a pseudo-index returned by this function. These pseudo-indices are not
+    /// references to the stack like other indices, instead, they are assocaited with the C function and managed
+    /// by the Lua runtime.
+    ///
+    /// The first value associated with the function is at position `upvalueIndex(1)`, the second at
+    /// `upvalueIndex(2)`, and so on. C closures support only 255 upvalues.
+    ///
+    /// From: `#define lua_upvalueindex(i)`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.4
+    /// Stack Behavior: `[-0, 0, -]`
+    pub fn upvalueIndex(lua: *Lua, comptime index: u8) i32 {
+        _ = lua;
+        const globals_index = c.LUA_GLOBALSINDEX;
+        return @intCast(globals_index - index);
+    }
+
+    /// Pushes a C function onto the stack. This function receives a pointer to a C function and pushes
+    /// onto the stack a Lua value of type function that, when called, invokes the corresponding C function.
+    /// Any function to be registered in Lua must follow the correct protocol to receive its parameters
+    /// and return its results (see https://www.lua.org/manual/5.1/manual.html#lua_CFunction).
+    ///
+    /// From: `void lua_pushcfunction(lua_State *L, lua_CFunction f);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushcfunction
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn pushCFunction(lua: *Lua, f: CFunction) void {
+        return lua.pushCClosure(f, 0);
+    }
+
+    /// Pushes a new C closure onto the stack. When a C function is created, it is possible to associate
+    /// some values with it, thus creating a C closure (see https://www.lua.org/manual/5.1/manual.html#3.4);
+    /// these values are then accessible to the function whenever it is called. To associate values with
+    /// a C function, first these values should be pushed onto the stack (when there are multiple values,
+    /// the first value is pushed first). Then lua_pushcclosure is called to create and push the C function
+    /// onto the stack, with the argument n telling how many values should be associated with the function.
+    /// lua_pushcclosure also pops these values from the stack. The maximum value for n is 255.
+    ///
+    /// From: `void lua_pushcclosure(lua_State *L, lua_CFunction fn, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushcclosure
+    /// Stack Behavior: `[-n, +1, m]`
+    pub fn pushCClosure(lua: *Lua, f: CFunction, n: u8) void {
+        return c.lua_pushcclosure(asState(lua), @ptrCast(f), @as(i32, @intCast(n)));
+    }
+
     /// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
     /// so the provided slice can be freed or reused immediately after the function returns. The given string cannot
     /// contain embedded zeros; it is assumed to end at the first zero (`'\x00'`) byte.
     ///
-    /// From: void lua_pushstring(lua_State *L, const char *s);
+    /// From: `void lua_pushstring(lua_State *L, const char *s);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushstring
     /// Stack Behavior: `[-0, +1, m]`
     pub fn pushString(lua: *Lua, string: [*:0]const u8) void {
@@ -489,7 +561,7 @@ const Lua = opaque {
     /// Callers should avoid using `toString()` while traversing tables, since this function may change the value
     /// on the stack and alter the behavior of (or break) the traversal.
     ///
-    /// From: const char *lua_tostring(lua_State *L, int index);
+    /// From: `const char *lua_tostring(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tostring
     /// Stack Behavior: `[-0, +0, m]`
     pub fn toString(lua: *Lua, index: i32) NotStringError![*:0]const u8 {
@@ -505,7 +577,7 @@ const Lua = opaque {
     /// copy of the given string, so the provided slice may freed or reused immediately after the function returns.
     /// The string may contain embedded zeros, it is not interpreted as a c-style string ending at the first zero.
     ///
-    /// From: void lua_pushlstring(lua_State *L, const char *s, size_t len);
+    /// From: `void lua_pushlstring(lua_State *L, const char *s, size_t len);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlstring
     /// Stack Behavior: `[-0, +1, m]`
     pub fn pushLString(lua: *Lua, string: []const u8) void {
@@ -525,7 +597,7 @@ const Lua = opaque {
     /// Callers should avoid using `toString()` while traversing tables, since this function may change the value
     /// on the stack and alter the behavior of (or break) the traversal.
     ///
-    /// From: const char *lua_tolstring(lua_State *L, int index, size_t *len);
+    /// From: `const char *lua_tolstring(lua_State *L, int index, size_t *len);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tolstring
     /// Stack Behavior: `[-0, +0, m]`
     pub fn toLString(lua: *Lua, index: i32) NotStringError![:0]const u8 {
@@ -556,7 +628,7 @@ const Lua = opaque {
     /// Creates a new empty table and pushes it onto the stack. It is equivalent to calling `createTable` with
     /// initial array and hash table sizes of 0.
     ///
-    /// From: void lua_newtable(lua_State *L);
+    /// From: `void lua_newtable(lua_State *L);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newtable
     /// Stack Behavior: `[-0, +1, m]`
     pub fn newTable(lua: *Lua) void {
@@ -567,7 +639,7 @@ const Lua = opaque {
     /// for `n_array` array elements and `n_hash` non-array elements. This pre-allocation is useful when you
     /// know exactly how many elements the table will have. Otherwise you can use the `newTable` function.
     ///
-    /// From: void lua_createtable(lua_State *L, int narr, int nrec);
+    /// From: `void lua_createtable(lua_State *L, int narr, int nrec);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_createtable
     /// Stack Behavior: `[-0, +1, m]`
     pub fn createTable(lua: *Lua, n_array: i32, n_hash: i32) void {
@@ -579,7 +651,7 @@ const Lua = opaque {
     /// As in Lua, this function may trigger a metamethod for the "index" event
     /// (see https://www.lua.org/manual/5.1/manual.html#2.8).
     ///
-    /// From: void lua_gettable(lua_State *L, int index);
+    /// From: `void lua_gettable(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gettable
     /// Stack Behavior: `[-1, +1, e]`
     pub fn getTable(lua: *Lua, index: i32) Lua.Type {
@@ -591,7 +663,7 @@ const Lua = opaque {
     ///
     /// Note: This function was renamed from `rawget`.
     ///
-    /// From: void lua_rawget(lua_State *L, int index);
+    /// From: `void lua_rawget(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawget
     /// Stack Behavior: `[-1, +1, -]`
     pub fn getTableRaw(lua: *Lua, index: i32) Lua.Type {
@@ -604,7 +676,7 @@ const Lua = opaque {
     /// the stack. As in Lua, this function may trigger a metamethod for the "newindex" event
     /// (see https://www.lua.org/manual/5.1/manual.html#2.8).
     ///
-    /// From: void lua_settable(lua_State *L, int index);
+    /// From: `void lua_settable(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settable
     /// Stack Behavior: `[-2, +0, e]`
     pub fn setTable(lua: *Lua, index: i32) void {
@@ -613,7 +685,7 @@ const Lua = opaque {
 
     /// Pops `n` elements from the stack.
     ///
-    /// From: void lua_pop(lua_State *L, int n);
+    /// From: `void lua_pop(lua_State *L, int n);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pop
     /// Stack Behavior: `[-n, +0, -]`
     pub fn pop(lua: *Lua, n: i32) void {
@@ -623,7 +695,7 @@ const Lua = opaque {
     /// Returns the index of the top element in the stack. Because indices start at 1,
     /// this result is equal to the number of elements in the stack (and so 0 means an empty stack).
     ///
-    /// From: int lua_gettop(lua_State *L);
+    /// From: `int lua_gettop(lua_State *L);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gettop
     /// Stack Behavior: `[-0, +0, -]`
     pub fn getTop(lua: *Lua) i32 {
@@ -633,7 +705,7 @@ const Lua = opaque {
     /// Moves the top element into the given valid index, shifting up the elements above this index to open space.
     /// Cannot be called with a pseudo-index, because a pseudo-index is not an actual stack position.
     ///
-    /// From: void lua_insert(lua_State *L, int index);
+    /// From: `void lua_insert(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_insert
     /// Stack Behavior: `[-1, +1, -]`
     pub fn insert(lua: *Lua, index: i32) void {
@@ -649,7 +721,7 @@ const Lua = opaque {
     ///
     /// Note: This function was renamed from `objlen` for clarity and discoverability.
     ///
-    /// From: size_t lua_objlen(lua_State *L, int index);
+    /// From: `size_t lua_objlen(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_objlen
     /// Stack Behavior: `[-0, +0, -]`
     pub fn lengthOf(lua: *Lua, index: i32) usize {
@@ -657,18 +729,35 @@ const Lua = opaque {
     }
 
     /// Represents the kinds of errors that calling a Lua function may result in.
-    pub const CallError = error {
+    pub const CallError = error{
         /// Used when the execution of Lua code encounters an error.
         Runtime,
 
         /// Used when Lua is unable to allocate required memory.
         OutOfMemory,
+    };
 
+    pub const ProtectedCallError = error{
         /// Used in cases where Lua encounters an error and the user-defined error handling function also
         /// encounters an error. Functions like `pCall()`, which invoke a Lua function, may be configured
         /// to use an error-handling function when the call fails.
         ErrorHandlerFailure,
-    };
+    } || CallError;
+
+    /// Calls a function. To call a function, first push the function onto the stack, then push its arguments
+    /// in direct order. `nargs` is the number of arguments pushed onto the stack. All arguments and the function
+    /// value are popped from the stack when the function is called. The function results are pushed onto the
+    /// stack when the function returns. The number of results is adjusted to `nresults`, unless `nresults` is
+    /// `LUA_MULTRET`, in which case all results from the function are pushed.
+    ///
+    /// Any error inside the called function is propagated upwards.
+    ///
+    /// From: `void lua_call(lua_State *L, int nargs, int nresults);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_call
+    /// Stack Behavior: `[-(nargs + 1), +nresults, e]`
+    pub fn call(lua: *Lua, nargs: i32, nresults: i32) void {
+        return c.lua_call(asState(lua), nargs, nresults);
+    }
 
     /// Calls a function in protected mode. If there are no errors during the call, behaves exactly like lua_call.
     /// However, if there is any error, catches it, pushes a single value on the stack (the error message),
@@ -684,10 +773,18 @@ const Lua = opaque {
     /// - LUA_ERRMEM: memory allocation error
     /// - LUA_ERRERR: error while running the error handler function
     ///
-    /// From: int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);
+    /// From: `int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pcall
     /// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
     pub fn pCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) CallError!void {
+        const status: LuaStatus = @enumFromInt(c.lua_pcall(asState(lua), nargs, nresults, errfunc));
+        return switch (status) {
+            .OK => void,
+            .ERRRUN => error.Runtime,
+            .ERRMEM => error.OutOfMemory,
+            .ERRERR => error.ErrorHandlerFailure,
+            else => @panic("Lua returned unexpected status code from protected call" ++ status),
+        };
     }
 };
 
@@ -1065,4 +1162,35 @@ test "lengthOf" {
     lua.pushNil();
     try std.testing.expectEqual(0, lua.lengthOf(-1));
     lua.pop(1);
+}
+
+fn dummyCFunction(lua: *Lua) callconv(.c) i32 {
+    _ = lua;
+    return 0;
+}
+
+fn dummyCClosure(lua: *Lua) callconv(.c) i32 {
+    const n = lua.toNumber(lua.upvalueIndex(1));
+    lua.pushNumber(n);
+    return 1;
+}
+
+test "c functions and closures" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushCFunction(dummyCFunction);
+    try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
+    lua.call(0, 0);
+    lua.pop(1);
+
+    const expected: i64 = 42;
+    lua.pushInteger(expected);
+    lua.pushCClosure(dummyCClosure, 1);
+    try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
+    lua.call(0, 1);
+
+    const actual = lua.toInteger(-1);
+    try std.testing.expectEqual(expected, actual);
+    lua.pop(2);
 }

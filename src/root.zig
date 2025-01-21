@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const assert = std.debug.assert;
 
 const c = @import("c");
 fn asState(lua: *Lua) *c.lua_State {
@@ -671,15 +672,26 @@ const Lua = opaque {
         return lua.typeOf(-1);
     }
 
-    /// Does the equivalent of `t[k] = v`, where `t` is the value at the given valid index, `v` is the value at the top
-    /// of the stack, and `k` is the value just below the top. This function pops both the key and the value from
-    /// the stack. As in Lua, this function may trigger a metamethod for the "newindex" event
-    /// (see https://www.lua.org/manual/5.1/manual.html#2.8).
+    /// Does the equivalent of `t[k] = v`, where `t` is the acceptable index of the table on the stack, `v` is
+    /// the value at the top of the stack, and `k` is the value just below the top. This function pops both the
+    /// key and the value from the stack. As in Lua, this function may trigger a metamethod for the "newindex"
+    /// event (see https://www.lua.org/manual/5.1/manual.html#2.8).
+    ///
+    /// Example:
+    /// ```zig
+    /// lua.newTable();
+    /// lua.pushInteger(1);
+    /// lua.pushString("Hello, world!");
+    /// lua.setTable(-3);
+    /// std.debug.assert(1 == lua.getTop());
+    /// std.debug.assert(lua.isTable());
+    /// ```
     ///
     /// From: `void lua_settable(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settable
     /// Stack Behavior: `[-2, +0, e]`
     pub fn setTable(lua: *Lua, index: i32) void {
+        assert(lua.isTable(index));
         return c.lua_settable(asState(lua), index);
     }
 
@@ -726,6 +738,34 @@ const Lua = opaque {
     /// Stack Behavior: `[-0, +0, -]`
     pub fn lengthOf(lua: *Lua, index: i32) usize {
         return @intCast(c.lua_objlen(asState(lua), index));
+    }
+
+    /// Pops a key from the stack, and pushes a key-value pair from the table at the given index
+    /// (the "next" pair after the given key) and returns `true`. If there are no more elements
+    /// in the table, then lua_next returns `false` (and pushes nothing).
+    ///
+    /// Next is commonly used for doing a complete traversal over all elements of a table:
+    /// ```zig
+    /// // Assuming the table is at the top of the stack, we start by pushing nil, which cannot be a table key.
+    /// lua.pushNil();
+    /// while (lua.next(-2)) {
+    ///     std.debug.print("The key is a '{s}'\n", .{lua.typeName(lua.typeOf(-2))});
+    ///     std.debug.print("The value is a '{s}'\n", .{lua.typeName(lua.typeOf(-1))});
+    ///
+    ///     // Remove the 'value' from the stack, the key remains at the top for `next()` to find.
+    ///     lua.pop(1);
+    /// }
+    /// ```
+    ///
+    /// While traversing a table, do not call `toString()` directly on a key, unless you know
+    /// that the key is actually a string. Recall that `toString()` changes the value at the
+    /// given index; this confuses the next call to lua_next.
+    ///
+    /// From: `int lua_next(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_next
+    /// Stack Behavior: `[-1, +(2|0), e]`
+    pub fn next(lua: *Lua, index: i32) bool {
+        return 1 == c.lua_next(asState(lua), index);
     }
 
     /// Represents the kinds of errors that calling a Lua function may result in.
@@ -1399,19 +1439,69 @@ test "openLibs can be called multiple times" {
     try std.testing.expectEqual(0, lua.getTop());
 }
 
-test "openBase can be called multiple times" {
+test "openBaseLib can be called multiple times after openlibs" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
     lua.openLibs();
     try std.testing.expectEqual(0, lua.getTop());
-    lua.openBase();
+    lua.openBaseLib();
     try std.testing.expectEqual(0, lua.getTop());
-    lua.openBase();
+    lua.openBaseLib();
     try std.testing.expectEqual(0, lua.getTop());
 
     const expected = 42;
     lua.pushInteger(expected);
     const actual = lua.toInteger(-1);
     try std.testing.expectEqual(expected, actual);
+}
+
+test "openLibs individually" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openBaseLib();
+    lua.openMathLib();
+    lua.openStringLib();
+    lua.openTableLib();
+    lua.openIOLib();
+    lua.openOSLib();
+    lua.openPackageLib();
+    lua.openDebugLib();
+    lua.openBitLib();
+    lua.openJITLib();
+    lua.openFFILib();
+    lua.openStringBufferLib();
+}
+
+test "traversal over table with next" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.newTable();
+    lua.pushNil();
+    try std.testing.expect(!lua.next(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+
+    lua.pushInteger(1);
+    lua.pushString("Hello, world!");
+    lua.setTable(-3);
+
+    lua.pushInteger(2);
+    lua.pushString("Hello back.");
+    lua.setTable(-3);
+    try std.testing.expectEqual(1, lua.getTop());
+
+    lua.pushNil();
+    try std.testing.expect(lua.next(-2));
+    try std.testing.expect(lua.isString(-1));
+    lua.pop(1);
+    try std.testing.expect(lua.isInteger(-1));
+
+    try std.testing.expect(lua.next(-2));
+    try std.testing.expect(lua.isString(-1));
+    lua.pop(1);
+    try std.testing.expect(lua.isInteger(-1));
+
+    try std.testing.expect(!lua.next(-2));
 }

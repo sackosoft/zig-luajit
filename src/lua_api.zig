@@ -180,18 +180,7 @@ pub fn newThread(lua: *Lua) *Lua;
 /// Stack Behavior: `[-0, +1, m]`
 pub fn newUserdata(lua: *Lua, size: usize) *anyopaque;
 
-/// Pops a key from the stack, and pushes a key-value pair from the table at the given index
-/// (the "next" pair after the given key). If there are no more elements in the table,
-/// then lua_next returns 0 (and pushes nothing).
-///
-/// While traversing a table, do not call lua_tolstring directly on a key, unless you know
-/// that the key is actually a string. Recall that lua_tolstring changes the value at the
-/// given index; this confuses the next call to lua_next.
-///
-/// From: `int lua_next(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_next
-/// Stack Behavior: `[-1, +(2|0), e]`
-pub fn next(lua: *Lua, index: i32) bool;
+
 
 /// The type of numbers in Lua. By default, this is a double-precision floating point number,
 /// but can be configured to use other numeric types like float or long through luaconf.h.

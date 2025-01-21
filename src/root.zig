@@ -2,6 +2,8 @@ const std = @import("std");
 const testing = std.testing;
 const assert = std.debug.assert;
 
+const mode = @import("builtin").mode;
+
 const c = @import("c");
 fn asState(lua: *Lua) *c.lua_State {
     return @ptrCast(lua);
@@ -113,6 +115,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_checkstack
     /// Stack Behavior: `[-0, +0, -]`
     pub fn checkStack(lua: *Lua, extra: i32) error{ OutOfMemory, StackOverflow }!void {
+        assert(extra >= 0);
+
         const state = asState(lua);
         const size: i32 = @intCast(c.lua_gettop(state));
         if (size + extra > MaxStackSize) {
@@ -147,8 +151,45 @@ const Lua = opaque {
             "cdata",
         };
         const index = @intFromEnum(t) + 1;
-        std.debug.assert(index >= 0);
+        assert(index >= 0);
+
         return type_to_name[@as(usize, @intCast(index))];
+    }
+
+    /// Explicitly marks stack index usage as intentionally unchecked. Used when the Lua C API behavior
+    /// is well-defined even for invalid indices, such as `typeOf()` returning `Lua.Type.None` when
+    /// accessing an invalid or unacceptable index.
+    ///
+    /// This function serves as documentation and serves no functional purpose. It should be used to help
+    /// distinguish cases where stack index checking was forgotten or not considered by the developer from
+    /// cases where stack index checking was considered by the develop and decidied to not be applied.
+    fn skipIndexValidation(lua: *Lua, index: i32, justification: []const u8) void {
+        _ = lua;
+        _ = index;
+        _ = justification;
+    }
+
+    /// Validates that the given stack index could point to a valid stack position. Catches common errors like
+    /// using index 0 or indices beyond stack bounds. This validation has no effect in release builds with safety
+    /// checking disabled.
+    ///
+    /// Should be called before operations that have undefined behavior with invalid indices, such as `toNumber()`
+    /// or `toString()`.
+    fn validateStackIndex(lua: *Lua, index: i32) void {
+        assert(index != 0);
+
+        // Make sure we only run these checks in safety-checked build modes.
+        if (mode == .ReleaseSafe or mode == .Debug) {
+            if (index <= c.LUA_REGISTRYINDEX) {
+                const max_upvalues_count = 255;
+                assert(@as(i32, @intCast(c.LUA_GLOBALSINDEX - max_upvalues_count)) <= index); // Safety check failed: pseudo-index exceeds maximum number of upvalues (255). This can also happen if your stack index has been corrupted and become a very large negative number.
+            } else if (index < 0) {
+                assert(-lua.getTop() <= index); // Safety check failed: Stack index goes below the bottom of the stack.
+
+            } else {
+                assert(index <= lua.getTop()); // Safety check failed: Stack index exceeds the top of the stack.
+            }
+        }
     }
 
     /// Returns the type of the value in the specified index on the stack, or `Lua.Type.None` if the
@@ -160,17 +201,13 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_type
     /// Stack Behavior: `[-0, +0, -]`
     pub fn typeOf(lua: *Lua, index: i32) Lua.Type {
+        lua.skipIndexValidation(
+            index,
+            "typeOf() safely returns `None` when the index is not valid (required by Lua spec).",
+        );
+
         const t = c.lua_type(asState(lua), index);
         return @enumFromInt(t);
-    }
-
-    /// Returns true if the value at the given acceptable index is nil, and false otherwise.
-    ///
-    /// From: `int lua_isnil(lua_State *L, int index);`
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnil
-    /// Stack Behavior: `[-0, +0, -]`
-    pub fn isNil(lua: *Lua, index: i32) bool {
-        return lua.typeOf(index) == Lua.Type.Nil;
     }
 
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the
@@ -180,6 +217,11 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnoneornil
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isNoneOrNil(lua: *Lua, index: i32) bool {
+        lua.skipIndexValidation(
+            index,
+            "isNoneOrNil() safely returns `true` when the index is not valid (required by Lua spec).",
+        );
+
         return lua.typeOf(index) == Lua.Type.None or lua.typeOf(index) == Lua.Type.Nil;
     }
 
@@ -190,7 +232,23 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnone
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isNone(lua: *Lua, index: i32) bool {
+        lua.skipIndexValidation(
+            index,
+            "isNone() safely returns `true` when the index is not valid (required by Lua spec).",
+        );
+
         return lua.typeOf(index) == Lua.Type.None;
+    }
+
+    /// Returns true if the value at the given acceptable index is nil, and false otherwise.
+    ///
+    /// From: `int lua_isnil(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnil
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn isNil(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
+        return lua.typeOf(index) == Lua.Type.Nil;
     }
 
     /// Returns true if the value at the given acceptable index has type boolean, false otherwise.
@@ -199,6 +257,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isboolean
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isBoolean(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return lua.typeOf(index) == Lua.Type.Boolean;
     }
 
@@ -208,6 +268,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isfunction
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isFunction(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return lua.typeOf(index) == Lua.Type.Function;
     }
 
@@ -217,6 +279,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_islightuserdata
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isLightUserdata(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return lua.typeOf(index) == Lua.Type.LightUserdata;
     }
 
@@ -226,6 +290,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_istable
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isTable(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return lua.typeOf(index) == Lua.Type.Table;
     }
 
@@ -235,6 +301,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isthread
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isThread(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return lua.typeOf(index) == Lua.Type.Thread;
     }
 
@@ -244,6 +312,8 @@ const Lua = opaque {
     /// (zig-luajit extension method)
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isInteger(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return lua.isNumber(index) //
         and block: {
             const n = lua.toNumber(index);
@@ -258,6 +328,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isnumber
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isNumber(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return 1 == c.lua_isnumber(asState(lua), index);
     }
 
@@ -268,15 +340,20 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isstring
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isString(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return 1 == c.lua_isstring(asState(lua), index);
     }
 
-    /// Returns `true` if the value at the given acceptable index is a C function, returns `false` otherwise.
+    /// Returns `true` if the value at the given acceptable index is a C function, returns `false`
+    /// otherwise.
     ///
     /// From: `int lua_iscfunction(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_iscfunction
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isCFunction(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return 1 == c.lua_iscfunction(asState(lua), index);
     }
 
@@ -287,6 +364,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_isuserdata
     /// Stack Behavior: `[-0, +0, -]`
     pub fn isUserdata(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return 1 == c.lua_isuserdata(asState(lua), index);
     }
 
@@ -332,6 +411,11 @@ const Lua = opaque {
     /// (zig-luajit extension method)
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toBooleanStrict(lua: *Lua, index: i32) NotBooleanError!bool {
+        lua.skipIndexValidation(
+            index,
+            "toBooleanStrict() safely returns `error.NoneIsNotBoolean` when the index is not valid.",
+        );
+
         return switch (lua.typeOf(index)) {
             .Boolean => lua.toBoolean(index),
 
@@ -358,6 +442,11 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_toboolean
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toBoolean(lua: *Lua, index: i32) bool {
+        lua.skipIndexValidation(
+            index,
+            "toBoolean() safely returns `false` when the index is not valid (required by Lua spec).",
+        );
+
         return 1 == c.lua_toboolean(asState(lua), index);
     }
 
@@ -391,6 +480,11 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toIntegerStrict(lua: *Lua, index: i32) NotNumberError!Lua.Integer {
+        lua.skipIndexValidation(
+            index,
+            "toIntegerStrict() safely returns `error.NoneIsNotNumber` when the index is not valid.",
+        );
+
         const t = lua.typeOf(index);
         if (t == Lua.Type.Number) {
             return c.lua_tointeger(asState(lua), index);
@@ -424,6 +518,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tointeger
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toInteger(lua: *Lua, index: i32) Lua.Integer {
+        lua.validateStackIndex(index);
+
         return c.lua_tointeger(asState(lua), index);
     }
 
@@ -444,6 +540,11 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toNumberStrict(lua: *Lua, index: i32) NotNumberError!Lua.Number {
+        lua.skipIndexValidation(
+            index,
+            "toNumberStrict() safely returns `error.NoneIsNotNumber` when the index is not valid.",
+        );
+
         const t = lua.typeOf(index);
         if (t == Lua.Type.Number) {
             return c.lua_tonumber(asState(lua), index);
@@ -460,6 +561,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tonumber
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toNumber(lua: *Lua, index: i32) Lua.Number {
+        lua.validateStackIndex(index);
+
         return c.lua_tonumber(asState(lua), index);
     }
 
@@ -493,9 +596,13 @@ const Lua = opaque {
     /// From: `#define lua_upvalueindex(i)`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.4
     /// Stack Behavior: `[-0, 0, -]`
-    pub fn upvalueIndex(lua: *Lua, comptime index: u8) i32 {
-        _ = lua;
-        const globals_index = c.LUA_GLOBALSINDEX;
+    pub fn upvalueIndex(lua: *Lua, index: u8) i32 {
+        lua.skipIndexValidation(
+            @intCast(index),
+            "upvalueIndex() is type-restricted by the `u8` to a safe range.",
+        );
+
+        const globals_index: i32 = @intCast(c.LUA_GLOBALSINDEX);
         return @intCast(globals_index - index);
     }
 
@@ -566,6 +673,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tostring
     /// Stack Behavior: `[-0, +0, m]`
     pub fn toString(lua: *Lua, index: i32) NotStringError![*:0]const u8 {
+        lua.validateStackIndex(index);
+
         const string: ?[*:0]const u8 = c.lua_tolstring(asState(lua), index, null);
         if (string) |s| {
             return s;
@@ -602,6 +711,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tolstring
     /// Stack Behavior: `[-0, +0, m]`
     pub fn toLString(lua: *Lua, index: i32) NotStringError![:0]const u8 {
+        lua.validateStackIndex(index);
+
         var len: usize = undefined;
         const string: ?[*]const u8 = c.lua_tolstring(asState(lua), index, &len);
         if (string) |s| {
@@ -644,6 +755,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_createtable
     /// Stack Behavior: `[-0, +1, m]`
     pub fn createTable(lua: *Lua, n_array: i32, n_hash: i32) void {
+        assert(n_array >= 0);
+        assert(n_hash >= 0);
         return c.lua_createtable(asState(lua), n_array, n_hash);
     }
 
@@ -656,6 +769,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gettable
     /// Stack Behavior: `[-1, +1, e]`
     pub fn getTable(lua: *Lua, index: i32) Lua.Type {
+        lua.validateStackIndex(index);
+
         c.lua_gettable(asState(lua), index);
         return lua.typeOf(-1);
     }
@@ -668,6 +783,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawget
     /// Stack Behavior: `[-1, +1, -]`
     pub fn getTableRaw(lua: *Lua, index: i32) Lua.Type {
+        lua.validateStackIndex(index);
+
         c.lua_rawget(asState(lua), index);
         return lua.typeOf(-1);
     }
@@ -691,7 +808,9 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settable
     /// Stack Behavior: `[-2, +0, e]`
     pub fn setTable(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
         assert(lua.isTable(index));
+
         return c.lua_settable(asState(lua), index);
     }
 
@@ -701,6 +820,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pop
     /// Stack Behavior: `[-n, +0, -]`
     pub fn pop(lua: *Lua, n: i32) void {
+        assert(n >= 0);
+
         return c.lua_pop(asState(lua), n);
     }
 
@@ -721,6 +842,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_insert
     /// Stack Behavior: `[-1, +1, -]`
     pub fn insert(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+
         return c.lua_insert(asState(lua), index);
     }
 
@@ -737,6 +860,10 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_objlen
     /// Stack Behavior: `[-0, +0, -]`
     pub fn lengthOf(lua: *Lua, index: i32) usize {
+        // This function can safely return 0 when the index is not valid, but I'd rather see callers
+        // check the type to make that determination rather than rely on this implictly returning that.
+        lua.validateStackIndex(index);
+
         return @intCast(c.lua_objlen(asState(lua), index));
     }
 
@@ -765,6 +892,8 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_next
     /// Stack Behavior: `[-1, +(2|0), e]`
     pub fn next(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
         return 1 == c.lua_next(asState(lua), index);
     }
 
@@ -796,6 +925,9 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_call
     /// Stack Behavior: `[-(nargs + 1), +nresults, e]`
     pub fn call(lua: *Lua, nargs: i32, nresults: i32) void {
+        assert(nargs >= 0);
+        assert(nresults >= 0);
+
         return c.lua_call(asState(lua), nargs, nresults);
     }
 
@@ -817,6 +949,9 @@ const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pcall
     /// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
     pub fn protectedCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) ProtectedCallError!void {
+        assert(nargs >= 0);
+        assert(nresults >= 0);
+
         const res = c.lua_pcall(asState(lua), nargs, nresults, errfunc);
         const status: LuaStatus = @enumFromInt(res);
         return switch (status) {
@@ -1004,19 +1139,6 @@ test "Lua type checking functions should work for an empty stack." {
     try std.testing.expect(lua.typeOf(1) == Lua.Type.None);
     try std.testing.expect(lua.isNone(1));
     try std.testing.expect(lua.isNoneOrNil(1));
-
-    try std.testing.expect(!lua.isNil(1));
-    try std.testing.expect(!lua.isBoolean(1));
-    try std.testing.expect(!lua.isCFunction(1));
-    try std.testing.expect(!lua.isFunction(1));
-    try std.testing.expect(!lua.isFunction(1));
-    try std.testing.expect(!lua.isLightUserdata(1));
-    try std.testing.expect(!lua.isInteger(1));
-    try std.testing.expect(!lua.isNumber(1));
-    try std.testing.expect(!lua.isString(1));
-    try std.testing.expect(!lua.isTable(1));
-    try std.testing.expect(!lua.isThread(1));
-    try std.testing.expect(!lua.isUserdata(1));
 }
 
 test "Lua type checking functions return true when stack contains value" {
@@ -1162,7 +1284,6 @@ test "toInteger and toIntegerStrict" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    try std.testing.expectEqual(0, lua.toInteger(1));
     try std.testing.expectError(error.NoneIsNotNumber, lua.toIntegerStrict(1));
 
     lua.pushInteger(10);
@@ -1195,7 +1316,6 @@ test "toNumber and toNumberStrict" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    try std.testing.expectEqual(0.0, lua.toNumber(1));
     try std.testing.expectError(error.NoneIsNotNumber, lua.toNumberStrict(1));
 
     lua.pushInteger(10);
@@ -1356,7 +1476,7 @@ test "lengthOf" {
     lua.pushNumber(145.125);
     try std.testing.expectEqual(7, lua.lengthOf(-1)); // Implicit conversion to string
     lua.pop(1);
-    try std.testing.expectEqual(0, lua.lengthOf(-1));
+
     lua.pushNil();
     try std.testing.expectEqual(0, lua.lengthOf(-1));
     lua.pop(1);

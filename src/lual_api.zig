@@ -179,13 +179,7 @@ pub fn checkUserData(lua: *Lua, narg: i32, tname: [*:0]const u8) *anyopaque;
 /// Stack Behavior: `[-0, +?, m]`
 pub fn doFile(lua: *Lua, filename: [*:0]const u8) LuaError!void;
 
-/// Loads and runs the given string. If no errors occur, returns 0; otherwise, returns 1.
-/// Equivalent to: `luaL_loadString(lua, str) || lua_pcall(lua, 0, LUA_MULTRET, 0)`
-///
-/// From: `int luaL_dostring(lua_State *L, const char *str);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dostring
-/// Stack Behavior: `[-0, +?, m]`
-pub fn doString(lua: *Lua, str: [:0]const u8) LuaError!void;
+
 
 /// Raises an error with the given error message format and optional arguments. The error message follows
 /// the same rules as lua_pushfstring and includes the file name and line number where the error occurred,

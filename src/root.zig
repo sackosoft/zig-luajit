@@ -45,7 +45,15 @@ const Lua = opaque {
         ERRERR = 5,
     };
 
-    const MaxStackSize = c.LUAI_MAXCSTACK;
+    const MaxStackSize: i32 = c.LUAI_MAXCSTACK;
+
+    /// Used as the value for `nresults` to return all results from the function on the stack when invoking
+    /// `call()` or `protectedCall()`.
+    ///
+    /// Usually, when using `call()` or `protectedCall()`, the function results are pushed onto the stack when
+    /// the function returns, then the number of results is adjusted to the value of `nresults` specified by the
+    /// caller. By using `Lua.MultipleReturn`, all results from the function are left on the stack.
+    pub const MultipleReturn: i32 = c.LUA_MULTRET;
 
     /// Creates a new Lua state with the provided allocator.
     ///
@@ -917,7 +925,11 @@ const Lua = opaque {
     /// in direct order. `nargs` is the number of arguments pushed onto the stack. All arguments and the function
     /// value are popped from the stack when the function is called. The function results are pushed onto the
     /// stack when the function returns. The number of results is adjusted to `nresults`, unless `nresults` is
-    /// `LUA_MULTRET`, in which case all results from the function are pushed.
+    /// `Lua.MultipleReturn`, in which case all results from the function are pushed.
+    ///
+    /// Lua takes care that the returned values fit into the stack space. The function results are pushed onto
+    /// the stack in direct order (the first result is pushed first), so that after the call the last result is
+    /// on the top of the stack.
     ///
     /// Any error inside the called function is propagated upwards.
     ///
@@ -926,7 +938,7 @@ const Lua = opaque {
     /// Stack Behavior: `[-(nargs + 1), +nresults, e]`
     pub fn call(lua: *Lua, nargs: i32, nresults: i32) void {
         assert(nargs >= 0);
-        assert(nresults >= 0);
+        assert(nresults >= 0 or nresults == Lua.MultipleReturn);
 
         return c.lua_call(asState(lua), nargs, nresults);
     }
@@ -950,7 +962,7 @@ const Lua = opaque {
     /// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
     pub fn protectedCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) ProtectedCallError!void {
         assert(nargs >= 0);
-        assert(nresults >= 0);
+        assert(nresults >= 0 or nresults == Lua.MultipleReturn);
 
         const res = c.lua_pcall(asState(lua), nargs, nresults, errfunc);
         const status: LuaStatus = @enumFromInt(res);
@@ -1117,6 +1129,31 @@ const Lua = opaque {
     pub fn openStringBufferLib(lua: *Lua) void {
         c.lua_pushcclosure(asState(lua), c.luaopen_string_buffer, 0);
         lua.call(0, 0);
+    }
+
+    pub const DoStringError = error{
+        InvalidSyntax,
+    } || ProtectedCallError;
+
+    /// Loads the Lua chunk in the given string and, if there are no errors, pushes the compiled chunk as a
+    /// Lua function on top of the stack before executing it using `protectedCall()`. Essentially, `doString()`
+    /// executes the provided zero-terminated Lua code.
+    ///
+    /// From: `int luaL_dostring(lua_State *L, const char *str);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dostring
+    /// Stack Behavior: `[-0, +?, m]`
+    pub fn doString(lua: *Lua, str: [*:0]const u8) DoStringError!void {
+        const res = c.luaL_loadstring(asState(lua), str);
+        const status: Lua.LuaStatus = @enumFromInt(res);
+        switch (status) {
+            .ERRSYNTAX => return error.InvalidSyntax,
+            .ERRMEM => return error.OutOfMemory,
+            else => {
+                assert(res == 0); // luaL_loadstring returned an error code outside of the documented values.
+            },
+        }
+
+        return lua.protectedCall(0, Lua.MultipleReturn, 0);
     }
 };
 
@@ -1624,4 +1661,16 @@ test "traversal over table with next" {
     try std.testing.expect(lua.isInteger(-1));
 
     try std.testing.expect(!lua.next(-2));
+}
+
+test "doString should do the string" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try lua.doString(
+        \\ local M = {}
+        \\ return M
+    );
+
+    try std.testing.expect(lua.isTable(-1));
 }

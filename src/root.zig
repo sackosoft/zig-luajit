@@ -1671,6 +1671,26 @@ test "doString should do the string" {
         \\ local M = {}
         \\ return M
     );
-
     try std.testing.expect(lua.isTable(-1));
+    lua.pop(1);
+
+    try lua.doString(
+        \\ return 42
+    );
+    try std.testing.expect(lua.isInteger(-1));
+    lua.pop(1);
+
+    try lua.doString(
+        \\ return 42.42
+    );
+    try std.testing.expect(lua.isNumber(-1) and !lua.isInteger(-1));
+    lua.pop(1);
+
+    try lua.doString(
+        \\ return "Hello, world!"
+    );
+    try std.testing.expect(lua.isString(-1));
+    const actual = try lua.toLString(-1);
+    try std.testing.expectEqualSlices(u8, "Hello, world!", actual);
+    lua.pop(1);
 }

@@ -1,4 +1,4 @@
-name: Regression Tests
+name: Run Tests
 
 on:
   push:
@@ -7,11 +7,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: ⬇️ Checkout
       uses: actions/checkout@v4
 
+    - name: Get Date
+      id: date
+      run: echo "month=$(date +'%Y-%m')" >> $GITHUB_OUTPUT
+    
     - name: 📦 Cache
       uses: actions/cache@v3
       id: cache-deps
@@ -20,7 +24,7 @@ jobs:
           ~/.local/bin
           ~/.local/lib
           ~/zig
-        key: ${{ runner.os }}-deps-${{ format('{0:yyyy-MM-W}', github.event.repository.pushed_at) }}
+        key: ${{ runner.os }}-deps-${{ steps.date.outputs.month }}
 
     - name: (Z) Install Zig
       if: steps.cache-deps.outputs.cache-hit != 'true'

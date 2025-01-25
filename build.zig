@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     const luajit_build_dep = b.dependency("luajit_build", .{ .target = target, .optimize = optimize, .link_as = .static });
     const luajit_build = luajit_build_dep.module("luajit-build");
 
-    const lib_mod = b.createModule(.{
+    const lib_mod = b.addModule("ziglua", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,

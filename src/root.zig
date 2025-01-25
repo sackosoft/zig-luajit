@@ -20,7 +20,7 @@ const aa = @import("allocator_adapter.zig");
 ///
 /// From: `typedef struct lua_State lua_State;`
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_State
-const Lua = opaque {
+pub const Lua = opaque {
     pub const Number = c.LUA_NUMBER;
     pub const Integer = c.LUA_INTEGER;
     pub const Type = enum(i5) {

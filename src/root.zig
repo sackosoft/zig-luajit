@@ -39,13 +39,13 @@ pub const Lua = opaque {
         thread = c.LUA_TTHREAD,
     };
 
-    const LuaStatus = enum(i32) {
-        OK = 0,
-        YIELD = 1,
-        ERRRUN = 2,
-        ERRSYNTAX = 3,
-        ERRMEM = 4,
-        ERRERR = 5,
+    const Status = enum(i32) {
+        ok = c.LUA_OK,
+        yield = c.LUA_YIELD,
+        runtime_error = c.LUA_ERRRUN,
+        syntax_error = c.LUA_ERRSYNTAX,
+        memory_error = c.LUA_ERRMEM,
+        error_handling_error = c.LUA_ERRERR,
     };
 
     const MaxStackSize: i32 = c.LUAI_MAXCSTACK;
@@ -955,11 +955,6 @@ pub const Lua = opaque {
     /// this function will be called with the error message and its return value will be the message returned
     /// on the stack. Typically used to add more debug information to the error message.
     ///
-    /// Returns 0 on success or one of the following error codes:
-    /// - LUA_ERRRUN: runtime error
-    /// - LUA_ERRMEM: memory allocation error
-    /// - LUA_ERRERR: error while running the error handler function
-    ///
     /// From: `int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pcall
     /// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
@@ -968,12 +963,12 @@ pub const Lua = opaque {
         assert(nresults >= 0 or nresults == Lua.MultipleReturn);
 
         const res = c.lua_pcall(asState(lua), nargs, nresults, errfunc);
-        const status: LuaStatus = @enumFromInt(res);
+        const status: Status = @enumFromInt(res);
         return switch (status) {
-            .OK => return,
-            .ERRRUN => error.Runtime,
-            .ERRMEM => error.OutOfMemory,
-            .ERRERR => error.ErrorHandlerFailure,
+            .ok => return,
+            .runtime_error => error.Runtime,
+            .memory_error => error.OutOfMemory,
+            .error_handling_error => error.ErrorHandlerFailure,
             else => std.debug.panic("Lua returned unexpected status code from protected call: {d}\n", .{res}),
         };
     }
@@ -1147,10 +1142,10 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-0, +?, m]`
     pub fn doString(lua: *Lua, str: [*:0]const u8) DoStringError!void {
         const res = c.luaL_loadstring(asState(lua), str);
-        const status: Lua.LuaStatus = @enumFromInt(res);
+        const status: Lua.Status = @enumFromInt(res);
         switch (status) {
-            .ERRSYNTAX => return error.InvalidSyntax,
-            .ERRMEM => return error.OutOfMemory,
+            .syntax_error => return error.InvalidSyntax,
+            .memory_error => return error.OutOfMemory,
             else => {
                 assert(res == 0); // luaL_loadstring returned an error code outside of the documented values.
             },

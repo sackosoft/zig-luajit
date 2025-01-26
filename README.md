@@ -23,7 +23,7 @@ completely by human hands -- no `translate-c` or LLMs.
 
 The `main` branch targets Zig's `master` (nightly) deployment (currently `0.14.0-dev.XXXX`).
 
-## Installation
+## Installation & Usage
 
 It is recommended that you install `zig-luajit` using `zig fetch`. This will add a `ziglua` dependency to your `build.zig.zon` file.
 
@@ -47,12 +47,16 @@ const luajit_dep = b.dependency("luajit", .{
 // (2) Get a reference to the language bindings module.
 const luajit = luajit_dep.module("luajit");
 
+// Set up your library or executable
+const lib = // ...
+const exe = // ...
+
 // (3) Add the module as an import to your executable or library.
 my_exe.root_module.addImport("luajit", luajit);
 my_lib.root_module.addImport("luajit", luajit);
 ```
 
-Finally, code in your library or executable can import and use the language bindings.
+Now the code in your library or exectable can import and use the LuaJIT Zig API!
 
 ```zig
 const luajit = @import("luajit");

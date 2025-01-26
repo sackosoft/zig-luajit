@@ -27,16 +27,16 @@ pub const Lua = opaque {
     pub const Number = c.LUA_NUMBER;
     pub const Integer = c.LUA_INTEGER;
     pub const Type = enum(i5) {
-        None = c.LUA_TNONE,
-        Nil = c.LUA_TNIL,
-        Boolean = c.LUA_TBOOLEAN,
-        LightUserdata = c.LUA_TLIGHTUSERDATA,
-        Number = c.LUA_TNUMBER,
-        String = c.LUA_TSTRING,
-        Table = c.LUA_TTABLE,
-        Function = c.LUA_TFUNCTION,
-        Userdata = c.LUA_TUSERDATA,
-        Thread = c.LUA_TTHREAD,
+        none = c.LUA_TNONE,
+        nil = c.LUA_TNIL,
+        boolean = c.LUA_TBOOLEAN,
+        light_userdata = c.LUA_TLIGHTUSERDATA,
+        number = c.LUA_TNUMBER,
+        string = c.LUA_TSTRING,
+        table = c.LUA_TTABLE,
+        function = c.LUA_TFUNCTION,
+        userdata = c.LUA_TUSERDATA,
+        thread = c.LUA_TTHREAD,
     };
 
     const LuaStatus = enum(i32) {
@@ -233,7 +233,7 @@ pub const Lua = opaque {
             "isNoneOrNil() safely returns `true` when the index is not valid (required by Lua spec).",
         );
 
-        return lua.typeOf(index) == Lua.Type.None or lua.typeOf(index) == Lua.Type.Nil;
+        return lua.typeOf(index) == Lua.Type.none or lua.typeOf(index) == Lua.Type.nil;
     }
 
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the
@@ -248,7 +248,7 @@ pub const Lua = opaque {
             "isNone() safely returns `true` when the index is not valid (required by Lua spec).",
         );
 
-        return lua.typeOf(index) == Lua.Type.None;
+        return lua.typeOf(index) == Lua.Type.none;
     }
 
     /// Returns true if the value at the given acceptable index is nil, and false otherwise.
@@ -259,7 +259,7 @@ pub const Lua = opaque {
     pub fn isNil(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.Nil;
+        return lua.typeOf(index) == Lua.Type.nil;
     }
 
     /// Returns true if the value at the given acceptable index has type boolean, false otherwise.
@@ -270,7 +270,7 @@ pub const Lua = opaque {
     pub fn isBoolean(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.Boolean;
+        return lua.typeOf(index) == Lua.Type.boolean;
     }
 
     /// Returns true if the value at the given acceptable index is a function (either C or Lua), and false otherwise.
@@ -281,7 +281,7 @@ pub const Lua = opaque {
     pub fn isFunction(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.Function;
+        return lua.typeOf(index) == Lua.Type.function;
     }
 
     /// Returns true if the value at the given acceptable index is a light userdata, false otherwise.
@@ -292,7 +292,7 @@ pub const Lua = opaque {
     pub fn isLightUserdata(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.LightUserdata;
+        return lua.typeOf(index) == Lua.Type.light_userdata;
     }
 
     /// Returns true if the value at the given acceptable index is a table, false otherwise.
@@ -303,7 +303,7 @@ pub const Lua = opaque {
     pub fn isTable(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.Table;
+        return lua.typeOf(index) == Lua.Type.table;
     }
 
     /// Returns true if the value at the given acceptable index is a thread, and false otherwise.
@@ -314,7 +314,7 @@ pub const Lua = opaque {
     pub fn isThread(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.Thread;
+        return lua.typeOf(index) == Lua.Type.thread;
     }
 
     /// Returns true if the value at the given acceptable index is a number and an integer; that is, the number
@@ -428,17 +428,17 @@ pub const Lua = opaque {
         );
 
         return switch (lua.typeOf(index)) {
-            .Boolean => lua.toBoolean(index),
+            .boolean => lua.toBoolean(index),
 
-            .None => error.NoneIsNotBoolean,
-            .Nil => error.NilIsNotBoolean,
-            .LightUserdata => error.LightUserdataIsNotBoolean,
-            .Number => error.NumberIsNotBoolean,
-            .String => error.StringIsNotBoolean,
-            .Table => error.TableIsNotBoolean,
-            .Function => error.FunctionIsNotBoolean,
-            .Userdata => error.UserdataIsNotBoolean,
-            .Thread => error.ThreadIsNotBoolean,
+            .none => error.NoneIsNotBoolean,
+            .nil => error.NilIsNotBoolean,
+            .light_userdata => error.LightUserdataIsNotBoolean,
+            .number => error.NumberIsNotBoolean,
+            .string => error.StringIsNotBoolean,
+            .table => error.TableIsNotBoolean,
+            .function => error.FunctionIsNotBoolean,
+            .userdata => error.UserdataIsNotBoolean,
+            .thread => error.ThreadIsNotBoolean,
         };
     }
 
@@ -497,7 +497,7 @@ pub const Lua = opaque {
         );
 
         const t = lua.typeOf(index);
-        if (t == Lua.Type.Number) {
+        if (t == Lua.Type.number) {
             return c.lua_tointeger(asState(lua), index);
         } else {
             return typeIsNotNumber(t);
@@ -506,16 +506,16 @@ pub const Lua = opaque {
 
     fn typeIsNotNumber(t: Lua.Type) NotNumberError {
         return switch (t) {
-            .Number => unreachable,
-            .String => error.StringIsNotNumber,
-            .None => error.NoneIsNotNumber,
-            .Nil => error.NilIsNotNumber,
-            .Boolean => error.BooleanIsNotNumber,
-            .LightUserdata => error.LightUserdataIsNotNumber,
-            .Table => error.TableIsNotNumber,
-            .Function => error.FunctionIsNotNumber,
-            .Userdata => error.UserdataIsNotNumber,
-            .Thread => error.ThreadIsNotNumber,
+            .number => unreachable,
+            .string => error.StringIsNotNumber,
+            .none => error.NoneIsNotNumber,
+            .nil => error.NilIsNotNumber,
+            .boolean => error.BooleanIsNotNumber,
+            .light_userdata => error.LightUserdataIsNotNumber,
+            .table => error.TableIsNotNumber,
+            .function => error.FunctionIsNotNumber,
+            .userdata => error.UserdataIsNotNumber,
+            .thread => error.ThreadIsNotNumber,
         };
     }
 
@@ -557,7 +557,7 @@ pub const Lua = opaque {
         );
 
         const t = lua.typeOf(index);
-        if (t == Lua.Type.Number) {
+        if (t == Lua.Type.number) {
             return c.lua_tonumber(asState(lua), index);
         } else {
             return typeIsNotNumber(t);
@@ -735,16 +735,16 @@ pub const Lua = opaque {
 
     fn typeIsNotString(t: Lua.Type) NotStringError {
         return switch (t) {
-            .Number, .String => unreachable,
+            .number, .string => unreachable,
 
-            .None => error.NoneIsNotString,
-            .Nil => error.NilIsNotString,
-            .Boolean => error.BooleanIsNotString,
-            .LightUserdata => error.LightUserdataIsNotString,
-            .Table => error.TableIsNotString,
-            .Function => error.FunctionIsNotString,
-            .Userdata => error.UserdataIsNotString,
-            .Thread => error.ThreadIsNotString,
+            .none => error.NoneIsNotString,
+            .nil => error.NilIsNotString,
+            .boolean => error.BooleanIsNotString,
+            .light_userdata => error.LightUserdataIsNotString,
+            .table => error.TableIsNotString,
+            .function => error.FunctionIsNotString,
+            .userdata => error.UserdataIsNotString,
+            .thread => error.ThreadIsNotString,
         };
     }
 
@@ -1176,7 +1176,7 @@ test "Lua type checking functions should work for an empty stack." {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.None);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.none);
     try std.testing.expect(lua.isNone(1));
     try std.testing.expect(lua.isNoneOrNil(1));
 }
@@ -1200,15 +1200,15 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushNil();
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.Nil);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.nil);
     try std.testing.expect(lua.isNil(1));
     try std.testing.expect(lua.isNoneOrNil(1));
-    try std.testing.expect(!(lua.typeOf(1) == Lua.Type.None));
+    try std.testing.expect(!(lua.typeOf(1) == Lua.Type.none));
     try std.testing.expect(!lua.isNone(1));
     lua.pop(1);
 
     lua.pushBoolean(true);
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.Boolean);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.boolean);
     try std.testing.expect(lua.isBoolean(1));
     try std.testing.expect(!lua.isNil(1));
     try std.testing.expect(!lua.isNoneOrNil(1));
@@ -1224,7 +1224,7 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushInteger(42);
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.Number);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.number);
     try std.testing.expect(lua.isInteger(1));
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
@@ -1241,7 +1241,7 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushNumber(42.4);
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.Number);
+    try std.testing.expect(lua.typeOf(1) == Lua.Type.number);
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
     try std.testing.expect(!lua.isInteger(1));
@@ -1267,24 +1267,24 @@ test "Lua type checking functions return true when stack contains value" {
 
     lua.newTable();
     try std.testing.expect(lua.isTable(1));
-    try std.testing.expectEqual(Lua.Type.Table, lua.typeOf(1));
+    try std.testing.expectEqual(Lua.Type.table, lua.typeOf(1));
     lua.pop(1);
 
     lua.createTable(1, 0);
     try std.testing.expect(lua.isTable(1));
-    try std.testing.expectEqual(Lua.Type.Table, lua.typeOf(1));
+    try std.testing.expectEqual(Lua.Type.table, lua.typeOf(1));
     lua.pop(1);
 
-    try std.testing.expectEqualSlices(u8, "no value", lua.typeName(Lua.Type.None));
-    try std.testing.expectEqualSlices(u8, "nil", lua.typeName(Lua.Type.Nil));
-    try std.testing.expectEqualSlices(u8, "boolean", lua.typeName(Lua.Type.Boolean));
-    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.Userdata));
-    try std.testing.expectEqualSlices(u8, "number", lua.typeName(Lua.Type.Number));
-    try std.testing.expectEqualSlices(u8, "string", lua.typeName(Lua.Type.String));
-    try std.testing.expectEqualSlices(u8, "table", lua.typeName(Lua.Type.Table));
-    try std.testing.expectEqualSlices(u8, "function", lua.typeName(Lua.Type.Function));
-    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.LightUserdata));
-    try std.testing.expectEqualSlices(u8, "thread", lua.typeName(Lua.Type.Thread));
+    try std.testing.expectEqualSlices(u8, "no value", lua.typeName(Lua.Type.none));
+    try std.testing.expectEqualSlices(u8, "nil", lua.typeName(Lua.Type.nil));
+    try std.testing.expectEqualSlices(u8, "boolean", lua.typeName(Lua.Type.boolean));
+    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.userdata));
+    try std.testing.expectEqualSlices(u8, "number", lua.typeName(Lua.Type.number));
+    try std.testing.expectEqualSlices(u8, "string", lua.typeName(Lua.Type.string));
+    try std.testing.expectEqualSlices(u8, "table", lua.typeName(Lua.Type.table));
+    try std.testing.expectEqualSlices(u8, "function", lua.typeName(Lua.Type.function));
+    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.light_userdata));
+    try std.testing.expectEqualSlices(u8, "thread", lua.typeName(Lua.Type.thread));
 }
 
 test "toBoolean and toBooleanStrict" {
@@ -1489,10 +1489,10 @@ test "tables" {
     try std.testing.expectEqual(1, lua.getTop());
 
     lua.pushInteger(1);
-    try std.testing.expectEqual(Lua.Type.String, lua.getTable(-2));
+    try std.testing.expectEqual(Lua.Type.string, lua.getTable(-2));
     lua.pop(1);
     lua.pushInteger(1);
-    try std.testing.expectEqual(Lua.Type.String, lua.getTableRaw(-2));
+    try std.testing.expectEqual(Lua.Type.string, lua.getTableRaw(-2));
 }
 
 test "lengthOf" {

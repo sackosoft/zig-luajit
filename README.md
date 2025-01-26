@@ -19,6 +19,51 @@ This project attempts to provide the most idiomatic Zig language bindings for th
 safety by making liberal use of runtime safety checks in `Debug` and `ReleaseSafe` builds. Translations of types and functions is a work in progress and done
 completely by human hands -- no `translate-c` or LLMs.
 
+## Zig Version
+
+The `main` branch targets Zig's `master` (nightly) deployment (currently `0.14.0-dev.XXXX`).
+
+## Installation
+
+It is recommended that you install `zig-luajit` using `zig fetch`. This will add a `ziglua` dependency to your `build.zig.zon` file.
+
+```bash
+zig fetch --save=luajit_build git+https://github.com/sackosoft/zig-luajit
+```
+
+Next, in order for your code to import `zig-luajit`, you'll need to update your `build.zig` to do the following:
+
+1. get a reference the `zig-luajit` dependency.
+2. get a reference to the `luajit` module, which contains the core Zig language bindings for LuaJIT.
+3. add the module as an import to your executable or library.
+
+```zig
+// (1) Get a reference to the `zig fetch`'ed dependency
+const luajit_dep = b.dependency("luajit", .{
+    .target = target,
+    .optimize = optimize,
+});
+
+// (2) Get a reference to the language bindings module.
+const luajit = luajit_dep.module("luajit");
+
+// (3) Add the module as an import to your executable or library.
+my_exe.root_module.addImport("luajit", luajit);
+my_lib.root_module.addImport("luajit", luajit);
+```
+
+Finally, code in your library or executable can import and use the language bindings.
+
+```zig
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const lua = Lua.init(gpa.allocator());
+defer lua.deinit();
+
+lua.openBaseLib();
+lua.doString("print(\"Hello, world!\")");
+```
+
+
 ## Language Binding Coverage Progress
 
 | API | Support |

@@ -1,3 +1,7 @@
+//! Copyright (c) 2024-2025 Theodore Sackos
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
+// This file contains brainstorming and draft translations of the C API to Lua.
 
 /// Adds the character c to the given buffer.
 ///

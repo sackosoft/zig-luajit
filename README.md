@@ -55,12 +55,17 @@ my_lib.root_module.addImport("luajit", luajit);
 Finally, code in your library or executable can import and use the language bindings.
 
 ```zig
+const luajit = @import("luajit");
+const Lua = luajit.Lua;
+
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const lua = Lua.init(gpa.allocator());
 defer lua.deinit();
 
 lua.openBaseLib();
-lua.doString("print(\"Hello, world!\")");
+lua.doString(
+    \\ print("Hello, world!")
+);
 ```
 
 

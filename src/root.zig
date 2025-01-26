@@ -39,13 +39,34 @@ pub const Lua = opaque {
         thread = c.LUA_TTHREAD,
     };
 
-    const Status = enum(i32) {
+    pub const Status = enum(i32) {
+        /// Indicates the last operation completed successfully with no errors. This is the normal
+        /// return status for most Lua API functions.
         ok = c.LUA_OK,
+
+        /// Coroutine has suspended execution via yield. Indicates normal coroutine suspension, not an
+        /// error condition. The coroutine can be resumed later with lua_resume().
         yield = c.LUA_YIELD,
+
+        /// Indicates that the last execution results in a Lua runtime error. This may indicate usage of
+        /// undefined variables, dereference of `nil` or other runtime issues.
+        /// from the stack.
         runtime_error = c.LUA_ERRRUN,
+
+        /// Indicates that the Lua runtime failed to parse provided Lua source code before execution. This
+        /// is likely a result of a mistake made by a user where the given code is malformed and incorrect.
         syntax_error = c.LUA_ERRSYNTAX,
+
+        /// Indicates that Lua was unable to allocate memory required by the last operation.
         memory_error = c.LUA_ERRMEM,
+
+        /// Indicates that an error occurred while running the error handler function such as after invoking
+        /// a protected call.
         error_handling_error = c.LUA_ERRERR,
+
+        fn is_status(s: i32) bool {
+            return c.LUA_OK <= s and s <= c.LUA_ERRERR;
+        }
     };
 
     const MaxStackSize: i32 = c.LUAI_MAXCSTACK;
@@ -694,8 +715,8 @@ pub const Lua = opaque {
         }
     }
 
-    /// Pushes the bytes in the given slice onto the stack as a string. Lua makes (or reuses) an internal
-    /// copy of the given string, so the provided slice may freed or reused immediately after the function returns.
+    /// Pushes the bytes in the given slice onto the stack as a string. Lua makes (or reuses) an internal copy of
+    /// the given string, so the provided slice may freed or reused immediately after the function returns succesfully.
     /// The string may contain embedded zeros, it is not interpreted as a c-style string ending at the first zero.
     ///
     /// From: `void lua_pushlstring(lua_State *L, const char *s, size_t len);`
@@ -858,6 +879,18 @@ pub const Lua = opaque {
         return c.lua_insert(asState(lua), index);
     }
 
+    /// Returns the current status of the thread. The status will be `Status.ok` for a normal thread, an error
+    /// code if the thread finished its execution with an error, or `status.yield` if the thread is suspended.
+    ///
+    /// From: `int lua_status(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_status
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn status(lua: *Lua) Status {
+        const s: i32 = c.lua_status(asState(lua));
+        assert(Status.is_status(s)); // Expected the status to be one of the "thread status" values defined in lua.h
+        return @enumFromInt(s);
+    }
+
     /// Returns the "length" of the value at the given acceptable index:
     /// * for strings, this is the string length;
     /// * for numbers, after an implicit coversion to a string value this is the string length;
@@ -963,8 +996,10 @@ pub const Lua = opaque {
         assert(nresults >= 0 or nresults == Lua.MultipleReturn);
 
         const res = c.lua_pcall(asState(lua), nargs, nresults, errfunc);
-        const status: Status = @enumFromInt(res);
-        return switch (status) {
+        assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
+
+        const s: Status = @enumFromInt(res);
+        return switch (s) {
             .ok => return,
             .runtime_error => error.Runtime,
             .memory_error => error.OutOfMemory,
@@ -1142,8 +1177,10 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-0, +?, m]`
     pub fn doString(lua: *Lua, str: [*:0]const u8) DoStringError!void {
         const res = c.luaL_loadstring(asState(lua), str);
-        const status: Lua.Status = @enumFromInt(res);
-        switch (status) {
+        assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
+
+        const s: Lua.Status = @enumFromInt(res);
+        switch (s) {
             .syntax_error => return error.InvalidSyntax,
             .memory_error => return error.OutOfMemory,
             else => {
@@ -1469,6 +1506,38 @@ test "checkStack should return OOM when allocation fails." {
     }
 
     try std.testing.expectError(error.OutOfMemory, lua.checkStack(100));
+}
+
+test "status should be ok after ok executions" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expectEqual(Lua.Status.ok, lua.status());
+    lua.pushLString("Foo bar");
+    try std.testing.expectEqual(Lua.Status.ok, lua.status());
+    lua.pop(1);
+    try std.testing.expectEqual(Lua.Status.ok, lua.status());
+    lua.openLibs();
+    try lua.doString(
+        \\ print("Hello, world!")
+    );
+    try std.testing.expectEqual(Lua.Status.ok, lua.status());
+}
+
+test "status should reflect appropriate states of the Lua machine after failures" {
+    const lua = try Lua.init(std.testing.allocator);
+    lua.setAllocF(aa.fail_alloc);
+    defer {
+        lua.setAllocF(aa.alloc);
+        lua.deinit();
+    }
+
+    lua.setAllocF(aa.fail_alloc);
+    const actual = lua.doString(
+        \\ return {}
+    );
+    try std.testing.expectError(Lua.DoStringError.OutOfMemory, actual);
+    try std.testing.expectEqual(Lua.Status.ok, lua.status()); // I think the reason it's OK is because the machine is ready to continue running, despite the failure? I'm actually not sure why I cannot get status to return an error code despite trying many things. Leaving it untested for now, sorry if you find this :(
 }
 
 test "tables" {

@@ -3,6 +3,7 @@
 
 // This file contains brainstorming and draft translations of the C API to Lua.
 
+
 /// Sets a new panic function and returns the old one. If an error happens outside any protected environment,
 /// Lua calls a panic function and then calls exit(EXIT_FAILURE), thus exiting the host application.
 /// Your panic function can avoid this exit by never returning (e.g., doing a long jump).
@@ -12,8 +13,6 @@
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_atpanic
 /// Stack Behavior: `[-0, +0, -]`
 pub fn atPanic(lua: *Lua, panicf: CFunction) CFunction;
-
-
 
 /// Destroys all objects in the given Lua state (calling the corresponding garbage-collection metamethods, if any)
 /// and frees all dynamic memory used by this state. On several platforms, you may not need to call this function,
@@ -373,15 +372,6 @@ pub fn setTop(lua: *Lua, index: i32) void;
 /// From: `typedef struct lua_State lua_State;`
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_State
 pub const Lua = opaque {};
-
-/// Returns the status of the thread. The status can be 0 for a normal thread,
-/// an error code if the thread finished its execution with an error,
-/// or LUA_YIELD if the thread is suspended.
-///
-/// From: `int lua_status(lua_State *L);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_status
-/// Stack Behavior: `[-0, +0, -]`
-pub fn status(lua: *Lua) i32;
 
 
 /// Converts a value at the given acceptable index to a C function. 

@@ -170,7 +170,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_settable`|☑️ `lua.setTable()` |
 | `lua_settop`||
 | `lua_State`|☑️ `Lua` |
-| `lua_status`||
+| `lua_status`|☑️ `lua.status()` |
 | `lua_toboolean`|☑️ `lua.toBoolean()`|
 | `lua_tocfunction`||
 | `lua_tointeger`|☑️ `lua.toInteger()`|

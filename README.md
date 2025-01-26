@@ -1,7 +1,8 @@
 <div align="center">
 
-# This Project
-**Zig language bindings for the [LuaJIT](https://luajit.org/) C API. Use `zig-luajit` to run [Lua scripts](https://www.lua.org/) within a Zig application.**
+# zig-luajit
+
+**Zig ⚡ language bindings for the [LuaJIT](https://luajit.org/) C API. Use `zig-luajit` to run [Lua scripts](https://www.lua.org/) within a Zig application.**
 
 ![Regression Tests Badge](https://img.shields.io/github/actions/workflow/status/sackosoft/zig-luajit/tests.yml?label=tests)
 ![GitHub License](https://img.shields.io/github/license/sackosoft/zig-luajit)

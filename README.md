@@ -4,7 +4,8 @@
 
 **Zig ⚡ language bindings for the [LuaJIT](https://luajit.org/) C API. Use `zig-luajit` to run [Lua scripts](https://www.lua.org/) within a Zig application.**
 
-![Regression Tests Badge](https://img.shields.io/github/actions/workflow/status/sackosoft/zig-luajit/tests.yml?label=tests)
+![Ubuntu Regression Tests Badge](https://img.shields.io/github/actions/workflow/status/sackosoft/zig-luajit/tests-ubuntu.yml?label=Tests%20Ubuntu)
+![Windows Regression Tests Badge](https://img.shields.io/github/actions/workflow/status/sackosoft/zig-luajit/tests-windows.yml?label=Tests%20Windows)
 ![GitHub License](https://img.shields.io/github/license/sackosoft/zig-luajit)
 
 <!--

@@ -1,16 +1,17 @@
-name: Run Tests
+name: Run Tests (Windows)
 
 on:
   push:
     branches: [ "main" ]
     paths:
+      - .github/workflows/*
       - src/**
       - build.zig
       - build.zig.zon
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - name: ⬇️ Checkout
@@ -22,5 +23,5 @@ jobs:
         version: master
 
     - name: ▶️ Run tests
-      shell: bash
+      shell: pwsh
       run: zig build test

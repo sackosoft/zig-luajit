@@ -55,15 +55,6 @@ pub fn cpCall(lua: *Lua, func: CFn, userdata: ?*anyopaque) LuaError;
 /// Stack Behavior: `[-0, +0, m]`
 pub fn dump(lua: *Lua, writer: LuaWriter, data: *anyopaque) i32;
 
-/// Returns whether the two values in acceptable indices index1 and index2 are equal, 
-/// following the semantics of the Lua == operator (which may call metamethods). 
-/// Returns false if any of the indices is not valid.
-///
-/// From: `int lua_equal(lua_State *L, int index1, int index2);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_equal
-/// Stack Behavior: `[-0, +0, e]`
-pub fn equal(lua: *Lua, index1: i32, index2: i32) bool;
-
 /// Generates a Lua error. The error message (which can actually be a Lua value of any type)
 /// must be on the stack top. This function does a long jump and therefore never returns.
 ///

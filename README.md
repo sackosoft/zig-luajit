@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 51% available (47/92) | <!-- 51.03% - Add 1.07 per -->
+| Lua C API (`lua_*`) | 52% available (47/92) | <!-- 52.10% - Add 1.07 per -->
 | Auxilary Library (`luaL_*`) | 6% available (3/48) | <!-- Always 2% * n, for n up to 48 -->
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -100,7 +100,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_CFunction`| ☑️ `lua.CFunction` |
 | `lua_checkstack`| ☑️ `lua.checkStack()` |
 | `lua_close`| ☑️📢 `lua.deinit()` |
-| `lua_concat`||
+| `lua_concat`| ☑️ `lua.concat()` |
 | `lua_cpcall`||
 | `lua_createtable`| ☑️ `lua.createTable()` |
 | `lua_dump`||

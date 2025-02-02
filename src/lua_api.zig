@@ -14,16 +14,6 @@
 /// Stack Behavior: `[-0, +0, -]`
 pub fn atPanic(lua: *Lua, panicf: CFunction) CFunction;
 
-/// Concatenates the n values at the top of the stack, pops them, and leaves the result at the top.
-/// If n is 1, the result is the single value on the stack (that is, the function does nothing);
-/// if n is 0, the result is the empty string. Concatenation is performed following the usual 
-/// semantics of Lua (see https://www.lua.org/manual/5.1/manual.html#2.5.4).
-///
-/// From: `void lua_concat(lua_State *L, int n);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_concat
-/// Stack Behavior: `[-n, +1, e]`
-pub fn concat(lua: *Lua, n: i32) void;
-
 /// Calls the C function `func` in protected mode. `func` starts with only one element in its stack,
 /// a light userdata containing `ud`. In case of errors, returns the same error codes as `lua_pcall`,
 /// plus the error object on the top of the stack; otherwise, returns zero and does not change the stack.

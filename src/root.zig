@@ -6,6 +6,7 @@ const testing = std.testing;
 const assert = std.debug.assert;
 
 const mode = @import("builtin").mode;
+const isSafeBuildTarget: bool = mode == .ReleaseSafe or mode == .Debug;
 
 const c = @import("c");
 fn asState(lua: *Lua) *c.lua_State {
@@ -214,7 +215,7 @@ pub const Lua = opaque {
         assert(index != 0);
 
         // Make sure we only run these checks in safety-checked build modes.
-        if (mode == .ReleaseSafe or mode == .Debug) {
+        if (isSafeBuildTarget) {
             if (index <= c.LUA_REGISTRYINDEX) {
                 const max_upvalues_count = 255;
                 assert(@as(i32, @intCast(c.LUA_GLOBALSINDEX - max_upvalues_count)) <= index); // Safety check failed: pseudo-index exceeds maximum number of upvalues (255). This can also happen if your stack index has been corrupted and become a very large negative number.
@@ -912,6 +913,23 @@ pub const Lua = opaque {
         lua.validateStackIndex(index_right);
 
         return 1 == c.lua_lessthan(asState(lua), index_left, index_right);
+    }
+
+    /// Concatenates the n values at the top of the stack, pops them, and leaves the result at the top.
+    /// If n is 1, the result is the single value on the stack (that is, the function does nothing);
+    /// if n is 0, the result is the empty string. Concatenation is performed following the usual
+    /// semantics of the lua concat `..` operator (see https://www.lua.org/manual/5.1/manual.html#2.5.4).
+    ///
+    /// In Debug or ReleaseSafe builds, the values to be concatenated are checked to be strings, numbers
+    /// or types with the `__concat` metamethod defined.
+    ///
+    /// From: `void lua_concat(lua_State *L, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_concat
+    /// Stack Behavior: `[-n, +1, e]`
+    pub fn concat(lua: *Lua, n: i32) void {
+        assert(n >= 0);
+
+        return c.lua_concat(asState(lua), n);
     }
 
     /// Returns the current status of the thread. The status will be `Status.ok` for a normal thread, an error
@@ -1888,4 +1906,32 @@ test "lessthan should follow expected semantics" {
     try std.testing.expect(lua.lessThan(-2, -1));
     try std.testing.expect(!lua.lessThan(-1, -2));
     lua.pop(2);
+}
+
+test "concat should follow expected semantics" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.concat(0);
+    try std.testing.expectEqualSlices(u8, "", try lua.toLString(-1));
+    lua.pop(1);
+
+    lua.pushInteger(42);
+    lua.concat(1);
+    try std.testing.expectEqualSlices(u8, "42", try lua.toLString(-1));
+    lua.pop(1);
+
+    lua.pushNumber(13.1);
+    lua.pushInteger(13);
+    lua.concat(2);
+    try std.testing.expectEqualSlices(u8, "13.113", try lua.toLString(-1));
+    lua.pop(1);
+
+    lua.pushInteger(42);
+    lua.pushLString("-");
+    lua.pushInteger(84);
+    lua.pushLString("-Boof");
+    lua.concat(4);
+    try std.testing.expectEqualSlices(u8, "42-84-Boof", try lua.toLString(-1));
+    lua.pop(1);
 }

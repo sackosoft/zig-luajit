@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 52% available (48/92) | <!-- 52.10% - Add 1.07 per -->
+| Lua C API (`lua_*`) | 55% available (51/92) | <!-- 55.31% - Add 1.07 per -->
 | Auxilary Library (`luaL_*`) | 6% available (3/48) | <!-- Always 2% * n, for n up to 48 -->
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -111,7 +111,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_getfenv`||
 | `lua_getfield`||
 | `lua_getglobal`||
-| `lua_getmetatable`||
+| `lua_getmetatable`| ☑️ `lua.getMetatable()` |
 | `lua_gettable`| ☑️ `lua.getTable()` |
 | `lua_gettop`| ☑️ `lua.getTop()` |
 | `lua_insert`| ☑️ `lua.insert()` |
@@ -167,9 +167,9 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_setfenv`||
 | `lua_setfield`||
 | `lua_setglobal`||
-| `lua_setmetatable`||
+| `lua_setmetatable`| ☑️ `lua.setMetatable()` |
 | `lua_settable`| ☑️ `lua.setTable()` |
-| `lua_settop`||
+| `lua_settop`| ☑️ `lua.setTop()` |
 | `lua_State`| ☑️ `Lua` |
 | `lua_status`| ☑️ `lua.status()` |
 | `lua_toboolean`| ☑️ `lua.toBoolean()`|

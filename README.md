@@ -96,60 +96,60 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 |--------------|---------------------------|
 | `lua_Alloc`||
 | `lua_atpanic`||
-| `lua_call`|☑️ `lua.call()` |
-| `lua_CFunction`|☑️ `lua.CFunction` |
-| `lua_checkstack`|☑️ `lua.checkStack()` |
-| `lua_close`||
+| `lua_call`| ☑️ `lua.call()` |
+| `lua_CFunction`| ☑️ `lua.CFunction` |
+| `lua_checkstack`| ☑️ `lua.checkStack()` |
+| `lua_close`| ☑️📢 `lua.deinit()` |
 | `lua_concat`||
 | `lua_cpcall`||
-| `lua_createtable`|☑️ `lua.createTable()` |
+| `lua_createtable`| ☑️ `lua.createTable()` |
 | `lua_dump`||
-| `lua_equal`|☑️ `lua.equal()` |
-| `lua_error`||
+| `lua_equal`| ☑️ `lua.equal()` |
+| `lua_error`| ☑️📢 `lua.raiseError()` |
 | `lua_gc`||
 | `lua_getallocf`|➖ `lua.getAllocF()` |
 | `lua_getfenv`||
 | `lua_getfield`||
 | `lua_getglobal`||
 | `lua_getmetatable`||
-| `lua_gettable`|☑️ `lua.getTable()` |
-| `lua_gettop`|☑️ `lua.getTop()` |
-| `lua_insert`|☑️ `lua.insert()` |
-| `lua_Integer`|☑️ `Lua.Integer` |
-| `lua_isboolean`|☑️ `lua.isBoolean()` |
-| `lua_iscfunction`|☑️ `lua.isCFunction()` |
-| `lua_isfunction`|☑️ `lua.isFunction()` |
-| `lua_islightuserdata`|☑️ `lua.isLightUserdata()` |
-| `lua_isnil`|☑️ `lua.isNil()` |
-| `lua_isnoneornil`|☑️ `lua.isNilOrNone()` |
-| `lua_isnone`|☑️ `lua.isNone()` |
-| `lua_isnumber`|☑️ `lua.isNumber()` |
-| `lua_isstring`|☑️ `lua.isString()` |
-| `lua_istable`|☑️ `lua.isTable()` |
-| `lua_isthread`|☑️ `lua.isThread()` |
-| `lua_isuserdata`|☑️ `lua.isUserdata()` |
-| `lua_lessthan`||
+| `lua_gettable`| ☑️ `lua.getTable()` |
+| `lua_gettop`| ☑️ `lua.getTop()` |
+| `lua_insert`| ☑️ `lua.insert()` |
+| `lua_Integer`| ☑️ `Lua.Integer` |
+| `lua_isboolean`| ☑️ `lua.isBoolean()` |
+| `lua_iscfunction`| ☑️ `lua.isCFunction()` |
+| `lua_isfunction`| ☑️ `lua.isFunction()` |
+| `lua_islightuserdata`| ☑️ `lua.isLightUserdata()` |
+| `lua_isnil`| ☑️ `lua.isNil()` |
+| `lua_isnoneornil`| ☑️ `lua.isNilOrNone()` |
+| `lua_isnone`| ☑️ `lua.isNone()` |
+| `lua_isnumber`| ☑️ `lua.isNumber()` |
+| `lua_isstring`| ☑️ `lua.isString()` |
+| `lua_istable`| ☑️ `lua.isTable()` |
+| `lua_isthread`| ☑️ `lua.isThread()` |
+| `lua_isuserdata`| ☑️ `lua.isUserdata()` |
+| `lua_lessthan`| ☑️ `lua.lessThan()` |
 | `lua_load`||
-| `lua_newstate`|☑️📢 `Lua.init()` |
-| `lua_newtable`|☑️ `lua.newTable()` |
+| `lua_newstate`| ☑️📢 `Lua.init()` |
+| `lua_newtable`| ☑️ `lua.newTable()` |
 | `lua_newthread`||
 | `lua_newuserdata`||
-| `lua_next`|☑️ `lua.next()` |
-| `lua_Number`|☑️ `Lua.Number` |
-| `lua_objlen`|☑️📢 `lua.lengthOf()` |
-| `lua_pcall`|☑️📢 `lua.protectedCall()` |
-| `lua_pop`|☑️ `lua.pop()` |
-| `lua_pushboolean`|☑️ `lua.pushBoolean()` |
+| `lua_next`| ☑️ `lua.next()` |
+| `lua_Number`| ☑️ `Lua.Number` |
+| `lua_objlen`| ☑️📢 `lua.lengthOf()` |
+| `lua_pcall`| ☑️📢 `lua.protectedCall()` |
+| `lua_pop`| ☑️ `lua.pop()` |
+| `lua_pushboolean`| ☑️ `lua.pushBoolean()` |
 | `lua_pushcclosure`||
 | `lua_pushcfunction`||
 | `lua_pushfstring`||
-| `lua_pushinteger`|☑️ `lua.pushInteger()`|
+| `lua_pushinteger`| ☑️ `lua.pushInteger()`|
 | `lua_pushlightuserdata`||
 | `lua_pushliteral`||
-| `lua_pushlstring`|☑️ `lua.pushLString()` |
-| `lua_pushnil`|☑️ `lua.pushNil()`|
-| `lua_pushnumber`|☑️ `lua.pushNumber()` |
-| `lua_pushstring`|☑️ `lua.pushString()` |
+| `lua_pushlstring`| ☑️ `lua.pushLString()` |
+| `lua_pushnil`| ☑️ `lua.pushNil()`|
+| `lua_pushnumber`| ☑️ `lua.pushNumber()` |
+| `lua_pushstring`| ☑️ `lua.pushString()` |
 | `lua_pushthread`||
 | `lua_pushvalue`||
 | `lua_pushvfstring`||
@@ -168,21 +168,21 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_setfield`||
 | `lua_setglobal`||
 | `lua_setmetatable`||
-| `lua_settable`|☑️ `lua.setTable()` |
+| `lua_settable`| ☑️ `lua.setTable()` |
 | `lua_settop`||
-| `lua_State`|☑️ `Lua` |
-| `lua_status`|☑️ `lua.status()` |
-| `lua_toboolean`|☑️ `lua.toBoolean()`|
+| `lua_State`| ☑️ `Lua` |
+| `lua_status`| ☑️ `lua.status()` |
+| `lua_toboolean`| ☑️ `lua.toBoolean()`|
 | `lua_tocfunction`||
-| `lua_tointeger`|☑️ `lua.toInteger()`|
-| `lua_tolstring`|☑️ `lua.toLString()`|
-| `lua_tonumber`|☑️ `lua.toNumber()`|
+| `lua_tointeger`| ☑️ `lua.toInteger()`|
+| `lua_tolstring`| ☑️ `lua.toLString()`|
+| `lua_tonumber`| ☑️ `lua.toNumber()`|
 | `lua_topointer`||
-| `lua_tostring`|☑️ `lua.toString()`|
+| `lua_tostring`| ☑️ `lua.toString()`|
 | `lua_tothread`||
 | `lua_touserdata`||
-| `lua_typename`|☑️ `lua.typeName()`|
-| `lua_type`|☑️📢 `lua.typeOf()` |
+| `lua_typename`| ☑️ `lua.typeName()`|
+| `lua_type`| ☑️📢 `lua.typeOf()` |
 | `lua_Writer`||
 | `lua_xmove`||
 | `lua_yield`||
@@ -214,7 +214,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `luaL_checktype`||
 | `luaL_checkudata`||
 | `luaL_dofile`||
-| `luaL_dostring`|☑️ `doString()` |
+| `luaL_dostring`| ☑️ `doString()` |
 | `luaL_error`||
 | `luaL_getmetafield`||
 | `luaL_getmetatable`||
@@ -224,7 +224,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `luaL_loadstring`||
 | `luaL_newmetatable`||
 | `luaL_newstate`||
-| `luaL_openlibs`|☑️ `openLibs()` |
+| `luaL_openlibs`| ☑️ `openLibs()` |
 | `luaL_optinteger`||
 | `luaL_optint`||
 | `luaL_optlong`||
@@ -236,7 +236,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `luaL_ref`||
 | `luaL_register`||
 | `luaL_Reg`||
-| `luaL_typename`|☑️ `typeName()` |
+| `luaL_typename`| ☑️ `typeName()` |
 | `luaL_typerror`||
 | `luaL_unref`||
 | `luaL_where`||

@@ -14,16 +14,6 @@
 /// Stack Behavior: `[-0, +0, -]`
 pub fn atPanic(lua: *Lua, panicf: CFunction) CFunction;
 
-/// Destroys all objects in the given Lua state (calling the corresponding garbage-collection metamethods, if any)
-/// and frees all dynamic memory used by this state. On several platforms, you may not need to call this function,
-/// because all resources are naturally released when the host program ends. Long-running programs, such as a daemon
-/// or a web server, might need to release states as soon as they are not needed, to avoid growing too large.
-///
-/// From: `void lua_close(lua_State *L);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_close
-/// Stack Behavior: `[-0, +0, -]`
-pub fn close(lua: *Lua) void;
-
 /// Concatenates the n values at the top of the stack, pops them, and leaves the result at the top.
 /// If n is 1, the result is the single value on the stack (that is, the function does nothing);
 /// if n is 0, the result is the empty string. Concatenation is performed following the usual 
@@ -54,16 +44,6 @@ pub fn cpCall(lua: *Lua, func: CFn, userdata: ?*anyopaque) LuaError;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_dump
 /// Stack Behavior: `[-0, +0, m]`
 pub fn dump(lua: *Lua, writer: LuaWriter, data: *anyopaque) i32;
-
-/// Generates a Lua error. The error message (which can actually be a Lua value of any type)
-/// must be on the stack top. This function does a long jump and therefore never returns.
-///
-/// Note: This function was renamed from `error` due to naming conflicts with Zig's `error` keyword.
-///
-/// From: `int lua_error(lua_State *L);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_error
-/// Stack Behavior: `[-1, +0, v]`
-pub fn raiseError(lua: *Lua) noreturn;
 
 /// Controls the garbage collector with various tasks depending on the specified mode.
 ///
@@ -121,15 +101,6 @@ pub fn getMetatable(lua: *Lua, index: i32) bool;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Integer
 pub const Integer = isize;
 
-/// Returns whether the value at acceptable index index1 is smaller than the value at acceptable
-/// index index2, following the semantics of the Lua < operator (that is, may call metamethods).
-/// Returns 0 if any of the indices is non valid.
-///
-/// From: `int lua_lessthan(lua_State *L, int index1, int index2);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_lessthan
-/// Stack Behavior: `[-0, +0, e]`
-pub fn lessThan(lua: *Lua, index1: i32, index2: i32) bool;
-
 /// Loads a Lua chunk. If there are no errors, pushes the compiled chunk as a Lua function on top of the stack.
 /// Otherwise, it pushes an error message. Returns:
 /// - 0: no errors
@@ -142,15 +113,6 @@ pub fn lessThan(lua: *Lua, index1: i32, index2: i32) bool;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_load
 /// Stack Behavior: `[-0, +1, -]`
 pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]const u8) lua.Status;
-
-/// Creates a new, independent Lua state. Returns null if the state cannot be created due to lack of memory.
-/// The allocator function is used by Lua to perform all memory allocation for this state. The second argument
-/// is an opaque pointer that Lua passes to the allocator in every call.
-///
-/// From: `lua_State *lua_newstate(lua_Alloc f, void *ud);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newstate
-/// Stack Behavior: `[-0, +0, -]`
-pub fn newState(allocator: Alloc, userData: ?*anyopaque) ?*Lua;
 
 /// Creates a new thread, pushes it on the stack, and returns a pointer to a Lua state that represents this new thread.
 /// The new state shares all global objects (such as tables) with the original state, but has an independent execution stack.

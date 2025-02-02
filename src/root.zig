@@ -129,6 +129,9 @@ pub const Lua = opaque {
     ///   that was created in init()
     ///
     /// The Lua pointer is invalid after this call.
+    ///
+    /// From: `void lua_close(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_close
     pub fn deinit(lua: *Lua) void {
         const ad = lua.getAllocF();
 
@@ -880,13 +883,35 @@ pub const Lua = opaque {
     }
 
     /// Returns whether the two values in acceptable are equal, following the semantics of the Lua == operator
-    /// (which may call metamethods). Returns false if any of the indices is not valid.
+    /// (which may call metamethods).
+    ///
+    /// In Debug or ReleaseSafe builds, the indicides are validated to be acceptable indices. In unsafe
+    /// builds, the function will returns false if any of the indices is not valid.
     ///
     /// From: `int lua_equal(lua_State *L, int index1, int index2);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_equal
     /// Stack Behavior: `[-0, +0, e]`
     pub fn equal(lua: *Lua, index_left: i32, index_right: i32) bool {
+        lua.validateStackIndex(index_left);
+        lua.validateStackIndex(index_right);
+
         return 1 == c.lua_equal(asState(lua), index_left, index_right);
+    }
+
+    /// Returns whether the value at acceptable index `index_left` is smaller than the value at acceptable
+    /// index `index_right`, following the semantics of the Lua < operator (that is, may call metamethods).
+    ///
+    /// In Debug or ReleaseSafe builds, the indicides are validated to be acceptable indices. In unsafe
+    /// builds, the function will returns false if any of the indices is not valid.
+    ///
+    /// From: `int lua_lessthan(lua_State *L, int index1, int index2);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_lessthan
+    /// Stack Behavior: `[-0, +0, e]`
+    pub fn lessThan(lua: *Lua, index_left: i32, index_right: i32) bool {
+        lua.validateStackIndex(index_left);
+        lua.validateStackIndex(index_right);
+
+        return 1 == c.lua_lessthan(asState(lua), index_left, index_right);
     }
 
     /// Returns the current status of the thread. The status will be `Status.ok` for a normal thread, an error
@@ -949,6 +974,19 @@ pub const Lua = opaque {
         lua.validateStackIndex(index);
 
         return 1 == c.lua_next(asState(lua), index);
+    }
+
+    /// Generates a Lua error. The error message (which can actually be a Lua value of any type)
+    /// must be on the stack top. This function does a long jump and therefore never returns.
+    ///
+    /// Note: This function was renamed from `error` due to naming conflicts with Zig's `error` keyword.
+    ///
+    /// From: `int lua_error(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_error
+    /// Stack Behavior: `[-1, +0, v]`
+    pub fn raiseError(lua: *Lua) noreturn {
+        _ = c.lua_error(asState(lua));
+        unreachable;
     }
 
     /// Represents the kinds of errors that calling a Lua function may result in.
@@ -1655,6 +1693,21 @@ test "c functions and closures with protectedCall" {
     lua.pop(1);
 }
 
+fn errorRaisingCFunction(lua: *Lua) callconv(.c) i32 {
+    lua.pushLString("error raised");
+    lua.raiseError();
+}
+
+test "c functions raising error with protectedCall" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushCFunction(errorRaisingCFunction);
+    const actual = lua.protectedCall(0, 0, 0);
+    try std.testing.expectError(Lua.CallError.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "error raised", try lua.toLString(-1));
+}
+
 test "openLibs doesn't effect the stack" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
@@ -1779,38 +1832,60 @@ test "equal should follow expected semantics" {
     lua.pushLString("Hello, world!");
     lua.pushLString("hello, world!");
     try std.testing.expect(!lua.equal(-2, -1));
-
     lua.pop(1);
     lua.pushLString("Hello, world!");
     try std.testing.expect(lua.equal(-2, -1));
-
     lua.pop(2);
+
     lua.pushNumber(13.0);
     lua.pushInteger(13);
     try std.testing.expect(lua.equal(-2, -1));
-
     lua.pop(2);
+
     lua.pushNumber(13.5);
     lua.pushNumber(13.4);
     try std.testing.expect(!lua.equal(-2, -1));
-
     lua.pop(2);
+
     lua.pushNil();
     lua.pushBoolean(true);
     try std.testing.expect(!lua.equal(-2, -1));
-
     lua.pop(2);
+
     lua.pushNil();
     lua.pushNil();
     try std.testing.expect(lua.equal(-2, -1));
-
     lua.pop(2);
+
     lua.pushBoolean(true);
     lua.pushBoolean(false);
     try std.testing.expect(!lua.equal(-2, -1));
-
     lua.pop(2);
+
     lua.pushBoolean(true);
     lua.pushBoolean(true);
     try std.testing.expect(lua.equal(-2, -1));
+}
+
+test "lessthan should follow expected semantics" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushNumber(13.0);
+    lua.pushInteger(13);
+    try std.testing.expect(!lua.lessThan(-2, -1));
+    try std.testing.expect(!lua.lessThan(-1, -2));
+    lua.pop(2);
+
+    lua.pushNumber(13.5);
+    lua.pushNumber(13.4);
+    try std.testing.expect(!lua.lessThan(-2, -1));
+    try std.testing.expect(lua.lessThan(-1, -2));
+    lua.pop(2);
+
+    lua.pushLString("a");
+    lua.pushLString("b");
+    try std.testing.expect(lua.lessThan(-2, -1));
+    try std.testing.expect(!lua.lessThan(-1, -2));
+    lua.pop(2);
 }

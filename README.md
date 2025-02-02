@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 55% available (51/92) | <!-- 55.31% - Add 1.07 per -->
+| Lua C API (`lua_*`) | 56% available (52/92) | <!-- 56.38% - Add 1.07 per -->
 | Auxilary Library (`luaL_*`) | 6% available (3/48) | <!-- Always 2% * n, for n up to 48 -->
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -92,12 +92,20 @@ Icons:
 pattern has changed, such as using the Zig `init()` function pattern instead of using `lua_newstate()` directly.
 - ➖ indicates a symbol that is supported internally, but not available in the public API surface.
 
-| C API Symbol | Available in `zig-luajit` |
+| C Type Definition | Available in `zig-luajit` |
 |--------------|---------------------------|
-| `lua_Alloc`||
+| `lua_State`| ☑️ `Lua` |
+| `lua_Alloc`| ➖ `allocator_adapter.AllocFn` |
+| `lua_CFunction`| ☑️ `lua.CFunction` |
+| `lua_Integer`| ☑️ `Lua.Integer` |
+| `lua_Number`| ☑️ `Lua.Number` |
+| `lua_Reader`||
+| `lua_Writer`||
+
+| C API Symbols | Available in `zig-luajit` |
+|--------------|---------------------------|
 | `lua_atpanic`||
 | `lua_call`| ☑️ `lua.call()` |
-| `lua_CFunction`| ☑️ `lua.CFunction` |
 | `lua_checkstack`| ☑️ `lua.checkStack()` |
 | `lua_close`| ☑️📢 `lua.deinit()` |
 | `lua_concat`| ☑️ `lua.concat()` |
@@ -107,7 +115,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_equal`| ☑️ `lua.equal()` |
 | `lua_error`| ☑️📢 `lua.raiseError()` |
 | `lua_gc`||
-| `lua_getallocf`|➖ `lua.getAllocF()` |
+| `lua_getallocf`| ➖ `lua.getAllocF()` |
 | `lua_getfenv`||
 | `lua_getfield`||
 | `lua_getglobal`||
@@ -115,7 +123,6 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_gettable`| ☑️ `lua.getTable()` |
 | `lua_gettop`| ☑️ `lua.getTop()` |
 | `lua_insert`| ☑️ `lua.insert()` |
-| `lua_Integer`| ☑️ `Lua.Integer` |
 | `lua_isboolean`| ☑️ `lua.isBoolean()` |
 | `lua_iscfunction`| ☑️ `lua.isCFunction()` |
 | `lua_isfunction`| ☑️ `lua.isFunction()` |
@@ -135,7 +142,6 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_newthread`||
 | `lua_newuserdata`||
 | `lua_next`| ☑️ `lua.next()` |
-| `lua_Number`| ☑️ `Lua.Number` |
 | `lua_objlen`| ☑️📢 `lua.lengthOf()` |
 | `lua_pcall`| ☑️📢 `lua.protectedCall()` |
 | `lua_pop`| ☑️ `lua.pop()` |
@@ -158,7 +164,6 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_rawget`||
 | `lua_rawseti`||
 | `lua_rawset`||
-| `lua_Reader`||
 | `lua_register`||
 | `lua_remove`||
 | `lua_replace`||
@@ -170,7 +175,6 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_setmetatable`| ☑️ `lua.setMetatable()` |
 | `lua_settable`| ☑️ `lua.setTable()` |
 | `lua_settop`| ☑️ `lua.setTop()` |
-| `lua_State`| ☑️ `Lua` |
 | `lua_status`| ☑️ `lua.status()` |
 | `lua_toboolean`| ☑️ `lua.toBoolean()`|
 | `lua_tocfunction`||
@@ -183,7 +187,6 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_touserdata`||
 | `lua_typename`| ☑️ `lua.typeName()`|
 | `lua_type`| ☑️📢 `lua.typeOf()` |
-| `lua_Writer`||
 | `lua_xmove`||
 | `lua_yield`||
 
@@ -214,7 +217,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `luaL_checktype`||
 | `luaL_checkudata`||
 | `luaL_dofile`||
-| `luaL_dostring`| ☑️ `doString()` |
+| `luaL_dostring`| ☑️ `lua.doString()` |
 | `luaL_error`||
 | `luaL_getmetafield`||
 | `luaL_getmetatable`||
@@ -224,7 +227,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `luaL_loadstring`||
 | `luaL_newmetatable`||
 | `luaL_newstate`||
-| `luaL_openlibs`| ☑️ `openLibs()` |
+| `luaL_openlibs`| ☑️ `lua.openLibs()` |
 | `luaL_optinteger`||
 | `luaL_optint`||
 | `luaL_optlong`||
@@ -236,27 +239,30 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `luaL_ref`||
 | `luaL_register`||
 | `luaL_Reg`||
-| `luaL_typename`| ☑️ `typeName()` |
+| `luaL_typename`| ☑️ `lua.typeName()` |
 | `luaL_typerror`||
 | `luaL_unref`||
 | `luaL_where`||
 
 ## Additions to the API in `zig-luajit`
 
-| C API Symbol          | Description |
-|-----------------------|-------------|
-| `toNumberStrict`      | Gets the value of a number on the stack, without doing type coersion (e.g. from string values). |
-| `toIntegerStrict`     | Gets the value of an integer on the stack, without doing type coersion (e.g. from string values). |
-| `toBooleanStrict`     | Gets the value of a boolean on the stack, without doing type coersion based on "truthyness" of the value. |
-| `openBaseLib`         | Opens the `Base` Lua standard library. |
-| `openMathLib`         | Opens the `Math` Lua standard library. |
-| `openStringLib`       | Opens the `String` Lua standard library. |
-| `openTableLib`        | Opens the `Table` Lua standard library. |
-| `openIOLib`           | Opens the `IO` Lua standard library. |
-| `openOSLib`           | Opens the `OS` Lua standard library. |
-| `openPackageLib`      | Opens the `Package` Lua standard library. |
-| `openDebugLib`        | Opens the `Debug` Lua standard library. |
-| `openBitLib`          | Opens the `Bit` LuaJIT standard library. |
-| `openJITLib`          | Opens the `JIT` LuaJIT standard library. |
-| `openFFILib`          | Opens the `FFI` LuaJIT standard library. |
-| `openStringBufferLib` | Opens the `StringBuffer` LuaJIT standard library. |
+The following functions are added in `zig-luajit` and do not necessarily have a corresponding
+function or macro in the C API.
+
+| `zig-luajit` Extension Function | Description |
+|---------------------------------|-------------|
+| `lua.toNumberStrict()`          | Gets the value of a number on the stack, without doing type coersion (e.g. from string values). |
+| `lua.toIntegerStrict()`         | Gets the value of an integer on the stack, without doing type coersion (e.g. from string values). |
+| `lua.toBooleanStrict()`         | Gets the value of a boolean on the stack, without doing type coersion based on "truthyness" of the value. |
+| `lua.openBaseLib()`             | Opens the `Base` Lua standard library. |
+| `lua.openMathLib()`             | Opens the `Math` Lua standard library. |
+| `lua.openStringLib()`           | Opens the `String` Lua standard library. |
+| `lua.openTableLib()`            | Opens the `Table` Lua standard library. |
+| `lua.openIOLib()`               | Opens the `IO` Lua standard library. |
+| `lua.openOSLib()`               | Opens the `OS` Lua standard library. |
+| `lua.openPackageLib()`          | Opens the `Package` Lua standard library. |
+| `lua.openDebugLib()`            | Opens the `Debug` Lua standard library. |
+| `lua.openBitLib()`              | Opens the `Bit` LuaJIT standard library. |
+| `lua.openJITLib()`              | Opens the `JIT` LuaJIT standard library. |
+| `lua.openFFILib()`              | Opens the `FFI` LuaJIT standard library. |
+| `lua.openStringBufferLib()`     | Opens the `StringBuffer` LuaJIT standard library. |

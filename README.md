@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 52% available (47/92) | <!-- 52.10% - Add 1.07 per -->
+| Lua C API (`lua_*`) | 52% available (48/92) | <!-- 52.10% - Add 1.07 per -->
 | Auxilary Library (`luaL_*`) | 6% available (3/48) | <!-- Always 2% * n, for n up to 48 -->
 | LuaJIT Extensions | *No plans to implement.* |
 

@@ -929,6 +929,10 @@ pub const Lua = opaque {
     pub fn concat(lua: *Lua, n: i32) void {
         assert(n >= 0);
 
+        // TODO: I think it would make sense to check that the `n` arguments are all either strings, numbers, or
+        // types for which a `__concat` metamethod have been defined. The checks for strings and numbers are easy,
+        // but the semantics of concat require handling metamethods which are a bit harder to check.
+        // https://www.lua.org/manual/5.1/manual.html#2.8
         return c.lua_concat(asState(lua), n);
     }
 

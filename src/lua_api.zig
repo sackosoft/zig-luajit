@@ -76,14 +76,6 @@ pub fn getField(lua: *Lua, index: i32, k: [:0]const u8) LuaType;
 /// Stack Behavior: `[-0, +1, e]`
 pub fn getGlobal(lua: *Lua, name: [*:0]const u8) LuaType;
 
-/// Pushes onto the stack the metatable of the value at the given acceptable index. If the index is not valid,
-/// or if the value does not have a metatable, the function returns 0 and pushes nothing on the stack.
-///
-/// From: `int lua_getmetatable(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getmetatable
-/// Stack Behavior: `[-0, +(0|1), -]`
-pub fn getMetatable(lua: *Lua, index: i32) bool;
-
 /// The type used by the Lua API to represent integral values. 
 /// By default it is a signed integral type that the machine handles "comfortably".
 ///
@@ -291,21 +283,6 @@ pub fn setField(lua: *Lua, index: i32, key: [:0]const u8) void;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setglobal
 /// Stack Behavior: `[-1, +0, e]`
 pub fn setGlobal(lua: *Lua, name: [:0]const u8) void;
-
-/// Pops a table from the stack and sets it as the new metatable for the value at the given acceptable index.
-///
-/// From: `int lua_setmetatable(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setmetatable
-/// Stack Behavior: `[-1, +0, -]`
-pub fn setMetatable(lua: *Lua, index: i32) i32;
-
-/// Accepts any acceptable index, or 0, and sets the stack top to this index. If the new top is larger
-/// than the old one, then the new elements are filled with nil. If index is 0, then all stack elements are removed.
-///
-/// From: `void lua_settop(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settop
-/// Stack Behavior: `[-?, +?, -]`
-pub fn setTop(lua: *Lua, index: i32) void;
 
 /// Opaque structure that keeps the whole state of a Lua interpreter. The Lua library is fully reentrant:
 /// it has no global variables. All information about a state is kept in this structure. A pointer

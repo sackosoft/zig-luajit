@@ -806,12 +806,13 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-1, +1, e]`
     pub fn getTable(lua: *Lua, index: i32) Lua.Type {
         lua.validateStackIndex(index);
+        assert(lua.isTable(index));
 
         c.lua_gettable(asState(lua), index);
         return lua.typeOf(-1);
     }
 
-    /// Similar to lua_gettable, but does a raw access (i.e., without metamethods).
+    /// Similar to `getTable()`, but this implementation will not invoke any metamethods.
     ///
     /// Note: This function was renamed from `rawget`.
     ///
@@ -823,6 +824,19 @@ pub const Lua = opaque {
 
         c.lua_rawget(asState(lua), index);
         return lua.typeOf(-1);
+    }
+
+    /// Pushes onto the stack the metatable of the value at the given acceptable index. If the index is not
+    /// valid, or if the value does not have a metatable, the function returns `false` and pushes nothing on
+    /// the stack.
+    ///
+    /// From: `int lua_getmetatable(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getmetatable
+    /// Stack Behavior: `[-0, +(0|1), -]`
+    pub fn getMetatable(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
+        return 1 == c.lua_getmetatable(asState(lua), index);
     }
 
     /// Does the equivalent of `t[k] = v`, where `t` is the acceptable index of the table on the stack, `v` is
@@ -850,6 +864,20 @@ pub const Lua = opaque {
         return c.lua_settable(asState(lua), index);
     }
 
+    /// Pops a table from the top of the stack and sets it as the metatable for the value at the
+    /// given acceptable index.
+    ///
+    /// From: `int lua_setmetatable(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setmetatable
+    /// Stack Behavior: `[-1, +0, -]`
+    pub fn setMetatable(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+        assert(lua.isTable(index));
+
+        const res = c.lua_setmetatable(asState(lua), index);
+        assert(1 == res);
+    }
+
     /// Pops `n` elements from the stack.
     ///
     /// From: `void lua_pop(lua_State *L, int n);`
@@ -869,6 +897,19 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-0, +0, -]`
     pub fn getTop(lua: *Lua) i32 {
         return c.lua_gettop(asState(lua));
+    }
+
+    /// Accepts any acceptable index, or 0, and sets the stack top to this index. If the new top is
+    /// larger than the old one, then the new elements are filled with nil. If index is 0, then all
+    /// stack elements are removed.
+    ///
+    /// From: `void lua_settop(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settop
+    /// Stack Behavior: `[-?, +?, -]`
+    pub fn setTop(lua: *Lua, index: i32) void {
+        assert(index >= 0);
+
+        return c.lua_settop(asState(lua), index);
     }
 
     /// Moves the top element into the given valid index, shifting up the elements above this index to open space.
@@ -1069,13 +1110,13 @@ pub const Lua = opaque {
         assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
 
         const s: Status = @enumFromInt(res);
-        return switch (s) {
+        switch (s) {
             .ok => return,
-            .runtime_error => error.Runtime,
-            .memory_error => error.OutOfMemory,
-            .error_handling_error => error.ErrorHandlerFailure,
+            .runtime_error => return error.Runtime,
+            .memory_error => return error.OutOfMemory,
+            .error_handling_error => return error.ErrorHandlerFailure,
             else => std.debug.panic("Lua returned unexpected status code from protected call: {d}\n", .{res}),
-        };
+        }
     }
 
     /// Opens all standard Lua libraries into the given state. Callers may prefer to open individual
@@ -1938,4 +1979,50 @@ test "concat should follow expected semantics" {
     lua.concat(4);
     try std.testing.expectEqualSlices(u8, "42-84-Boof", try lua.toLString(-1));
     lua.pop(1);
+}
+
+fn always42AddMetamethod(lua: *Lua) callconv(.c) i32 {
+    lua.pushInteger(42);
+    return 1;
+}
+
+test "metatables can be set" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openBaseLib();
+
+    lua.newTable();
+    lua.newTable();
+    lua.pushLString("__add");
+    lua.pushCFunction(always42AddMetamethod);
+    lua.setTable(-3);
+    lua.setMetatable(-2);
+
+    try std.testing.expect(lua.getMetatable(-1));
+    try std.testing.expect(lua.isTable(-1));
+    lua.setTop(0);
+}
+
+test "metatables can be accessed" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openBaseLib();
+
+    try lua.doString(
+        \\f = {}
+        \\return setmetatable(f, {
+        \\    __add = function (l, r)
+        \\        return 0
+        \\    end
+        \\})
+    );
+    try std.testing.expect(lua.isTable(-1));
+    try std.testing.expect(lua.getMetatable(-1));
+    try std.testing.expect(lua.isTable(-1));
+
+    lua.pushLString("__add");
+    try std.testing.expectEqual(Lua.Type.function, lua.getTable(-2));
+    lua.setTop(0);
 }

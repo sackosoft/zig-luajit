@@ -1,4 +1,3 @@
-<div align="center">
 
 # zig-luajit
 
@@ -79,7 +78,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 56% available (52/92) | <!-- 56.38% - Add 1.07 per -->
+| Lua C API (`lua_*`) | 57% available (53/92) | <!-- 57.45% - Add 1.07 per -->
 | Auxilary Library (`luaL_*`) | 6% available (3/48) | <!-- Always 2% * n, for n up to 48 -->
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -91,6 +90,9 @@ Icons:
 - 📢 indicates symbols that were renamed in a non-obvious way, such as `lua_objlen` becoming `lua.lengthOf`, or cases where the usage
 pattern has changed, such as using the Zig `init()` function pattern instead of using `lua_newstate()` directly.
 - ➖ indicates a symbol that is supported internally, but not available in the public API surface.
+- 🆖 indicates a symbol that is intentionally not supported. This is usually the case when the functionality
+  is specific to the C API and has no Zig counterpart, or the functionality is provided by a different part
+  of the Zig interface.
 
 | C Type Definition | Available in `zig-luajit` |
 |--------------|---------------------------|
@@ -151,7 +153,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_pushfstring`||
 | `lua_pushinteger`| ☑️ `lua.pushInteger()`|
 | `lua_pushlightuserdata`||
-| `lua_pushliteral`||
+| `lua_pushliteral`| 🆖 use `lua.pushLString()` |
 | `lua_pushlstring`| ☑️ `lua.pushLString()` |
 | `lua_pushnil`| ☑️ `lua.pushNil()`|
 | `lua_pushnumber`| ☑️ `lua.pushNumber()` |

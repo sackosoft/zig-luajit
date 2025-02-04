@@ -1109,13 +1109,32 @@ pub const Lua = opaque {
         const res = c.lua_pcall(asState(lua), nargs, nresults, errfunc);
         assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
 
+        return parseCallStatus(res);
+    }
+
+    /// Calls the C function `func` in protected mode. `func` starts with only one element in its stack,
+    /// a light userdata containing `ud`. In case of errors, returns the same error codes as `lua_pcall`,
+    /// plus the error object on the top of the stack; otherwise, returns zero and does not change the stack.
+    /// All values returned by `func` are discarded.
+    ///
+    /// From: `int lua_cpcall(lua_State *L, lua_CFunction func, void *ud);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_cpcall
+    /// Stack Behavior: `[-0, +(0|1), -]`
+    pub fn protectedCallCFunction(lua: *Lua, func: CFunction, ud: ?*anyopaque) ProtectedCallError!void {
+        const res = c.lua_cpcall(asState(lua), @ptrCast(func), ud);
+        assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
+
+        return parseCallStatus(res);
+    }
+
+    fn parseCallStatus(res: c_int) ProtectedCallError!void {
         const s: Status = @enumFromInt(res);
         switch (s) {
             .ok => return,
             .runtime_error => return error.Runtime,
             .memory_error => return error.OutOfMemory,
             .error_handling_error => return error.ErrorHandlerFailure,
-            else => std.debug.panic("Lua returned unexpected status code from protected call: {d}\n", .{res}),
+            else => std.debug.panic("Lua returned unexpected status code from a protected call: {d}\n", .{res}),
         }
     }
 
@@ -2025,4 +2044,21 @@ test "metatables can be accessed" {
     lua.pushLString("__add");
     try std.testing.expectEqual(Lua.Type.function, lua.getTable(-2));
     lua.setTop(0);
+}
+
+fn cfnForProtectedCall(lua: *Lua) callconv(.c) i32 {
+    std.testing.expectEqual(1, lua.getTop()) catch std.debug.panic("Test assertion failed.", .{});
+    std.testing.expect(lua.isLightUserdata(1)) catch std.debug.panic("Test assertion failed.", .{});
+
+    lua.pushLString("EXPECTED ERROR 123");
+    return lua.raiseError();
+}
+
+test "proctected call for c functions" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const actual = lua.protectedCallCFunction(cfnForProtectedCall, null);
+    try std.testing.expectError(Lua.CallError.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "EXPECTED ERROR 123", try lua.toLString(-1));
 }

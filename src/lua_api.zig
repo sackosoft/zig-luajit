@@ -14,16 +14,6 @@
 /// Stack Behavior: `[-0, +0, -]`
 pub fn atPanic(lua: *Lua, panicf: CFunction) CFunction;
 
-/// Calls the C function `func` in protected mode. `func` starts with only one element in its stack,
-/// a light userdata containing `ud`. In case of errors, returns the same error codes as `lua_pcall`,
-/// plus the error object on the top of the stack; otherwise, returns zero and does not change the stack.
-/// All values returned by `func` are discarded.
-///
-/// From: `int lua_cpcall(lua_State *L, lua_CFunction func, void *ud);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_cpcall
-/// Stack Behavior: `[-0, +(0|1), -]`
-pub fn cpCall(lua: *Lua, func: CFn, userdata: ?*anyopaque) LuaError;
-
 /// Dumps a function as a binary chunk. Receives a Lua function on the top of the stack and produces a
 /// binary chunk that, if loaded again, results in a function equivalent to the one dumped. As it produces
 /// parts of the chunk, lua_dump calls function writer (see https://www.lua.org/manual/5.1/manual.html#lua_Writer)

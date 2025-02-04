@@ -41,21 +41,6 @@ pub const GcMode = enum(i32) {
 /// Stack Behavior: `[-0, +1, -]`
 pub fn getfenv(lua: *Lua, index: i32) void;
 
-/// Pushes onto the stack the value t[k], where t is the value at the given valid index.
-/// As in Lua, this function may trigger a metamethod for the "index" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
-///
-/// From: `void lua_getfield(lua_State *L, int index, const char *k);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getfield
-/// Stack Behavior: `[-0, +1, e]`
-pub fn getField(lua: *Lua, index: i32, k: [:0]const u8) LuaType;
-
-/// Pushes onto the stack the value of the global name.
-///
-/// From: `void lua_getglobal(lua_State *L, const char *name);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getglobal
-/// Stack Behavior: `[-0, +1, e]`
-pub fn getGlobal(lua: *Lua, name: [*:0]const u8) LuaType;
-
 /// The type used by the Lua API to represent integral values. 
 /// By default it is a signed integral type that the machine handles "comfortably".
 ///
@@ -247,22 +232,6 @@ pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfenv
 /// Stack Behavior: `[-1, +0, -]`
 pub fn setFenv(lua: *Lua, index: i32) bool;
-
-/// Does the equivalent to t[k] = v, where t is the value at the given valid index and v is the value at the 
-/// top of the stack. This function pops the value from the stack. As in Lua, this function may trigger a 
-/// metamethod for the "newindex" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
-///
-/// From: `void lua_setfield(lua_State *L, int index, const char *k);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfield
-/// Stack Behavior: `[-1, +0, e]`
-pub fn setField(lua: *Lua, index: i32, key: [:0]const u8) void;
-
-/// Pops a value from the stack and sets it as the new value of global `name`.
-///
-/// From: `void lua_setglobal(lua_State *L, const char *name);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setglobal
-/// Stack Behavior: `[-1, +0, e]`
-pub fn setGlobal(lua: *Lua, name: [:0]const u8) void;
 
 /// Opaque structure that keeps the whole state of a Lua interpreter. The Lua library is fully reentrant:
 /// it has no global variables. All information about a state is kept in this structure. A pointer

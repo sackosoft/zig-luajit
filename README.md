@@ -78,8 +78,8 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 58% available (55/92) | <!-- 59.76% - Add 1.07 per -->
-| Auxilary Library (`luaL_*`) | 6% available (3/48) | <!-- Always 2% * n, for n up to 48 -->
+| Lua C API (`lua_*`) | 64% available (59/92) |
+| Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
 ## C API Coverage (`lua_`)
@@ -119,8 +119,8 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_gc`||
 | `lua_getallocf`| ➖ `lua.getAllocF()` |
 | `lua_getfenv`||
-| `lua_getfield`||
-| `lua_getglobal`||
+| `lua_getfield`| ☑️ `lua.getField()` |
+| `lua_getglobal`| ☑️ `lua.getGlobal()` |
 | `lua_getmetatable`| ☑️ `lua.getMetatable()` |
 | `lua_gettable`| ☑️ `lua.getTable()` |
 | `lua_gettop`| ☑️ `lua.getTop()` |
@@ -172,8 +172,8 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_resume`||
 | `lua_setallocf`|➖ `lua.setAllocF()`|
 | `lua_setfenv`||
-| `lua_setfield`||
-| `lua_setglobal`||
+| `lua_setfield`| ☑️ `lua.setField()` |
+| `lua_setglobal`| ☑️ `lua.setGlobal()` |
 | `lua_setmetatable`| ☑️ `lua.setMetatable()` |
 | `lua_settable`| ☑️ `lua.setTable()` |
 | `lua_settop`| ☑️ `lua.setTop()` |

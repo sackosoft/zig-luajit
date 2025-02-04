@@ -851,6 +851,53 @@ pub const Lua = opaque {
         return 1 == c.lua_getmetatable(asState(lua), index);
     }
 
+    /// Pushes onto the stack the value `t[k]`, where `t` is the value at the given valid index. As in Lua, this function
+    /// may trigger a metamethod for the "index" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
+    ///
+    /// From: `void lua_getfield(lua_State *L, int index, const char *k);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getfield
+    /// Stack Behavior: `[-0, +1, e]`
+    pub fn getField(lua: *Lua, index: i32, key: [:0]const u8) Lua.Type {
+        lua.validateStackIndex(index);
+
+        c.lua_getfield(asState(lua), index, @ptrCast(key.ptr));
+        return lua.typeOf(-1);
+    }
+
+    /// Does the equivalent to `t[k] = v`, where `t` is the value at the given valid index and `v` is the value at the
+    /// top of the stack. This function pops the value from the stack. As in Lua, this function may trigger a
+    /// metamethod for the "newindex" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
+    ///
+    /// From: `void lua_setfield(lua_State *L, int index, const char *k);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfield
+    /// Stack Behavior: `[-1, +0, e]`
+    pub fn setField(lua: *Lua, index: i32, key: [:0]const u8) void {
+        lua.validateStackIndex(index);
+
+        return c.lua_setfield(asState(lua), index, @ptrCast(key.ptr));
+    }
+
+    /// Pushes onto the stack the value of the global name.
+    ///
+    /// From: `void lua_getglobal(lua_State *L, const char *name);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getglobal
+    /// Stack Behavior: `[-0, +1, e]`
+    pub fn getGlobal(lua: *Lua, name: [:0]const u8) Lua.Type {
+        c.lua_getglobal(asState(lua), @as([*:0]const u8, @ptrCast(name.ptr)));
+        return lua.typeOf(-1);
+    }
+
+    /// Pops a value from the stack and sets it as the new value of global `name`.
+    ///
+    /// From: `void lua_setglobal(lua_State *L, const char *name);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setglobal
+    /// Stack Behavior: `[-1, +0, e]`
+    pub fn setGlobal(lua: *Lua, name: [:0]const u8) void {
+        assert(lua.getTop() > 0);
+
+        return c.lua_setglobal(asState(lua), @as([*:0]const u8, @ptrCast(name.ptr)));
+    }
+
     /// Does the equivalent of `t[k] = v`, where `t` is the acceptable index of the table on the stack, `v` is
     /// the value at the top of the stack, and `k` is the value just below the top. This function pops both the
     /// key and the value from the stack. As in Lua, this function may trigger a metamethod for the "newindex"
@@ -1699,6 +1746,35 @@ test "tables" {
     lua.pop(1);
     lua.pushInteger(1);
     try std.testing.expectEqual(Lua.Type.string, lua.getTableRaw(-2));
+}
+
+test "getfield and setfield" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.newTable();
+    lua.pushInteger(42);
+    lua.setField(-2, "foo");
+
+    try std.testing.expectEqual(1, lua.getTop());
+
+    const actual_type = lua.getField(-1, "foo");
+    try std.testing.expectEqual(Lua.Type.number, actual_type);
+    try std.testing.expectEqual(42, lua.toInteger(-1));
+}
+
+test "getglobal and setglobal" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    lua.setGlobal("XXX");
+
+    try std.testing.expectEqual(0, lua.getTop());
+
+    const actual_type = lua.getGlobal("XXX");
+    try std.testing.expectEqual(Lua.Type.number, actual_type);
+    try std.testing.expectEqual(42, lua.toInteger(-1));
 }
 
 test "lengthOf" {

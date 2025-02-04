@@ -78,7 +78,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 58% available (54/92) | <!-- 58.69% - Add 1.07 per -->
+| Lua C API (`lua_*`) | 58% available (55/92) | <!-- 59.76% - Add 1.07 per -->
 | Auxilary Library (`luaL_*`) | 6% available (3/48) | <!-- Always 2% * n, for n up to 48 -->
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -106,7 +106,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 
 | C API Symbols | Available in `zig-luajit` |
 |--------------|---------------------------|
-| `lua_atpanic`||
+| `lua_atpanic`| ☑️ `lua.atPanic()` |
 | `lua_call`| ☑️ `lua.call()` |
 | `lua_checkstack`| ☑️ `lua.checkStack()` |
 | `lua_close`| ☑️📢 `lua.deinit()` |

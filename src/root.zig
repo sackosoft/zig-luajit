@@ -98,6 +98,18 @@ pub const Lua = opaque {
         return if (lua) |p| p else error.OutOfMemory;
     }
 
+    /// Sets a new panic function and returns the old one. If an error happens outside any protected environment,
+    /// Lua calls a panic function and then calls exit(EXIT_FAILURE), thus exiting the host application.
+    /// Your panic function can avoid this exit by never returning (e.g., doing a long jump).
+    /// The panic function can access the error message at the top of the stack.
+    ///
+    /// From: `lua_CFunction lua_atpanic(lua_State *L, lua_CFunction panicf);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_atpanic
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn atPanic(lua: *Lua, f: ?CFunction) ?CFunction {
+        return @ptrCast(c.lua_atpanic(asState(lua), @ptrCast(f)));
+    }
+
     /// Returns the memory-allocation function and user data configured in the given lua instance.
     /// If userdata is not null, Lua internally saves the user data pointer passed to `lua_newstate`.
     ///
@@ -1120,8 +1132,8 @@ pub const Lua = opaque {
     /// From: `int lua_cpcall(lua_State *L, lua_CFunction func, void *ud);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_cpcall
     /// Stack Behavior: `[-0, +(0|1), -]`
-    pub fn protectedCallCFunction(lua: *Lua, func: CFunction, ud: ?*anyopaque) ProtectedCallError!void {
-        const res = c.lua_cpcall(asState(lua), @ptrCast(func), ud);
+    pub fn protectedCallCFunction(lua: *Lua, f: CFunction, ud: ?*anyopaque) ProtectedCallError!void {
+        const res = c.lua_cpcall(asState(lua), @ptrCast(f), ud);
         assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
 
         return parseCallStatus(res);
@@ -2061,4 +2073,23 @@ test "proctected call for c functions" {
     const actual = lua.protectedCallCFunction(cfnForProtectedCall, null);
     try std.testing.expectError(Lua.CallError.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "EXPECTED ERROR 123", try lua.toLString(-1));
+}
+
+fn newPanicFunction(lua: *Lua) callconv(.c) i32 {
+    _ = lua;
+    return 0;
+}
+
+test "override error function with atpanic" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    // This test case is actually kind of useless, I don't want to hack doing a long jump into these tests
+    // to avoid application exit. So we will just call the function and make sure the application doesn't
+    // crash. But it's not really testing that the panic function gets called in any way right now.
+
+    const actual = lua.atPanic(newPanicFunction);
+    try std.testing.expect(actual == null);
+    const new = lua.atPanic(actual);
+    try std.testing.expect(new.? == newPanicFunction);
 }

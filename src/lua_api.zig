@@ -4,16 +4,6 @@
 // This file contains brainstorming and draft translations of the C API to Lua.
 
 
-/// Sets a new panic function and returns the old one. If an error happens outside any protected environment,
-/// Lua calls a panic function and then calls exit(EXIT_FAILURE), thus exiting the host application.
-/// Your panic function can avoid this exit by never returning (e.g., doing a long jump).
-/// The panic function can access the error message at the top of the stack.
-///
-/// From: `lua_CFunction lua_atpanic(lua_State *L, lua_CFunction panicf);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_atpanic
-/// Stack Behavior: `[-0, +0, -]`
-pub fn atPanic(lua: *Lua, panicf: CFunction) CFunction;
-
 /// Dumps a function as a binary chunk. Receives a Lua function on the top of the stack and produces a
 /// binary chunk that, if loaded again, results in a function equivalent to the one dumped. As it produces
 /// parts of the chunk, lua_dump calls function writer (see https://www.lua.org/manual/5.1/manual.html#lua_Writer)

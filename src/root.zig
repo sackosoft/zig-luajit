@@ -1379,6 +1379,59 @@ pub const Lua = opaque {
 
         return lua.protectedCall(0, Lua.MultipleReturn, 0);
     }
+
+    /// Used by the `gc()` to control and query aspects of the garbage collector.
+    pub const GcOpcode = enum(i32) {
+        /// From `LUA_GC_STOP`: Stops the garbage collector.
+        stop = c.LUA_GCSTOP,
+
+        /// LUA_GCRESTART: restarts the garbage collector.
+        restart = c.LUA_GCRESTART,
+
+        /// LUA_GCCOLLECT: performs a full garbage-collection cycle.
+        collect = c.LUA_GCCOLLECT,
+
+        /// LUA_GCCOUNT: returns the current amount of memory (in Kbytes) in use by Lua.
+        count = c.LUA_GCCOUNT,
+
+        /// LUA_GCCOUNTB: returns remainder of memory bytes in use by Lua divided by 1024.
+        countBytes = c.LUA_GCCOUNTB,
+
+        /// LUA_GCSTEP: performs an incremental step of garbage collection. The step "size" is controlled by `data`
+        /// (larger values mean more steps) in a non-specified way. If you want to control the step size you must
+        /// experimentally tune the value of data. The function returns 1 if the step finished a garbage-collection
+        /// cycle.
+        step = c.LUA_GCSTEP,
+
+        /// LUA_GCSETPAUSE: sets data as the new value for the pause of the collector (see information on garbage
+        /// collection https://www.lua.org/manual/5.1/manual.html#2.10). The function returns the previous value
+        /// of the pause.
+        setPause = c.LUA_GCSETPAUSE,
+
+        /// LUA_GCSETSTEPMUL: sets data as the new value for the step multiplier of the collector (see information
+        /// on garbage collection https://www.lua.org/manual/5.1/manual.html#2.10). The function returns the previous
+        /// value of the step multiplier.
+        setStepMul = c.LUA_GCSETSTEPMUL,
+    };
+
+    /// Controls the garbage collector with various tasks depending on the specified mode.
+    ///
+    /// From: `int lua_gc(lua_State *L, int what, int data);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gc
+    /// Stack Behavior: `[-0, +0, e]`
+    pub fn gc(lua: *Lua, what: GcOpcode, data: i32) i32 {
+        return c.lua_gc(asState(lua), @intFromEnum(what), data);
+    }
+
+    /// Returns a boolean that tells whether the garbage collector is running. The garbage collector is considered
+    /// running when it is not stopped.
+    ///
+    /// From: `int lua_gc(lua_State *L, int what, int data);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gc
+    /// Stack Behavior: `[-0, +0, e]`
+    pub fn gcIsRunning(lua: *Lua) bool {
+        return 1 == c.lua_gc(asState(lua), c.LUA_GCISRUNNING, 0);
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -2168,4 +2221,14 @@ test "override error function with atpanic" {
     try std.testing.expect(actual == null);
     const new = lua.atPanic(actual);
     try std.testing.expect(new.? == newPanicFunction);
+}
+
+test "garbage collector controls" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expect(9 < lua.gc(.count, 0) and lua.gc(.count, 0) < 13);
+    try std.testing.expect(lua.gcIsRunning());
+    try std.testing.expectEqual(0, lua.gc(.stop, 0));
+    try std.testing.expect(!lua.gcIsRunning());
 }

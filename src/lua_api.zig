@@ -15,24 +15,6 @@
 /// Stack Behavior: `[-0, +0, m]`
 pub fn dump(lua: *Lua, writer: LuaWriter, data: *anyopaque) i32;
 
-/// Controls the garbage collector with various tasks depending on the specified mode.
-///
-/// From: `int lua_gc(lua_State *L, int what, int data);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gc
-/// Stack Behavior: `[-0, +0, e]`
-pub fn gc(lua: *Lua, what: GcMode, data: i32) i32;
-
-/// Represents the different garbage collection control modes
-pub const GcMode = enum(i32) {
-    stop = 0,          // LUA_GCSTOP: stops the garbage collector
-    restart = 1,       // LUA_GCRESTART: restarts the garbage collector
-    collect = 2,       // LUA_GCCOLLECT: performs a full garbage-collection cycle
-    count = 3,         // LUA_GCCOUNT: returns the current amount of memory (in Kbytes)
-    countBytes = 4,    // LUA_GCCOUNTB: returns remainder of memory bytes divided by 1024
-    step = 5,          // LUA_GCSTEP: performs an incremental step of garbage collection
-    setPause = 6,      // LUA_GCSETPAUSE: sets new pause value for collector
-    setStepMul = 7     // LUA_GCSETSTEPMUL: sets new step multiplier for collector
-};
 
 /// Pushes onto the stack the environment table of the value at the given index.
 ///

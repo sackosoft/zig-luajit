@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 64% available (59/92) |
+| Lua C API (`lua_*`) | 65% available (60/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -117,7 +117,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_dump`||
 | `lua_equal`| ☑️ `lua.equal()` |
 | `lua_error`| ☑️📢 `lua.raiseError()` |
-| `lua_gc`||
+| `lua_gc`| ☑️ `lua.gc()` + `lua.gcIsRunning()` |
 | `lua_getallocf`| ➖ `lua.getAllocF()` |
 | `lua_getfenv`||
 | `lua_getfield`| ☑️ `lua.getField()` |

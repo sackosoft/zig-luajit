@@ -2,11 +2,10 @@
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
 const std = @import("std");
-const testing = std.testing;
 const assert = std.debug.assert;
 
-const mode = @import("builtin").mode;
-const isSafeBuildTarget: bool = mode == .ReleaseSafe or mode == .Debug;
+const builtin = @import("builtin");
+const isSafeBuildTarget: bool = builtin.mode == .ReleaseSafe or builtin.mode == .Debug;
 
 const c = @import("c");
 fn asState(lua: *Lua) *c.lua_State {
@@ -39,46 +38,6 @@ pub const Lua = opaque {
         userdata = c.LUA_TUSERDATA,
         thread = c.LUA_TTHREAD,
     };
-
-    pub const Status = enum(i32) {
-        /// Indicates the last operation completed successfully with no errors. This is the normal
-        /// return status for most Lua API functions.
-        ok = c.LUA_OK,
-
-        /// Coroutine has suspended execution via yield. Indicates normal coroutine suspension, not an
-        /// error condition. The coroutine can be resumed later with lua_resume().
-        yield = c.LUA_YIELD,
-
-        /// Indicates that the last execution results in a Lua runtime error. This may indicate usage of
-        /// undefined variables, dereference of `nil` or other runtime issues.
-        /// from the stack.
-        runtime_error = c.LUA_ERRRUN,
-
-        /// Indicates that the Lua runtime failed to parse provided Lua source code before execution. This
-        /// is likely a result of a mistake made by a user where the given code is malformed and incorrect.
-        syntax_error = c.LUA_ERRSYNTAX,
-
-        /// Indicates that Lua was unable to allocate memory required by the last operation.
-        memory_error = c.LUA_ERRMEM,
-
-        /// Indicates that an error occurred while running the error handler function such as after invoking
-        /// a protected call.
-        error_handling_error = c.LUA_ERRERR,
-
-        fn is_status(s: i32) bool {
-            return c.LUA_OK <= s and s <= c.LUA_ERRERR;
-        }
-    };
-
-    const MaxStackSize: i32 = c.LUAI_MAXCSTACK;
-
-    /// Used as the value for `nresults` to return all results from the function on the stack when invoking
-    /// `call()` or `protectedCall()`.
-    ///
-    /// Usually, when using `call()` or `protectedCall()`, the function results are pushed onto the stack when
-    /// the function returns, then the number of results is adjusted to the value of `nresults` specified by the
-    /// caller. By using `Lua.MultipleReturn`, all results from the function are left on the stack.
-    pub const MultipleReturn: i32 = c.LUA_MULTRET;
 
     /// Creates a new Lua state with the provided allocator.
     ///
@@ -163,6 +122,8 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_checkstack
     /// Stack Behavior: `[-0, +0, -]`
     pub fn checkStack(lua: *Lua, extra: i32) error{ OutOfMemory, StackOverflow }!void {
+        const MaxStackSize: i32 = c.LUAI_MAXCSTACK;
+
         assert(extra >= 0);
 
         const state = asState(lua);
@@ -1114,6 +1075,37 @@ pub const Lua = opaque {
         return c.lua_concat(asState(lua), n);
     }
 
+    /// Returned by calls to the Lua VM to indicate the status of executing the request.
+    pub const Status = enum(i32) {
+        /// Indicates the last operation completed successfully with no errors. This is the normal
+        /// return status for most Lua API functions.
+        ok = c.LUA_OK,
+
+        /// Coroutine has suspended execution via yield. Indicates normal coroutine suspension, not an
+        /// error condition. The coroutine can be resumed later with lua_resume().
+        yield = c.LUA_YIELD,
+
+        /// Indicates that the last execution results in a Lua runtime error. This may indicate usage of
+        /// undefined variables, dereference of `nil` or other runtime issues.
+        /// from the stack.
+        runtime_error = c.LUA_ERRRUN,
+
+        /// Indicates that the Lua runtime failed to parse provided Lua source code before execution. This
+        /// is likely a result of a mistake made by a user where the given code is malformed and incorrect.
+        syntax_error = c.LUA_ERRSYNTAX,
+
+        /// Indicates that Lua was unable to allocate memory required by the last operation.
+        memory_error = c.LUA_ERRMEM,
+
+        /// Indicates that an error occurred while running the error handler function such as after invoking
+        /// a protected call.
+        error_handling_error = c.LUA_ERRERR,
+
+        fn is_status(s: i32) bool {
+            return c.LUA_OK <= s and s <= c.LUA_ERRERR;
+        }
+    };
+
     /// Returns the current status of the thread. The status will be `Status.ok` for a normal thread, an error
     /// code if the thread finished its execution with an error, or `status.yield` if the thread is suspended.
     ///
@@ -1204,6 +1196,14 @@ pub const Lua = opaque {
         /// to use an error-handling function when the call fails.
         ErrorHandlerFailure,
     } || CallError;
+
+    /// Used as the value for `nresults` to return all results from the function on the stack when invoking
+    /// `call()` or `protectedCall()`.
+    ///
+    /// Usually, when using `call()` or `protectedCall()`, the function results are pushed onto the stack when
+    /// the function returns, then the number of results is adjusted to the value of `nresults` specified by the
+    /// caller. By using `Lua.MultipleReturn`, all results from the function are left on the stack.
+    pub const MultipleReturn: i32 = c.LUA_MULTRET;
 
     /// Calls a function. To call a function, first push the function onto the stack, then push its arguments
     /// in direct order. `nargs` is the number of arguments pushed onto the stack. All arguments and the function
@@ -1512,6 +1512,7 @@ pub const Lua = opaque {
     }
 };
 
+const testing = std.testing;
 test "Lua can be initialized with an allocator" {
     const lua = Lua.init(std.testing.allocator);
     defer (lua catch unreachable).deinit();

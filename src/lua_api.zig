@@ -102,14 +102,6 @@ pub fn pushThread(lua: *Lua) bool;
 /// Stack Behavior: `[-0, +1, m]`
 pub fn pushVFString(lua: *Lua, fmt: [*]const u8, argp: std.builtin.VaList) [*]const u8;
 
-/// Returns whether the two values in acceptable indices are primitively equal (that is, without calling metamethods).
-/// Returns 0 if any of the indices are non valid.
-///
-/// From: `int lua_rawequal(lua_State *L, int index1, int index2);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawequal
-/// Stack Behavior: `[-0, +0, -]`
-pub fn rawEqual(lua: *Lua, index1: i32, index2: i32) bool;
-
 /// Pushes onto the stack the value t[n], where t is the value at the given valid index. 
 /// The access is raw; that is, it does not invoke metamethods.
 ///

@@ -700,6 +700,8 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_touserdata
     /// Stack Behavior: `[-0, +0, -]`
     pub fn toUserdata(lua: *Lua, index: i32) ?*anyopaque {
+        lua.validateStackIndex(index);
+
         return @ptrCast(c.lua_touserdata(asState(lua), index));
     }
 
@@ -709,6 +711,8 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushvalue
     /// Stack Behavior: `[-0, +1, -]`
     pub fn pushValue(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+
         return c.lua_pushvalue(asState(lua), index);
     }
 
@@ -1043,8 +1047,8 @@ pub const Lua = opaque {
         return c.lua_insert(asState(lua), index);
     }
 
-    /// Returns whether the two values in acceptable are equal, following the semantics of the Lua == operator
-    /// (which may call metamethods).
+    /// Returns whether the two values in given acceptable indices are equal, following the semantics of the Lua `==`
+    /// operator, which may call metamethods.
     ///
     /// In Debug or ReleaseSafe builds, the indicides are validated to be acceptable indices. In unsafe
     /// builds, the function will returns false if any of the indices is not valid.
@@ -1057,6 +1061,20 @@ pub const Lua = opaque {
         lua.validateStackIndex(index_right);
 
         return 1 == c.lua_equal(asState(lua), index_left, index_right);
+    }
+
+    /// Returns whether the two values in given acceptable indices are equal, without the use of any metamethods.
+    ///
+    /// Note: This function was renamed from `rawEqual` for clarity and discoverability.
+    ///
+    /// From: `int lua_rawequal(lua_State *L, int index1, int index2);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawequal
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn equalRaw(lua: *Lua, index_left: i32, index_right: i32) bool {
+        lua.validateStackIndex(index_left);
+        lua.validateStackIndex(index_right);
+
+        return 1 == c.lua_rawequal(asState(lua), index_left, index_right);
     }
 
     /// Returns whether the value at acceptable index `index_left` is smaller than the value at acceptable
@@ -2158,6 +2176,48 @@ test "equal should follow expected semantics" {
     lua.pushBoolean(true);
     lua.pushBoolean(true);
     try std.testing.expect(lua.equal(-2, -1));
+}
+
+test "equalRaw should follow expected semantics" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushLString("Hello, world!");
+    lua.pushLString("hello, world!");
+    try std.testing.expect(!lua.equalRaw(-2, -1));
+    lua.pop(1);
+    lua.pushLString("Hello, world!");
+    try std.testing.expect(lua.equalRaw(-2, -1));
+    lua.pop(2);
+
+    lua.pushNumber(13.0);
+    lua.pushInteger(13);
+    try std.testing.expect(lua.equalRaw(-2, -1));
+    lua.pop(2);
+
+    lua.pushNumber(13.5);
+    lua.pushNumber(13.4);
+    try std.testing.expect(!lua.equalRaw(-2, -1));
+    lua.pop(2);
+
+    lua.pushNil();
+    lua.pushBoolean(true);
+    try std.testing.expect(!lua.equalRaw(-2, -1));
+    lua.pop(2);
+
+    lua.pushNil();
+    lua.pushNil();
+    try std.testing.expect(lua.equalRaw(-2, -1));
+    lua.pop(2);
+
+    lua.pushBoolean(true);
+    lua.pushBoolean(false);
+    try std.testing.expect(!lua.equalRaw(-2, -1));
+    lua.pop(2);
+
+    lua.pushBoolean(true);
+    lua.pushBoolean(true);
+    try std.testing.expect(lua.equalRaw(-2, -1));
 }
 
 test "lessthan should follow expected semantics" {

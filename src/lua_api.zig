@@ -95,13 +95,6 @@ pub fn pushLiteral(lua: *Lua, s: []const u8) void;
 /// Stack Behavior: `[-0, +1, -]`
 pub fn pushThread(lua: *Lua) bool;
 
-/// Pushes a copy of the element at the given valid index onto the stack.
-///
-/// From: `void lua_pushvalue(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushvalue
-/// Stack Behavior: `[-0, +1, -]`
-pub fn pushValue(lua: *Lua, index: i32) void;
-
 /// Equivalent to pushFString, except that it receives a va_list instead of a variable number of arguments.
 ///
 /// From: `const char *lua_pushvfstring(lua_State *L, const char *fmt, va_list argp);`

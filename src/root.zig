@@ -703,6 +703,15 @@ pub const Lua = opaque {
         return @ptrCast(c.lua_touserdata(asState(lua), index));
     }
 
+    /// Pushes a copy of the element at the given valid index onto the stack.
+    ///
+    /// From: `void lua_pushvalue(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushvalue
+    /// Stack Behavior: `[-0, +1, -]`
+    pub fn pushValue(lua: *Lua, index: i32) void {
+        return c.lua_pushvalue(asState(lua), index);
+    }
+
     /// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
     /// so the provided slice can be freed or reused immediately after the function returns. The given string cannot
     /// contain embedded zeros; it is assumed to end at the first zero (`'\x00'`) byte.
@@ -2308,4 +2317,26 @@ test "push and get light userdata" {
     const a2 = lua.toUserdata(-2);
     try std.testing.expectEqual(a1.?, @as(*anyopaque, @ptrCast(&i)));
     try std.testing.expectEqual(a1.?, a2.?);
+}
+
+test "pushvalue" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    lua.pushValue(-1);
+    try std.testing.expect(lua.equal(-1, -2));
+
+    const a1 = lua.toInteger(-1);
+    const a2 = lua.toInteger(-2);
+    try std.testing.expectEqual(a1, a2);
+
+    lua.setTop(0);
+    lua.pushLString("ASDF");
+    lua.pushValue(-1);
+    try std.testing.expect(lua.equal(-1, -2));
+
+    const s1 = try lua.toLString(-1);
+    const s2 = try lua.toLString(-2);
+    try std.testing.expectEqualStrings(s1, s2);
 }

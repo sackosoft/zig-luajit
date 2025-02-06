@@ -160,7 +160,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_pushnumber`| ☑️ `lua.pushNumber()` |
 | `lua_pushstring`| ☑️ `lua.pushString()` |
 | `lua_pushthread`||
-| `lua_pushvalue`||
+| `lua_pushvalue`| ☑️ `lua.pushValue()` |
 | `lua_pushvfstring`||
 | `lua_rawequal`||
 | `lua_rawgeti`||

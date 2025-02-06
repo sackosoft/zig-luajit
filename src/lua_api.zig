@@ -80,16 +80,6 @@ pub const Number = f64;
 
 
 
-/// Pushes a light userdata onto the stack. Userdata represent C values in Lua. A light userdata 
-/// represents a pointer. It is a value (like a number): you do not create it, it has no individual 
-/// metatable, and it is not collected (as it was never created). A light userdata is equal to "any" 
-/// light userdata with the same C address.
-///
-/// From: `void lua_pushlightuserdata(lua_State *L, void *p);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlightuserdata
-/// Stack Behavior: `[-0, +1, -]`
-pub fn pushLightUserdata(lua: *Lua, p: *anyopaque) void;
-
 /// Pushes a string literal directly onto the stack. This is equivalent to `lua_pushlstring`, but can be used
 /// only when the input is a literal string. It automatically provides the string length.
 ///

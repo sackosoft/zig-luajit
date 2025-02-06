@@ -681,6 +681,18 @@ pub const Lua = opaque {
         return c.lua_pushcclosure(asState(lua), @ptrCast(f), @as(i32, @intCast(n)));
     }
 
+    /// Pushes a light userdata onto the stack. Userdata represent C values in Lua. A light userdata
+    /// represents a pointer. It is a value (like a number): you do not create it, it has no individual
+    /// metatable, and it is not collected (as it was never created). A light userdata is equal to "any"
+    /// light userdata with the same C address.
+    ///
+    /// From: `void lua_pushlightuserdata(lua_State *L, void *p);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlightuserdata
+    /// Stack Behavior: `[-0, +1, -]`
+    pub fn pushLightUserdata(lua: *Lua, p: *anyopaque) void {
+        return c.lua_pushlightuserdata(asState(lua), p);
+    }
+
     /// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
     /// so the provided slice can be freed or reused immediately after the function returns. The given string cannot
     /// contain embedded zeros; it is assumed to end at the first zero (`'\x00'`) byte.
@@ -2270,4 +2282,15 @@ test "garbage collector controls" {
     try std.testing.expect(lua.gcIsRunning());
     try std.testing.expectEqual(0, lua.gc(.stop, 0));
     try std.testing.expect(!lua.gcIsRunning());
+}
+
+test "push light userdata" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var i: i32 = 0;
+
+    lua.pushLightUserdata(@ptrCast(&i));
+    lua.pushLightUserdata(@ptrCast(&i));
+    try std.testing.expect(lua.equal(-1, -2));
 }

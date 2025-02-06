@@ -693,6 +693,16 @@ pub const Lua = opaque {
         return c.lua_pushlightuserdata(asState(lua), p);
     }
 
+    /// If the value at the given acceptable index is a full userdata, returns its block address.
+    /// If the value is a light userdata, returns its pointer. Otherwise, returns null.
+    ///
+    /// From: `void *lua_touserdata(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_touserdata
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn toUserdata(lua: *Lua, index: i32) ?*anyopaque {
+        return @ptrCast(c.lua_touserdata(asState(lua), index));
+    }
+
     /// Pushes the zero-terminated string onto the stack. Lua makes (or reuses) an internal copy of the given string,
     /// so the provided slice can be freed or reused immediately after the function returns. The given string cannot
     /// contain embedded zeros; it is assumed to end at the first zero (`'\x00'`) byte.
@@ -2284,7 +2294,7 @@ test "garbage collector controls" {
     try std.testing.expect(!lua.gcIsRunning());
 }
 
-test "push light userdata" {
+test "push and get light userdata" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -2293,4 +2303,9 @@ test "push light userdata" {
     lua.pushLightUserdata(@ptrCast(&i));
     lua.pushLightUserdata(@ptrCast(&i));
     try std.testing.expect(lua.equal(-1, -2));
+
+    const a1 = lua.toUserdata(-1);
+    const a2 = lua.toUserdata(-2);
+    try std.testing.expectEqual(a1.?, @as(*anyopaque, @ptrCast(&i)));
+    try std.testing.expectEqual(a1.?, a2.?);
 }

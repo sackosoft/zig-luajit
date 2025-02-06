@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 69% available (64/92) |
+| Lua C API (`lua_*`) | 70% available (65/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -187,7 +187,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_topointer`||
 | `lua_tostring`| ☑️ `lua.toString()`|
 | `lua_tothread`||
-| `lua_touserdata`||
+| `lua_touserdata`| ☑️ `lua.toUserdata()`|
 | `lua_typename`| ☑️ `lua.typeName()`|
 | `lua_type`| ☑️📢 `lua.typeOf()` |
 | `lua_xmove`||

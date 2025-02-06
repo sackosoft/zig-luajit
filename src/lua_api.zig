@@ -232,14 +232,6 @@ pub fn toPointer(lua: *Lua, index: i32) ?*anyopaque;
 /// Stack Behavior: `[-0, +0, -]`
 pub fn toThread(lua: *Lua, index: i32) ?*Lua;
 
-/// If the value at the given acceptable index is a full userdata, returns its block address.
-/// If the value is a light userdata, returns its pointer. Otherwise, returns null.
-///
-/// From: `void *lua_touserdata(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_touserdata
-/// Stack Behavior: `[-0, +0, -]`
-pub fn toUserdata(lua: *Lua, index: i32) ?*anyopaque;
-
 /// The type of the writer function used by lua_dump. Every time it produces another piece of chunk,
 /// lua_dump calls the writer, passing along the buffer to be written (p), its size (sz),
 /// and the data parameter supplied to lua_dump. The writer returns an error code:

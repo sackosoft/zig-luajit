@@ -770,6 +770,35 @@ pub const Lua = opaque {
         }
     }
 
+    /// Pushes onto the stack a formatted string and returns a pointer to this string. Memory allocation is handled
+    /// by Lua via garbage collection, callers do NOT own the returned slice.
+    ///
+    /// String format specifiers are restricted to the following options:
+    /// * '%%' - Insert a literal '%' character in the string.
+    /// * '%s' - Insert a zero-terminated string,
+    /// * '%f' - Insert a `Lua.Number`, usually an `f64`,
+    /// * '%p' - Insert a pointer-width ineger formatted as hexadecimal,
+    /// * '%d' - Insert a `Lua.Integer`, usually an `i64`, and
+    /// * '%c' - Insert a single character represented by a number.
+    ///
+    /// **Usage of this function is discouraged**, consider instead using Zig `std.fmt` primitives in combination with
+    /// `lua.pushString()` or `lua.pushLString()`.
+    ///
+    /// From: `const char *lua_pushfstring(lua_State *L, const char *fmt, ...);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushfstring
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn pushFString(lua: *Lua, comptime format: []const u8, args: anytype) [:0]const u8 {
+        const string: ?[*:0]const u8 = @call(.auto, c.lua_pushfstring, .{ asState(lua), format.ptr } ++ args);
+        if (string) |s| {
+            // NOTE: This seems dangerous. I don't really like this solution, but it doesn't look like there is any other option.
+            // We are making a strong assumption that Lua returns a well-behaved zero-terminated string.
+            const len = std.mem.indexOfSentinel(u8, 0, s);
+            return s[0..len :0];
+        } else {
+            std.debug.panic("Received unexpected NULL response from lua.pushFString(\"{s}, ...\")", .{format});
+        }
+    }
+
     fn typeIsNotString(t: Lua.Type) NotStringError {
         return switch (t) {
             .number, .string => unreachable,
@@ -1701,6 +1730,16 @@ test "slices strings" {
     try std.testing.expect(expected.len == actual.len);
     try std.testing.expectEqualSlices(u8, expected, actual);
     lua.pop(1);
+}
+
+test "string formatting with pushFString" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected: [:0]const u8 = "abc%_FOO_42";
+    const actual = lua.pushFString("abc%%_%s_%d", .{ "FOO", @as(i32, 42) });
+
+    try std.testing.expectEqualSlices(u8, expected, actual);
 }
 
 test "slices strings to terminated strings" {

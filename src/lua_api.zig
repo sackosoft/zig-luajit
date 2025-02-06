@@ -112,16 +112,6 @@ pub fn pushThread(lua: *Lua) bool;
 /// Stack Behavior: `[-0, +1, -]`
 pub fn pushValue(lua: *Lua, index: i32) void;
 
-/// Pushes onto the stack a formatted string and returns a pointer to this string. Similar to the C function
-/// sprintf, but with important differences: memory allocation is handled by Lua via garbage collection,
-/// and conversion specifiers are restricted to: '%%' (%), '%s' (zero-terminated string), '%f' (lua_Number),
-/// '%p' (pointer as hex), '%d' (int), and '%c' (int as character).
-///
-/// From: `const char *lua_pushfstring(lua_State *L, const char *fmt, ...);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushfstring
-/// Stack Behavior: `[-0, +1, m]`
-pub fn pushFString(lua: *Lua, comptime fmt: []const u8, ...) []const u8;
-
 /// Equivalent to pushFString, except that it receives a va_list instead of a variable number of arguments.
 ///
 /// From: `const char *lua_pushvfstring(lua_State *L, const char *fmt, va_list argp);`

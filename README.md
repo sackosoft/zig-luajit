@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 65% available (60/92) |
+| Lua C API (`lua_*`) | 68% available (63/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -149,9 +149,9 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_pcall`| ☑️📢 `lua.protectedCall()` |
 | `lua_pop`| ☑️ `lua.pop()` |
 | `lua_pushboolean`| ☑️ `lua.pushBoolean()` |
-| `lua_pushcclosure`||
-| `lua_pushcfunction`||
-| `lua_pushfstring`||
+| `lua_pushcclosure`| ☑️ `lua.pushCClosure()` |
+| `lua_pushcfunction`| ☑️ `lua.pushCFunction()` |
+| `lua_pushfstring`| ☑️ `lua.pushFString()` |
 | `lua_pushinteger`| ☑️ `lua.pushInteger()`|
 | `lua_pushlightuserdata`||
 | `lua_pushliteral`| 🆖 use `lua.pushLString()` |

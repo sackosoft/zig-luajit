@@ -111,13 +111,6 @@ pub fn pushVFString(lua: *Lua, fmt: [*]const u8, argp: std.builtin.VaList) [*]co
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Reader
 pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]const u8;
 
-/// Sets the C function f as the new value of global name.
-///
-/// From: `void lua_register(lua_State *L, const char *name, lua_CFunction f);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_register
-/// Stack Behavior: `[-0, +0, e]`
-pub fn register(lua: *Lua, name: [*:0]const u8, func: CFunction) void;
-
 /// Removes the element at the given valid index, shifting down the elements above this index to fill the gap.
 /// Cannot be called with a pseudo-index, because a pseudo-index is not an actual stack position.
 ///

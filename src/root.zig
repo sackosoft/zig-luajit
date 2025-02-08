@@ -8,9 +8,6 @@ const builtin = @import("builtin");
 const isSafeBuildTarget: bool = builtin.mode == .ReleaseSafe or builtin.mode == .Debug;
 
 const c = @import("c");
-fn asState(lua: *Lua) *c.lua_State {
-    return @ptrCast(lua);
-}
 
 const aa = @import("allocator_adapter.zig");
 
@@ -55,6 +52,18 @@ pub const Lua = opaque {
 
         const lua: ?*Lua = @ptrCast(c.lua_newstate(aa.alloc, ud));
         return if (lua) |p| p else error.OutOfMemory;
+    }
+
+    fn asState(lua: *Lua) *c.lua_State {
+        return @ptrCast(lua);
+    }
+
+    fn asCString(str: [:0]const u8) [*:0]const u8 {
+        return @ptrCast(str.ptr);
+    }
+
+    fn asCFn(f: CFunction) ?*const fn (?*c.lua_State) callconv(.c) c_int {
+        return @ptrCast(f);
     }
 
     /// Sets a new panic function and returns the old one. If an error happens outside any protected environment,
@@ -978,7 +987,7 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getglobal
     /// Stack Behavior: `[-0, +1, e]`
     pub fn getGlobal(lua: *Lua, name: [:0]const u8) Lua.Type {
-        c.lua_getglobal(asState(lua), @as([*:0]const u8, @ptrCast(name.ptr)));
+        c.lua_getglobal(asState(lua), asCString(name));
         return lua.typeOf(-1);
     }
 
@@ -990,7 +999,7 @@ pub const Lua = opaque {
     pub fn setGlobal(lua: *Lua, name: [:0]const u8) void {
         assert(lua.getTop() > 0);
 
-        return c.lua_setglobal(asState(lua), @as([*:0]const u8, @ptrCast(name.ptr)));
+        return c.lua_setglobal(asState(lua), asCString(name));
     }
     /// Pops a table from the top of the stack and sets it as the metatable for the value at the
     /// given acceptable index.
@@ -1050,6 +1059,15 @@ pub const Lua = opaque {
         lua.validateStackIndex(index);
 
         return c.lua_insert(asState(lua), index);
+    }
+
+    /// Sets the `CFunction` `f` as the new value of global `name`.
+    ///
+    /// From: `void lua_register(lua_State *L, const char *name, lua_CFunction f);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_register
+    /// Stack Behavior: `[-0, +0, e]`
+    pub fn register(lua: *Lua, name: [:0]const u8, f: CFunction) void {
+        return c.lua_register(asState(lua), asCString(name), asCFn(f));
     }
 
     /// Returns whether the two values in given acceptable indices are equal, following the semantics of the Lua `==`
@@ -1302,7 +1320,7 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_cpcall
     /// Stack Behavior: `[-0, +(0|1), -]`
     pub fn protectedCallCFunction(lua: *Lua, f: CFunction, ud: ?*anyopaque) ProtectedCallError!void {
-        const res = c.lua_cpcall(asState(lua), @ptrCast(f), ud);
+        const res = c.lua_cpcall(asState(lua), asCFn(f), ud);
         assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
 
         return parseCallStatus(res);
@@ -1556,7 +1574,6 @@ pub const Lua = opaque {
     }
 };
 
-const testing = std.testing;
 test "Lua can be initialized with an allocator" {
     const lua = Lua.init(std.testing.allocator);
     defer (lua catch unreachable).deinit();
@@ -2464,4 +2481,25 @@ test "getTableIndexRaw" {
     try std.testing.expectEqual(Lua.Type.number, actual_type);
     try std.testing.expectEqual(42, lua.toIntegerStrict(-1));
     try std.testing.expectEqual(2, lua.getTop());
+}
+
+fn registeredFn(lua: *Lua) callconv(.c) i32 {
+    lua.pushLString("Galt, John");
+    return 1;
+}
+
+test "registering named functions" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.register("regREG", registeredFn);
+    try lua.doString(
+        \\actual = regREG()
+        \\if actual == 'Galt, John' then
+        \\    return 1
+        \\end
+        \\return 0
+    );
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(1, lua.toIntegerStrict(-1));
 }

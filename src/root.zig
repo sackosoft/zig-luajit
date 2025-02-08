@@ -851,7 +851,7 @@ pub const Lua = opaque {
 
     /// Similar to `getTable()`, but this implementation will not invoke any metamethods.
     ///
-    /// Note: This function was renamed from `rawget`.
+    /// Note: This function was renamed for consistency with the other table value access functions.
     ///
     /// From: `void lua_rawget(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawget
@@ -863,11 +863,10 @@ pub const Lua = opaque {
         c.lua_rawget(asState(lua), index);
         return lua.typeOf(-1);
     }
-
     /// Pushes onto the stack the value `t[n]`, where `t` is the value at the given valid index.
     /// The access is raw; that is, it does not invoke metamethods.
     ///
-    /// Note: This function was renamed from `rawgeti`.
+    /// Note: This function was renamed for consistency with the other table updating functions.
     ///
     /// From: `void lua_rawgeti(lua_State *L, int index, int n);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawgeti
@@ -878,6 +877,60 @@ pub const Lua = opaque {
 
         c.lua_rawgeti(asState(lua), index, n);
         return lua.typeOf(-1);
+    }
+
+    /// Does the equivalent of `t[k] = v`, where `t` is the acceptable index of the table on the stack, `v` is
+    /// the value at the top of the stack, and `k` is the value just below the top. This function pops both the
+    /// key and the value from the stack. As in Lua, this function may trigger a metamethod for the "newindex"
+    /// event (see https://www.lua.org/manual/5.1/manual.html#2.8).
+    ///
+    /// Example:
+    /// ```zig
+    /// lua.newTable();
+    /// lua.pushInteger(1);
+    /// lua.pushString("Hello, world!");
+    /// lua.setTable(-3);
+    /// std.debug.assert(1 == lua.getTop());
+    /// std.debug.assert(lua.isTable());
+    /// ```
+    ///
+    /// From: `void lua_settable(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settable
+    /// Stack Behavior: `[-2, +0, e]`
+    pub fn setTable(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+        assert(lua.isTable(index));
+
+        return c.lua_settable(asState(lua), index);
+    }
+
+    /// Similar to `setTable()`, but does a raw assignment (i.e., without metamethods).
+    ///
+    /// Note: This function was renamed for consistency with the other table updating functions.
+    ///
+    /// From: `void lua_rawset(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawset
+    /// Stack Behavior: `[-2, +0, m]`
+    pub fn setTableRaw(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+        assert(lua.isTable(index));
+
+        return c.lua_rawset(asState(lua), index);
+    }
+
+    /// Does the equivalent of `t[n] = v`, where `t` is the value at the given valid index and `v` is the value
+    /// at the top of the stack. The assignment is raw; that is, it does not invoke metamethods.
+    ///
+    /// Note: This function was renamed for consistency with the other table updating functions.
+    ///
+    /// From: `void lua_rawseti(lua_State *L, int index, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawseti
+    /// Stack Behavior: `[-1, +0, m]`
+    pub fn setTableIndexRaw(lua: *Lua, index: i32, n: i32) void {
+        lua.validateStackIndex(index);
+        assert(lua.isTable(index));
+
+        return c.lua_rawseti(asState(lua), index, n);
     }
 
     /// Pushes onto the stack the metatable of the value at the given acceptable index. If the index is not
@@ -939,45 +992,6 @@ pub const Lua = opaque {
 
         return c.lua_setglobal(asState(lua), @as([*:0]const u8, @ptrCast(name.ptr)));
     }
-
-    /// Does the equivalent of `t[k] = v`, where `t` is the acceptable index of the table on the stack, `v` is
-    /// the value at the top of the stack, and `k` is the value just below the top. This function pops both the
-    /// key and the value from the stack. As in Lua, this function may trigger a metamethod for the "newindex"
-    /// event (see https://www.lua.org/manual/5.1/manual.html#2.8).
-    ///
-    /// Example:
-    /// ```zig
-    /// lua.newTable();
-    /// lua.pushInteger(1);
-    /// lua.pushString("Hello, world!");
-    /// lua.setTable(-3);
-    /// std.debug.assert(1 == lua.getTop());
-    /// std.debug.assert(lua.isTable());
-    /// ```
-    ///
-    /// From: `void lua_settable(lua_State *L, int index);`
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_settable
-    /// Stack Behavior: `[-2, +0, e]`
-    pub fn setTable(lua: *Lua, index: i32) void {
-        lua.validateStackIndex(index);
-        assert(lua.isTable(index));
-
-        return c.lua_settable(asState(lua), index);
-    }
-
-    /// Does the equivalent of `t[n] = v`, where `t` is the value at the given valid index and `v` is the value
-    /// at the top of the stack. The assignment is raw; that is, it does not invoke metamethods.
-    ///
-    /// From: `void lua_rawseti(lua_State *L, int index, int n);`
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawseti
-    /// Stack Behavior: `[-1, +0, m]`
-    pub fn setTableIndexRaw(lua: *Lua, index: i32, n: i32) void {
-        lua.validateStackIndex(index);
-        assert(lua.isTable(index));
-
-        return c.lua_rawseti(asState(lua), index, n);
-    }
-
     /// Pops a table from the top of the stack and sets it as the metatable for the value at the
     /// given acceptable index.
     ///
@@ -1907,7 +1921,7 @@ test "tables" {
 
     lua.newTable();
     lua.pushInteger(1);
-    lua.pushString("Hello, world!");
+    lua.pushLString("Hello, world!");
     try std.testing.expectEqual(3, lua.getTop());
 
     lua.setTable(-3);
@@ -1916,8 +1930,14 @@ test "tables" {
     lua.pushInteger(1);
     try std.testing.expectEqual(Lua.Type.string, lua.getTable(-2));
     lua.pop(1);
+
     lua.pushInteger(1);
-    try std.testing.expectEqual(Lua.Type.string, lua.getTableRaw(-2));
+    lua.pushBoolean(true);
+    lua.setTableRaw(-3);
+    try std.testing.expectEqual(1, lua.getTop());
+    lua.pushInteger(1);
+    try std.testing.expectEqual(Lua.Type.boolean, lua.getTableRaw(-2));
+    try std.testing.expect(try lua.toBooleanStrict(-1));
 }
 
 test "getfield and setfield" {

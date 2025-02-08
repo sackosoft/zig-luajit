@@ -102,13 +102,6 @@ pub fn pushThread(lua: *Lua) bool;
 /// Stack Behavior: `[-0, +1, m]`
 pub fn pushVFString(lua: *Lua, fmt: [*]const u8, argp: std.builtin.VaList) [*]const u8;
 
-/// Similar to `lua_settable`, but does a raw assignment (i.e., without metamethods).
-///
-/// From: `void lua_rawset(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawset
-/// Stack Behavior: `[-2, +0, m]`
-pub fn rawSet(lua: *Lua, index: i32) void;
-
 /// A reader function type used by `lua_load` for loading chunks of code. The function is called repeatedly
 /// to retrieve pieces of a chunk. It must return a pointer to a memory block with a new piece of the chunk
 /// and set the size parameter. To signal the end of the chunk, it must return null or set size to zero.

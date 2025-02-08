@@ -79,7 +79,7 @@ lua.doString(
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 71% available (66/92) |
+| Lua C API (`lua_*`) | 73% available (68/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -163,9 +163,9 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_pushvalue`| ☑️ `lua.pushValue()` |
 | `lua_pushvfstring`||
 | `lua_rawequal`| ☑️📢 `lua.equalRaw()` |
-| `lua_rawgeti`||
+| `lua_rawgeti`| ☑️📢 `lua.getTableIndexRaw()` |
 | `lua_rawget`||
-| `lua_rawseti`||
+| `lua_rawseti`| ☑️📢 `lua.setTableIndexRaw()` |
 | `lua_rawset`||
 | `lua_register`||
 | `lua_remove`||

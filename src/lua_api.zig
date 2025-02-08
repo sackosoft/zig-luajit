@@ -102,22 +102,6 @@ pub fn pushThread(lua: *Lua) bool;
 /// Stack Behavior: `[-0, +1, m]`
 pub fn pushVFString(lua: *Lua, fmt: [*]const u8, argp: std.builtin.VaList) [*]const u8;
 
-/// Pushes onto the stack the value t[n], where t is the value at the given valid index. 
-/// The access is raw; that is, it does not invoke metamethods.
-///
-/// From: `void lua_rawgeti(lua_State *L, int index, int n);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawgeti
-/// Stack Behavior: `[-0, +1, -]`
-pub fn rawGetI(lua: *Lua, index: i32, n: i32) void;
-
-/// Does the equivalent of t[n] = v, where t is the value at the given valid index and v is the value
-/// at the top of the stack. The assignment is raw; that is, it does not invoke metamethods.
-///
-/// From: `void lua_rawseti(lua_State *L, int index, int n);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawseti
-/// Stack Behavior: `[-1, +0, m]`
-pub fn rawSetI(lua: *Lua, index: i32, n: i32) void;
-
 /// Similar to `lua_settable`, but does a raw assignment (i.e., without metamethods).
 ///
 /// From: `void lua_rawset(lua_State *L, int index);`

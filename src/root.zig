@@ -858,8 +858,25 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-1, +1, -]`
     pub fn getTableRaw(lua: *Lua, index: i32) Lua.Type {
         lua.validateStackIndex(index);
+        assert(lua.isTable(index));
 
         c.lua_rawget(asState(lua), index);
+        return lua.typeOf(-1);
+    }
+
+    /// Pushes onto the stack the value `t[n]`, where `t` is the value at the given valid index.
+    /// The access is raw; that is, it does not invoke metamethods.
+    ///
+    /// Note: This function was renamed from `rawgeti`.
+    ///
+    /// From: `void lua_rawgeti(lua_State *L, int index, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawgeti
+    /// Stack Behavior: `[-0, +1, -]`
+    pub fn getTableIndexRaw(lua: *Lua, index: i32, n: i32) Lua.Type {
+        lua.validateStackIndex(index);
+        assert(lua.isTable(index));
+
+        c.lua_rawgeti(asState(lua), index, n);
         return lua.typeOf(-1);
     }
 
@@ -946,6 +963,19 @@ pub const Lua = opaque {
         assert(lua.isTable(index));
 
         return c.lua_settable(asState(lua), index);
+    }
+
+    /// Does the equivalent of `t[n] = v`, where `t` is the value at the given valid index and `v` is the value
+    /// at the top of the stack. The assignment is raw; that is, it does not invoke metamethods.
+    ///
+    /// From: `void lua_rawseti(lua_State *L, int index, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_rawseti
+    /// Stack Behavior: `[-1, +0, m]`
+    pub fn setTableIndexRaw(lua: *Lua, index: i32, n: i32) void {
+        lua.validateStackIndex(index);
+        assert(lua.isTable(index));
+
+        return c.lua_rawseti(asState(lua), index, n);
     }
 
     /// Pops a table from the top of the stack and sets it as the metatable for the value at the
@@ -2400,4 +2430,18 @@ test "pushvalue" {
     const s1 = try lua.toLString(-1);
     const s2 = try lua.toLString(-2);
     try std.testing.expectEqualStrings(s1, s2);
+}
+
+test "getTableIndexRaw" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.newTable();
+    lua.pushInteger(42);
+    lua.setTableIndexRaw(1, 1);
+
+    const actual_type = lua.getTableIndexRaw(1, 1);
+    try std.testing.expectEqual(Lua.Type.number, actual_type);
+    try std.testing.expectEqual(42, lua.toIntegerStrict(-1));
+    try std.testing.expectEqual(2, lua.getTop());
 }

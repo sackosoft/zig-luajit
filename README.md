@@ -85,7 +85,7 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 81% available (75/92) |
+| Lua C API (`lua_*`) | 82% available (76/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -169,7 +169,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_pushnil`| ☑️ `lua.pushNil()`|
 | `lua_pushnumber`| ☑️ `lua.pushNumber()` |
 | `lua_pushstring`| ☑️ `lua.pushString()` |
-| `lua_pushthread`||
+| `lua_pushthread`| ☑️ `lua.pushString()` |
 | `lua_pushvalue`| ☑️ `lua.pushValue()` |
 | `lua_pushvfstring`| 🆖 please use `lua.pushFString()` |
 | `lua_gettable`| ☑️ `lua.getTable()` |

@@ -1090,6 +1090,19 @@ pub const Lua = opaque {
         return thread.?;
     }
 
+    /// Pushes the current Lua thread onto the stack and returns `true` if it's the main thread.
+    ///
+    /// The primary use cases for this function is:
+    /// - to store thread references in Lua tables/registry for later retrieval from C code
+    /// - to identify if code is running in main thread vs coroutine
+    ///
+    /// From: `int lua_pushthread(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushthread
+    /// Stack Behavior: `[-0, +1, -]`
+    pub fn pushThread(lua: *Lua) bool {
+        return 1 == c.lua_pushthread(asState(lua));
+    }
+
     /// Pops `n` elements from the stack.
     ///
     /// From: `void lua_pop(lua_State *L, int n);`
@@ -2647,4 +2660,18 @@ test "newUserdata should create expected memory" {
     const found = lua.toUserdata(-1);
 
     try std.testing.expectEqual(ud, found);
+}
+
+test "pushThread should return whether it is running on the main thread or not" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expect(lua.pushThread());
+    try std.testing.expectEqual(Lua.Type.thread, lua.typeOf(-1));
+    lua.pop(1);
+
+    const coroutine = lua.newThread();
+    try std.testing.expect(!coroutine.pushThread());
+    try std.testing.expectEqual(Lua.Type.thread, lua.typeOf(-1));
+    lua.pop(1);
 }

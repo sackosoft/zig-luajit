@@ -45,41 +45,6 @@ pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]co
 
 
 
-/// The type of numbers in Lua. By default, this is a double-precision floating point number,
-/// but can be configured to use other numeric types like float or long through luaconf.h.
-///
-/// From: `typedef double lua_Number;`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Number
-pub const Number = f64;
-
-
-
-
-
-
-
-/// Pushes a string literal directly onto the stack. This is equivalent to `lua_pushlstring`, but can be used
-/// only when the input is a literal string. It automatically provides the string length.
-///
-/// From: `void lua_pushliteral(lua_State *L, const char *s);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushliteral
-/// Stack Behavior: `[-0, +1, m]`
-pub fn pushLiteral(lua: *Lua, s: []const u8) void;
-
-/// Pushes the thread represented by L onto the stack. Returns 1 if this thread is the main thread of its state.
-///
-/// From: `int lua_pushthread(lua_State *L);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushthread
-/// Stack Behavior: `[-0, +1, -]`
-pub fn pushThread(lua: *Lua) bool;
-
-/// Equivalent to pushFString, except that it receives a va_list instead of a variable number of arguments.
-///
-/// From: `const char *lua_pushvfstring(lua_State *L, const char *fmt, va_list argp);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushvfstring
-/// Stack Behavior: `[-0, +1, m]`
-pub fn pushVFString(lua: *Lua, fmt: [*]const u8, argp: std.builtin.VaList) [*]const u8;
-
 /// A reader function type used by `lua_load` for loading chunks of code. The function is called repeatedly
 /// to retrieve pieces of a chunk. It must return a pointer to a memory block with a new piece of the chunk
 /// and set the size parameter. To signal the end of the chunk, it must return null or set size to zero.
@@ -127,16 +92,6 @@ pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfenv
 /// Stack Behavior: `[-1, +0, -]`
 pub fn setFenv(lua: *Lua, index: i32) bool;
-
-/// Opaque structure that keeps the whole state of a Lua interpreter. The Lua library is fully reentrant:
-/// it has no global variables. All information about a state is kept in this structure. A pointer
-/// to this state must be passed as the first argument to every function in the library, except 
-/// to `lua_newstate`, which creates a Lua state from scratch.
-///
-/// From: `typedef struct lua_State lua_State;`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_State
-pub const Lua = opaque {};
-
 
 /// Converts a value at the given acceptable index to a C function. 
 /// That value must be a C function; otherwise, returns null.

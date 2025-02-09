@@ -1007,6 +1007,7 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-0, +1, e]`
     pub fn getField(lua: *Lua, index: i32, key: [:0]const u8) Lua.Type {
         lua.validateStackIndex(index);
+        assert(lua.isTable(index));
 
         c.lua_getfield(asState(lua), index, @ptrCast(key.ptr));
         return lua.typeOf(-1);
@@ -1021,6 +1022,7 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-1, +0, e]`
     pub fn setField(lua: *Lua, index: i32, key: [:0]const u8) void {
         lua.validateStackIndex(index);
+        assert(lua.isTable(index));
 
         return c.lua_setfield(asState(lua), index, @ptrCast(key.ptr));
     }
@@ -1448,6 +1450,44 @@ pub const Lua = opaque {
             .error_handling_error => return error.ErrorHandlerFailure,
             else => std.debug.panic("Lua returned unexpected status code from a protected call: {d}\n", .{res}),
         }
+    }
+
+    /// Pops a table from the stack and sets it as the new environment for the value at the given index.
+    /// Returns true if the value is a function, thread, or userdata, otherwise returns false. When a function or
+    /// thread or userdata does a lookup for a name that is not found in the local context, this "fallback"
+    /// table will be used instead.
+    ///
+    /// Note for readers familiar with Lua 5.2 or later: The Lua 5.1 `setfenv` was replaced by the standardized
+    /// `_ENV` upvalue, since it makes environment handling more explicit. Unfortunately, LuaJIT is ABI compatible
+    /// with Lua 5.1 meaning we must provide this older mechanism.
+    ///
+    /// See [Lua Manual 2.9 - Environments](https://www.lua.org/manual/5.1/manual.html#2.9)
+    ///
+    /// From: `int lua_setfenv(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfenv
+    /// Stack Behavior: `[-1, +0, -]`
+    pub fn setEnvironment(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+        assert(lua.isTable(-1));
+
+        return 1 == c.lua_setfenv(asState(lua), index);
+    }
+
+    /// Pushes onto the stack the environment table of the value at the given index.
+    ///
+    /// Note for readers familiar with Lua 5.2 or later: The Lua 5.1 `getfenv` was replaced by the standardized
+    /// `_ENV` upvalue, since it makes environment handling more explicit. Unfortunately, LuaJIT is ABI compatible
+    /// with Lua 5.1 meaning we must provide this older mechanism.
+    ///
+    /// See [Lua Manual 2.9 - Environments](https://www.lua.org/manual/5.1/manual.html#2.9)
+    ///
+    /// From: `void lua_getfenv(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getfenv
+    /// Stack Behavior: `[-0, +1, -]`
+    pub fn getEnvironment(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+
+        return c.lua_getfenv(asState(lua), index);
     }
 
     /// Opens all standard Lua libraries into the given state. Callers may prefer to open individual
@@ -2721,4 +2761,112 @@ test "pushThread should return whether it is running on the main thread or not" 
     try std.testing.expect(!coroutine.pushThread());
     try std.testing.expectEqual(Lua.Type.thread, lua.typeOf(-1));
     lua.pop(1);
+}
+
+test "setEnvironment and getEnvironment should return false when target does not support environment" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushNumber(1.23);
+    lua.newTable();
+    try std.testing.expect(!lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    lua.pop(1);
+
+    lua.newTable();
+    lua.newTable();
+    try std.testing.expect(!lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    lua.pop(1);
+
+    lua.pushLString("string does not support environment");
+    lua.newTable();
+    try std.testing.expect(!lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    lua.pop(1);
+
+    lua.pushNil();
+    lua.newTable();
+    try std.testing.expect(!lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    lua.pop(1);
+
+    lua.pushBoolean(false);
+    lua.newTable();
+    try std.testing.expect(!lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    lua.pop(1);
+}
+
+test "setEnvironment and getEnvironment should work for thread" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    _ = lua.newThread();
+    lua.newTable();
+    lua.pushLString("bar");
+    lua.setField(-2, "foo");
+
+    try std.testing.expect(lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isThread(-1));
+    lua.getEnvironment(-1);
+    try std.testing.expect(lua.isTable(-1));
+    const actual_type = lua.getField(-1, "foo");
+    try std.testing.expectEqual(Lua.Type.string, actual_type);
+    lua.pushLString("bar");
+    try std.testing.expect(lua.equal(-1, -2));
+    try std.testing.expectEqual(4, lua.getTop());
+    lua.pop(4);
+}
+
+test "setEnvironment and getEnvironment should work for functions" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openBaseLib();
+
+    try lua.doString(
+        \\ x = function()
+        \\     print("Test")
+        \\ end
+        \\ return x
+    );
+    lua.newTable();
+    lua.pushLString("bar");
+    lua.setField(-2, "foo");
+
+    try std.testing.expect(lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isFunction(-1));
+    lua.getEnvironment(-1);
+    try std.testing.expect(lua.isTable(-1));
+    const actual_type = lua.getField(-1, "foo");
+    try std.testing.expectEqual(Lua.Type.string, actual_type);
+    lua.pushLString("bar");
+    try std.testing.expect(lua.equal(-1, -2));
+    try std.testing.expectEqual(4, lua.getTop());
+    lua.pop(4);
+}
+
+test "setEnvironment and getEnvironment should work for userdata" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    _ = lua.newUserdata(1);
+    lua.newTable();
+    lua.pushLString("bar");
+    lua.setField(-2, "foo");
+
+    try std.testing.expect(lua.setEnvironment(-2));
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isUserdata(-1));
+    lua.getEnvironment(-1);
+    try std.testing.expect(lua.isTable(-1));
+    const actual_type = lua.getField(-1, "foo");
+    try std.testing.expectEqual(Lua.Type.string, actual_type);
+    lua.pushLString("bar");
+    try std.testing.expect(lua.equal(-1, -2));
+    try std.testing.expectEqual(4, lua.getTop());
+    lua.pop(4);
 }

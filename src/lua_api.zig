@@ -16,13 +16,6 @@
 pub fn dump(lua: *Lua, writer: LuaWriter, data: *anyopaque) i32;
 
 
-/// Pushes onto the stack the environment table of the value at the given index.
-///
-/// From: `void lua_getfenv(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getfenv
-/// Stack Behavior: `[-0, +1, -]`
-pub fn getfenv(lua: *Lua, index: i32) void;
-
 /// The type used by the Lua API to represent integral values. 
 /// By default it is a signed integral type that the machine handles "comfortably".
 ///
@@ -68,14 +61,6 @@ pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]con
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_resume
 /// Stack Behavior: `[-?, +?, -]`
 pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
-
-/// Pops a table from the stack and sets it as the new environment for the value at the given index.
-/// Returns true if the value is a function, thread, or userdata, otherwise returns false.
-///
-/// From: `int lua_setfenv(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setfenv
-/// Stack Behavior: `[-1, +0, -]`
-pub fn setFenv(lua: *Lua, index: i32) bool;
 
 /// Converts a value at the given acceptable index to a C function. 
 /// That value must be a C function; otherwise, returns null.

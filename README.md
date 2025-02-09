@@ -85,7 +85,7 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 84% available (78/92) |
+| Lua C API (`lua_*`) | 86% available (80/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -130,7 +130,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_error`| ☑️📢 `lua.raiseError()` |
 | `lua_gc`| ☑️ `lua.gc()` + `lua.gcIsRunning()` |
 | `lua_getallocf`| ☑️📢 `lua.getAllocator()` |
-| `lua_getfenv`||
+| `lua_getfenv`| ☑️📢 `lua.getEnvironment()` |
 | `lua_getfield`| ☑️ `lua.getField()` |
 | `lua_getglobal`| ☑️ `lua.getGlobal()` |
 | `lua_getmetatable`| ☑️ `lua.getMetatable()` |
@@ -184,7 +184,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_replace`| ☑️ `lua.replace()` |
 | `lua_resume`||
 | `lua_setallocf`| ☑️📢 `lua.setAllocator()` |
-| `lua_setfenv`||
+| `lua_setfenv`| ☑️📢 `lua.setEnvironment()` |
 | `lua_setfield`| ☑️ `lua.setField()` |
 | `lua_setglobal`| ☑️ `lua.setGlobal()` |
 | `lua_setmetatable`| ☑️ `lua.setMetatable()` |

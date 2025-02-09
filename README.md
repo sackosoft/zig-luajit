@@ -93,19 +93,16 @@ you.
 
 This section describes the current status of Zig language bindings ("the Zig API").
 
-* ☑️ - Fully Supported
-    - This part of the C API is **fully supported** in Zig.
-    - Runtime safety checks are enabled in `Debug` or `ReleaseSafe` builds and Zig tests cover the expected behaviors.
-* 🆖 - Warning: Superceeded
-    - This part of the C API has no Zig equivalent. The functionality is **fully supported** and provided by by a
-      different part of the Zig API.
+* ☑️ Fully Supported: Test coverage and runtime safety checks enabled in `Debug` or `ReleaseSafe` builds.
+* ➖ Internal: Used internally and intentionally hidden from the Zig API.
+* 🆖 Superseded: Has no direct Zig equivalent, but the functionality is provided by a different part of the Zig API.
 * 📢 Renamed: Renamed in a non-obvious way from the C API. Renaming is avoided but done in cases deemed required:
     1. to conform to Zig idioms or patterns, such as the `init()` / `deinit()` pattern.
     1. to avoid conflicts with Zig language keywords, such as the Zig `error` keyword.
     1. to show that the Zig API has slightly different behavior than the C API, such as using `lua.setAllocator()`
        instead of `lua.setAllocF()`; since the Zig API uses `std.mem.Allocator` instead of allocation functions.
     1. to improve the clarity, discoverability or consistency of the symbol in the overall API surface.
-* ➖ Internal: Used internally and intentionally hidden from the Zig API.
+
 
 ### Core C API Coverage (`lua_`)
 

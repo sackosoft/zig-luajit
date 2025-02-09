@@ -30,7 +30,7 @@ The `main` branch targets Zig's `master` (nightly) deployment (currently `0.14.0
 It is recommended that you install `zig-luajit` using `zig fetch`. This will add a `ziglua` dependency to your `build.zig.zon` file.
 
 ```bash
-zig fetch --save=luajit_build git+https://github.com/sackosoft/zig-luajit
+zig fetch --save=luajit git+https://github.com/sackosoft/zig-luajit
 ```
 
 Next, in order for your code to import `zig-luajit`, you'll need to update your `build.zig` to do the following:

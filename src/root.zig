@@ -1504,8 +1504,8 @@ pub const Lua = opaque {
     /// From: `int luaL_dostring(lua_State *L, const char *str);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dostring
     /// Stack Behavior: `[-0, +?, m]`
-    pub fn doString(lua: *Lua, str: [*:0]const u8) DoStringError!void {
-        const res = c.luaL_loadstring(asState(lua), str);
+    pub fn doString(lua: *Lua, str: []const u8) DoStringError!void {
+        const res = c.luaL_loadbuffer(asState(lua), @ptrCast(str.ptr), str.len, "loaded_by_doString");
         assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
 
         const s: Lua.Status = @enumFromInt(res);

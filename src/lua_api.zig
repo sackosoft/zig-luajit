@@ -54,22 +54,6 @@ pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]co
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Reader
 pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]const u8;
 
-/// Removes the element at the given valid index, shifting down the elements above this index to fill the gap.
-/// Cannot be called with a pseudo-index, because a pseudo-index is not an actual stack position.
-///
-/// From: `void lua_remove(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_remove
-/// Stack Behavior: `[-1, +0, -]`
-pub fn remove(lua: *Lua, index: i32) void;
-
-/// Moves the top element into the given position (and pops it), without shifting any element
-/// (therefore replacing the value at the given position).
-///
-/// From: `void lua_replace(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_replace
-/// Stack Behavior: `[-1, +0, -]`
-pub fn replace(lua: *Lua, index: i32) void;
-
 /// Starts and resumes a coroutine in a given thread. To start a coroutine, you first create a new thread
 /// (see https://www.lua.org/manual/5.1/manual.html#lua_newthread); then you push onto its stack the main function 
 /// plus any arguments; then you call lua_resume, with narg being the number of arguments. 

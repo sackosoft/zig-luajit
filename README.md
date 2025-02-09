@@ -85,7 +85,7 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 82% available (76/92) |
+| Lua C API (`lua_*`) | 84% available (78/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -180,8 +180,8 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_rawgeti`| ☑️📢 `lua.getTableIndexRaw()` |
 | `lua_rawseti`| ☑️📢 `lua.setTableIndexRaw()` |
 | `lua_register`| ☑️ `lua.register()` |
-| `lua_remove`||
-| `lua_replace`||
+| `lua_remove`| ☑️ `lua.remove()` |
+| `lua_replace`| ☑️ `lua.replace()` |
 | `lua_resume`||
 | `lua_setallocf`| ☑️📢 `lua.setAllocator()` |
 | `lua_setfenv`||

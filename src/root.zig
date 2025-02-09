@@ -1110,6 +1110,7 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-n, +0, -]`
     pub fn pop(lua: *Lua, n: i32) void {
         assert(n >= 0);
+        assert(n <= lua.getTop());
 
         return c.lua_pop(asState(lua), n);
     }
@@ -1147,6 +1148,30 @@ pub const Lua = opaque {
         lua.validateStackIndex(index);
 
         return c.lua_insert(asState(lua), index);
+    }
+
+    /// Removes the element at the given valid index, shifting down the elements above this index to fill the gap.
+    /// Cannot be called with a pseudo-index, because a pseudo-index is not an actual stack position.
+    ///
+    /// From: `void lua_remove(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_remove
+    /// Stack Behavior: `[-1, +0, -]`
+    pub fn remove(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+
+        return c.lua_remove(asState(lua), index);
+    }
+
+    /// Moves the top element into the given position (and pops it), without shifting any element
+    /// (therefore replacing the value at the given position).
+    ///
+    /// From: `void lua_replace(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_replace
+    /// Stack Behavior: `[-1, +0, -]`
+    pub fn replace(lua: *Lua, index: i32) void {
+        lua.validateStackIndex(index);
+
+        return c.lua_replace(asState(lua), index);
     }
 
     /// Sets the `CFunction` `f` as the new value of global `name`.
@@ -1891,7 +1916,7 @@ test "toNumber and toNumberStrict" {
     lua.pop(1);
 }
 
-test {
+test "insert on the stack" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -1901,6 +1926,28 @@ test {
     try std.testing.expect(lua.isBoolean(1) and lua.isBoolean(-2));
     try std.testing.expect(lua.isNumber(2) and lua.isNumber(-1));
     lua.pop(2);
+}
+
+test "remove item from the stack" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    lua.pushBoolean(true);
+    lua.remove(-2);
+    try std.testing.expect(lua.isBoolean(1) and lua.isBoolean(-1));
+    lua.pop(1);
+}
+
+test "replace item on the stack" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    lua.pushBoolean(true);
+    lua.replace(-2);
+    try std.testing.expect(lua.isBoolean(1) and lua.isBoolean(-1));
+    lua.pop(1);
 }
 
 test "zero terminated strings" {

@@ -85,7 +85,7 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 76% available (70/92) |
+| Lua C API (`lua_*`) | 77% available (71/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -147,7 +147,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_load`||
 | `lua_newstate`| ☑️📢 `Lua.init()` |
 | `lua_newtable`| ☑️ `lua.newTable()` |
-| `lua_newthread`||
+| `lua_newthread`| ☑️ `lua.newThread()` |
 | `lua_newuserdata`||
 | `lua_next`| ☑️ `lua.next()` |
 | `lua_objlen`| ☑️📢 `lua.lengthOf()` |
@@ -275,3 +275,14 @@ function or macro in the C API.
 | `lua.openJITLib()`              | Opens the `JIT` LuaJIT standard library. |
 | `lua.openFFILib()`              | Opens the `FFI` LuaJIT standard library. |
 | `lua.openStringBufferLib()`     | Opens the `StringBuffer` LuaJIT standard library. |
+
+
+## Licensing
+
+The `zig-luajit` Zig languge bindings are distributed under the terms of the AGPL-3.0 License. The terms of this
+license can be found in the [LICENSE](./LICENSE) file.
+
+This project depends on source code and other artifacts from third parties. Information about their respective licenses
+can be found in the [COPYRIGHT](./COPYRIGHT) file.
+* [The LuaJIT Project](https://luajit.org/)
+* [Lua](https://www.lua.org/)

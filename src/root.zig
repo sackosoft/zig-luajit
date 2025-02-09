@@ -654,6 +654,18 @@ pub const Lua = opaque {
         return c.lua_pushcclosure(asState(lua), @ptrCast(f), 0);
     }
 
+    /// Converts a value at the given acceptable index to a C function. If the value at the given index is
+    /// not a function then `null` will be returned instead.
+    ///
+    /// From: `lua_CFunction lua_tocfunction(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tocfunction
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn toCFunction(lua: *Lua, index: i32) ?Lua.CFunction {
+        lua.validateStackIndex(index);
+
+        return @ptrCast(c.lua_tocfunction(asState(lua), index));
+    }
+
     /// Pushes a new C closure onto the stack. When a C function is created, it is possible to associate
     /// some values with it, thus creating a C closure (see https://www.lua.org/manual/5.1/manual.html#3.4);
     /// these values are then accessible to the function whenever it is called. To associate values with
@@ -2869,4 +2881,40 @@ test "setEnvironment and getEnvironment should work for userdata" {
     try std.testing.expect(lua.equal(-1, -2));
     try std.testing.expectEqual(4, lua.getTop());
     lua.pop(4);
+}
+
+test "toCFunction should return null for non-cfunction types" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    try std.testing.expect(lua.toCFunction(-1) == null);
+    lua.pop(1);
+
+    lua.pushNil();
+    try std.testing.expect(lua.toCFunction(-1) == null);
+    lua.pop(1);
+
+    lua.pushBoolean(false);
+    try std.testing.expect(lua.toCFunction(-1) == null);
+    lua.pop(1);
+
+    lua.pushLString("ASDF");
+    try std.testing.expect(lua.toCFunction(-1) == null);
+    lua.pop(1);
+
+    lua.newTable();
+    try std.testing.expect(lua.toCFunction(-1) == null);
+    lua.pop(1);
+}
+
+test "toCFunction should return expected function" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushCFunction(registeredFn);
+    const actual = lua.toCFunction(-1);
+    try std.testing.expect(actual != null);
+    try std.testing.expectEqual(registeredFn, actual);
+    lua.pop(1);
 }

@@ -62,14 +62,6 @@ pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]con
 /// Stack Behavior: `[-?, +?, -]`
 pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 
-/// Converts a value at the given acceptable index to a C function. 
-/// That value must be a C function; otherwise, returns null.
-///
-/// From: `lua_CFunction lua_tocfunction(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tocfunction
-/// Stack Behavior: `[-0, +0, -]`
-pub fn toCFunction(lua: *Lua, index: i32) ?*const fn(*Lua) i32;
-
 
 /// Converts the value at the given acceptable index to a generic pointer. The value can be a userdata,
 /// a table, a thread, or a function; otherwise, returns null. Different objects will give different pointers.

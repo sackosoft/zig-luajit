@@ -85,7 +85,7 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 86% available (80/92) |
+| Lua C API (`lua_*`) | 87% available (81/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -191,7 +191,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_settop`| ☑️ `lua.setTop()` |
 | `lua_status`| ☑️ `lua.status()` |
 | `lua_toboolean`| ☑️ `lua.toBoolean()`|
-| `lua_tocfunction`||
+| `lua_tocfunction`| ☑️ `lua.toCFunction()`|
 | `lua_tointeger`| ☑️ `lua.toInteger()`|
 | `lua_tolstring`| ☑️ `lua.toLString()`|
 | `lua_tonumber`| ☑️ `lua.toNumber()`|

@@ -85,26 +85,34 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 80% available (74/92) |
+| Lua C API (`lua_*`) | 81% available (75/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
-## C API Coverage (`lua_`)
+## Coverage and Compatibility
 
-Icons:
+This section describes the current status of Zig language bindings ("the Zig API").
 
-- ☑️ indicates full Zig support with appropriate runtime safety checks in non-release builds.
-- 📢 indicates symbols that were renamed in a non-obvious way, such as `lua_objlen` becoming `lua.lengthOf`, or cases where the usage
-pattern has changed, such as using the Zig `init()` function pattern instead of using `lua_newstate()` directly.
-- ➖ indicates a symbol that is supported internally, but not available in the public API surface.
-- 🆖 indicates a symbol that is intentionally not supported. This is usually the case when the functionality
-  is specific to the C API and has no Zig counterpart, or the functionality is provided by a different part
-  of the Zig interface.
+* ☑️ - Fully Supported
+    - This part of the C API is **fully supported** in Zig.
+    - Runtime safety checks are enabled in `Debug` or `ReleaseSafe` builds and Zig tests cover the expected behaviors.
+* 🆖 - Warning: Superceeded
+    - This part of the C API has no Zig equivalent. The functionality is **fully supported** and provided by by a
+      different part of the Zig API.
+* 📢 Renamed: Renamed in a non-obvious way from the C API. Renaming is avoided but done in cases deemed required:
+    1. to conform to Zig idioms or patterns, such as the `init()` / `deinit()` pattern.
+    1. to avoid conflicts with Zig language keywords, such as the Zig `error` keyword.
+    1. to show that the Zig API has slightly different behavior than the C API, such as using `lua.setAllocator()`
+       instead of `lua.setAllocF()`; since the Zig API uses `std.mem.Allocator` instead of allocation functions.
+    1. to improve the clarity, discoverability or consistency of the symbol in the overall API surface.
+* ➖ Internal: Used internally and intentionally hidden from the Zig API.
+
+### Core C API Coverage (`lua_`)
 
 | C Type Definition | Available in `zig-luajit` |
 |--------------|---------------------------|
 | `lua_State`| ☑️ `Lua` |
-| `lua_Alloc`| ➖ `allocator_adapter.AllocFn` <br> Obsolete, use `lua.setAllocator()` and `lua.getAllocator()`|
+| `lua_Alloc`| ➖ Hidden, please use `std.mem.Allocator` with `lua.setAllocator()` and `lua.getAllocator()` |
 | `lua_CFunction`| ☑️ `lua.CFunction` |
 | `lua_Integer`| ☑️ `Lua.Integer` |
 | `lua_Number`| ☑️ `Lua.Number` |
@@ -159,14 +167,14 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_pushfstring`| ☑️ `lua.pushFString()` |
 | `lua_pushinteger`| ☑️ `lua.pushInteger()`|
 | `lua_pushlightuserdata`| ☑️ `lua.pushLightUserdata()`|
-| `lua_pushliteral`| 🆖 use `lua.pushLString()` |
+| `lua_pushliteral`| 🆖 please use `lua.pushLString()` |
 | `lua_pushlstring`| ☑️ `lua.pushLString()` |
 | `lua_pushnil`| ☑️ `lua.pushNil()`|
 | `lua_pushnumber`| ☑️ `lua.pushNumber()` |
 | `lua_pushstring`| ☑️ `lua.pushString()` |
 | `lua_pushthread`||
 | `lua_pushvalue`| ☑️ `lua.pushValue()` |
-| `lua_pushvfstring`||
+| `lua_pushvfstring`| 🆖 please use `lua.pushFString()` |
 | `lua_gettable`| ☑️ `lua.getTable()` |
 | `lua_rawequal`| ☑️📢 `lua.equalRaw()` |
 | `lua_settable`| ☑️ `lua.setTable()` |
@@ -199,8 +207,10 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_xmove`||
 | `lua_yield`||
 
+The `zig-luajit` project has not yet reached the 1.0 release, the API is subject to change without notice.
 
-## Auxilary Library (`luaL_`)
+
+### Auxilary Library Coverage (`luaL_`)
 
 | C API Symbol | Available in `zig-luajit` |
 |--------------|---------------------------|

@@ -46,7 +46,7 @@ pub const Lua = opaque {
     pub fn init(alloc: std.mem.Allocator) error{OutOfMemory}!*Lua {
         // alloc could be stack-allocated by the caller, but Lua requires a stable address.
         // We will create a pinned copy of the allocator on the heap.
-        const ud = try alloc.create(aa.UserData);
+        const ud = try alloc.create(aa.AllocationUserdata);
         errdefer alloc.destroy(ud);
         ud.alloc = alloc;
 
@@ -78,28 +78,50 @@ pub const Lua = opaque {
         return @ptrCast(c.lua_atpanic(asState(lua), @ptrCast(f)));
     }
 
-    /// Returns the memory-allocation function and user data configured in the given lua instance.
-    /// If userdata is not null, Lua internally saves the user data pointer passed to `lua_newstate`.
+    /// Returns the Zig allocator currently being used by the lua instance.
+    ///
+    /// Note: This function has been renamed to represent the correct Zig idioms. Callers do not have control over
+    /// the allocation function itself, they control the `std.mem.Allocator` instance that Lua uses.
     ///
     /// From: `lua_Alloc lua_getallocf(lua_State *L, void **ud);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getallocf
     /// Stack Behavior: `[-0, +0, -]`
-    fn getAllocF(lua: *Lua) aa.AdapterData {
-        var ad: aa.AdapterData = undefined;
-        const alloc_fn = c.lua_getallocf(@ptrCast(lua), @ptrCast(&ad.userdata));
-        ad.alloc_fn = @ptrCast(alloc_fn);
-        return ad;
+    pub fn getAllocator(lua: *Lua) std.mem.Allocator {
+        const ud: *aa.AllocationUserdata = lua.getAllocationUserdata();
+        return ud.alloc;
     }
 
-    /// Changes the allocator function of the lua instance.
-    /// Changing the user data is currently prohibited. User data specified in the input will be ignored.
+    /// Changes the allocator used internally by the lua instance.
+    ///
+    /// Note: This function has been renamed to represent the correct Zig idioms. Callers do not have control over
+    /// the allocation function itself, they control the `std.mem.Allocator` instance that Lua uses.
     ///
     /// From: `void lua_setallocf(lua_State *L, lua_Alloc f, void *ud);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setallocf
     /// Stack Behavior: `[-0, +0, -]`
-    fn setAllocF(lua: *Lua, f: *const aa.AllocFn) void {
-        const current = lua.getAllocF();
-        c.lua_setallocf(asState(lua), f, current.userdata);
+    pub fn setAllocator(lua: *Lua, alloc: std.mem.Allocator) void {
+        var ud: *aa.AllocationUserdata = lua.getAllocationUserdata();
+        ud.alloc = alloc;
+    }
+
+    fn getAllocationUserdata(lua: *Lua) *aa.AllocationUserdata {
+        var ud: *aa.AllocationUserdata = undefined;
+        const allocf = c.lua_getallocf(@ptrCast(lua), @ptrCast(&ud));
+
+        // The Lua C API provides callers the ability to redefine both a function that performs memory allocation
+        // AND a caller defined context ("userdata"); however, the idiomatic Zig memory allocation pattern is
+        // captured by the `std.mem.Allocator` pattern.
+        //
+        // We've defined an adapater function which allows Lua to perform allocations within a `std.mem.Allocator`
+        // instance, and as a result, we never want the allocation function inside the Lua instance to change.
+        // My current expectation is that the allocation function changing indicates a defect being introduced.
+        // Instead, all customizations to allocation behavior should be handled by passing in new `std.mem.Allocator`
+        // instances. Whenever we touch that area of Lua, we are going to call this function in debug and safe builds
+        // to check that the invariant holds true.
+        assert(allocf != null);
+        assert(allocf == aa.alloc); // Invariant Violated: The allocator function registered in lua has changed from the default. The author currently believes this function should never change under any circumstances.
+
+        return ud;
     }
 
     /// Closes the Lua state and frees all resources.
@@ -114,13 +136,9 @@ pub const Lua = opaque {
     /// From: `void lua_close(lua_State *L);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_close
     pub fn deinit(lua: *Lua) void {
-        const ad = lua.getAllocF();
-
+        var ud: *aa.AllocationUserdata = lua.getAllocationUserdata();
         c.lua_close(@ptrCast(lua));
-
-        if (ad.userdata) |ud| {
-            ud.alloc.destroy(ud);
-        }
+        ud.alloc.destroy(ud);
     }
 
     /// Ensures that there are at least `extra` free stack slots in the stack by allocating additional slots. Returns
@@ -651,6 +669,32 @@ pub const Lua = opaque {
         return c.lua_pushcclosure(asState(lua), @ptrCast(f), @as(i32, @intCast(n)));
     }
 
+    /// Allocates a new block of memory with the given size, pushes onto the stack a new full userdata containing the
+    /// address of the allocated block, and returns this address. The type `Userdata` is provided to allow arbitrary
+    /// native application data to be stored in Lua variables. This type corresponds to a block of raw memory and has
+    /// no pre-defined operations in Lua, except assignment and identity test.
+    ///
+    /// Using metatables, callers may define operations for userdata values (see https://www.lua.org/manual/5.1/manual.html#2.8).
+    /// Userdata values cannot be created or modified in Lua, only through this native API. This guarantees the integrity of data
+    /// owned by the native application.
+    ///
+    /// When Lua collects a full userdata with a `gc` metamethod, Lua calls the metamethod and marks the userdata as
+    /// finalized. When this userdata is collected again then Lua frees its corresponding memory.
+    ///
+    /// From: `void *lua_newuserdata(lua_State *L, size_t size);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newuserdata
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn newUserdata(lua: *Lua, size: usize) []u8 {
+        const addr: ?[*]u8 = @ptrCast(c.lua_newuserdata(asState(lua), size));
+
+        // I read through the LuaJIT code and I can't see any way that a `NULL` gets returned. The only error
+        // condition I can find is memory alloction failure -- but that will go through the panic route.
+        // Until proven otherwise, we will assume the pointer is non-null and check this assumption in Debug and
+        // ReleaseSafe builds.
+        assert(addr != null);
+        return addr.?[0..size];
+    }
+
     /// Pushes a light userdata onto the stack. Userdata represent C values in Lua. A light userdata
     /// represents a pointer. It is a value (like a number): you do not create it, it has no individual
     /// metatable, and it is not collected (as it was never created). A light userdata is equal to "any"
@@ -659,7 +703,7 @@ pub const Lua = opaque {
     /// From: `void lua_pushlightuserdata(lua_State *L, void *p);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushlightuserdata
     /// Stack Behavior: `[-0, +1, -]`
-    pub fn pushLightUserdata(lua: *Lua, p: *anyopaque) void {
+    pub fn pushLightUserdata(lua: *Lua, p: ?*anyopaque) void {
         return c.lua_pushlightuserdata(asState(lua), p);
     }
 
@@ -1013,6 +1057,37 @@ pub const Lua = opaque {
 
         const res = c.lua_setmetatable(asState(lua), index);
         assert(1 == res);
+    }
+
+    /// Creates a new execution context within the given Lua instance, pushes it on the stack, and returns a `*Lua` pointer
+    /// that represents this new thread. Do not confuse Lua threads with operating-system threads. Lua supports coroutines
+    /// on all systems, even those that do not support threads.
+    ///
+    /// The created thread:
+    /// * represents an independent thread of execution and is used to implement coroutines.
+    /// * is not an operating system thread.
+    /// * shares the enviornment of the creating thread.
+    ///
+    /// For information on Lua threads, refer to
+    /// * [Lua Manual 2.2 - Values and Types](https://www.lua.org/manual/5.1/manual.html#2.2)
+    /// * [Lua Manual 2.9 - Environments](https://www.lua.org/manual/5.1/manual.html#2.9)
+    /// * [Lua Manual 2.11 - Coroutines](https://www.lua.org/manual/5.1/manual.html#2.11)
+    ///
+    /// Threads are subject to garbage collection, like any other Lua value. There is no function to close or destroy a
+    /// thread. To dispose, pop the thread from the stack and it will eventually be collected.
+    ///
+    /// From: `lua_State *lua_newthread(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newthread
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn newThread(lua: *Lua) *Lua {
+        const thread: ?*Lua = @ptrCast(c.lua_newthread(asState(lua)));
+
+        // I read through the LuaJIT code and I can't see any way that a `NULL` gets returned. The only error
+        // condition I can find is memory alloction failure -- but that will go through the panic route.
+        // Until proven otherwise, we will assume the pointer is non-null and check this assumption in Debug and ReleaseSafe builds.
+        assert(thread != null);
+        assert(lua != thread.?);
+        return thread.?;
     }
 
     /// Pops `n` elements from the stack.
@@ -1889,11 +1964,50 @@ test "checkStack should return StackOverflow when requested space is too large" 
     try std.testing.expectError(error.StackOverflow, lua.checkStack(9000));
 }
 
+const FailingAllocator = struct {
+    fn allocator(self: *@This()) std.mem.Allocator {
+        return .{
+            .ptr = self,
+            .vtable = &.{
+                .alloc = alloc,
+                .resize = resize,
+                .free = free,
+            },
+        };
+    }
+
+    fn alloc(ctx: *anyopaque, len: usize, ptr_align: u8, ret_addr: usize) ?[*]u8 {
+        _ = ctx;
+        _ = len;
+        _ = ptr_align;
+        _ = ret_addr;
+        return null;
+    }
+
+    fn resize(ctx: *anyopaque, buf: []u8, buf_align: u8, new_len: usize, ret_addr: usize) bool {
+        _ = ctx;
+        _ = buf;
+        _ = buf_align;
+        _ = new_len;
+        _ = ret_addr;
+        return false;
+    }
+
+    fn free(ctx: *anyopaque, buf: []u8, buf_align: u8, ret_addr: usize) void {
+        _ = ctx;
+        _ = buf;
+        _ = buf_align;
+        _ = ret_addr;
+    }
+};
+
 test "checkStack should return OOM when allocation fails." {
+    var fa: FailingAllocator = .{};
+
     const lua = try Lua.init(std.testing.allocator);
-    lua.setAllocF(aa.fail_alloc);
+    lua.setAllocator(fa.allocator());
     defer {
-        lua.setAllocF(aa.alloc);
+        lua.setAllocator(std.testing.allocator);
         lua.deinit();
     }
 
@@ -1917,14 +2031,14 @@ test "status should be ok after ok executions" {
 }
 
 test "status should reflect appropriate states of the Lua machine after failures" {
+    var fa: FailingAllocator = .{};
     const lua = try Lua.init(std.testing.allocator);
-    lua.setAllocF(aa.fail_alloc);
+    lua.setAllocator(fa.allocator());
     defer {
-        lua.setAllocF(aa.alloc);
+        lua.setAllocator(std.testing.allocator);
         lua.deinit();
     }
 
-    lua.setAllocF(aa.fail_alloc);
     const actual = lua.doString(
         \\ return {}
     );
@@ -2503,3 +2617,49 @@ test "registering named functions" {
     try std.testing.expect(lua.isInteger(-1));
     try std.testing.expectEqual(1, lua.toIntegerStrict(-1));
 }
+
+test "threads should share global state and not share local state" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openBaseLib();
+
+    lua.pushInteger(42);
+    lua.setGlobal("test_global");
+
+    const thread = lua.newThread();
+    try std.testing.expect(lua != thread);
+    try thread.doString("assert(test_global == 42)");
+
+    lua.pushInteger(70);
+    thread.pushInteger(100);
+
+    try std.testing.expectEqual(70, try lua.toIntegerStrict(-1));
+    try std.testing.expectEqual(100, try thread.toIntegerStrict(-1));
+}
+
+// const PredictableAllocator = struct {
+//     a: std.mem.Allocator,
+//
+//     fn init(alloc: std.mem.Allocator) !PredictableAllocator {
+//         return .{
+//             .a = alloc,
+//         };
+//     }
+//
+//     fn alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) callconv(.C) ?*align(max) anyopaque {
+//     }
+// };
+//
+// test "newUserdata should create expected memory" {
+//     var buf: [4096]u8 = undefined;
+//     const fba = std.heap.FixedBufferAllocator.init(&buf);
+//     const predictable_alloc = PredictableAllocator.init(fba.allocator());
+//
+//     const lua = try Lua.init(std.testing.allocator);
+//     lua.setAllocF(predictable_alloc.alloc);
+//     defer {
+//         lua.setAllocF(std.testing.allocator);
+//         lua.deinit();
+//     }
+// }

@@ -5,7 +5,7 @@ const std = @import("std");
 
 const max = @alignOf(std.c.max_align_t);
 
-pub const UserData = struct {
+pub const AllocationUserdata = struct {
     alloc: std.mem.Allocator,
 };
 
@@ -15,11 +15,6 @@ pub const AllocFn = fn (
     osize: usize,
     nsize: usize,
 ) callconv(.C) ?*align(max) anyopaque;
-
-pub const AdapterData = struct {
-    userdata: ?*UserData,
-    alloc_fn: ?*const AllocFn,
-};
 
 /// Memory allocation function used by Lua instances. This functino acts as an adaptor from the C API to the
 /// idiomatic Zig `std.mem.Allocator` type. The implementation provides functionality similar to realloc.
@@ -44,7 +39,7 @@ pub const AdapterData = struct {
 pub fn alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) callconv(.C) ?*align(max) anyopaque {
     std.debug.assert(ud != null);
 
-    const user_data: *UserData = @ptrCast(@alignCast(ud.?));
+    const user_data: *AllocationUserdata = @ptrCast(@alignCast(ud.?));
     const allocator: std.mem.Allocator = user_data.alloc;
     const aligned_ptr = @as(?[*]align(max) u8, @ptrCast(@alignCast(ptr)));
     if (aligned_ptr) |p| {
@@ -59,12 +54,4 @@ pub fn alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) call
         // Malloc case
         return (allocator.alignedAlloc(u8, max, nsize) catch return null).ptr;
     }
-}
-
-pub fn fail_alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) callconv(.C) ?*align(max) anyopaque {
-    _ = ud;
-    _ = ptr;
-    _ = osize;
-    _ = nsize;
-    return null;
 }

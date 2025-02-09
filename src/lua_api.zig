@@ -43,28 +43,6 @@ pub const Integer = isize;
 /// Stack Behavior: `[-0, +1, -]`
 pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]const u8) lua.Status;
 
-/// Creates a new thread, pushes it on the stack, and returns a pointer to a Lua state that represents this new thread.
-/// The new state shares all global objects (such as tables) with the original state, but has an independent execution stack.
-/// Threads are subject to garbage collection, like any Lua object.
-///
-/// From: `lua_State *lua_newthread(lua_State *L);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newthread
-/// Stack Behavior: `[-0, +1, m]`
-pub fn newThread(lua: *Lua) *Lua;
-
-/// Allocates a new block of memory with the given size, pushes onto the stack a new full userdata with the block
-/// address, and returns this address. Userdata represent C values in Lua. A full userdata represents a block of
-/// memory. It is an object (like a table): you must create it, it can have its own metatable, and you can detect
-/// when it is being collected. A full userdata is only equal to itself (under raw equality).
-///
-/// When Lua collects a full userdata with a `gc` metamethod, Lua calls the metamethod and marks the userdata as
-/// finalized. When this userdata is collected again then Lua frees its corresponding memory.
-///
-/// From: `void *lua_newuserdata(lua_State *L, size_t size);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newuserdata
-/// Stack Behavior: `[-0, +1, m]`
-pub fn newUserdata(lua: *Lua, size: usize) *anyopaque;
-
 
 
 /// The type of numbers in Lua. By default, this is a double-precision floating point number,

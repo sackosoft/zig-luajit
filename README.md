@@ -85,7 +85,7 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 77% available (71/92) |
+| Lua C API (`lua_*`) | 80% available (74/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -104,7 +104,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | C Type Definition | Available in `zig-luajit` |
 |--------------|---------------------------|
 | `lua_State`| ☑️ `Lua` |
-| `lua_Alloc`| ➖ `allocator_adapter.AllocFn` |
+| `lua_Alloc`| ➖ `allocator_adapter.AllocFn` <br> Obsolete, use `lua.setAllocator()` and `lua.getAllocator()`|
 | `lua_CFunction`| ☑️ `lua.CFunction` |
 | `lua_Integer`| ☑️ `Lua.Integer` |
 | `lua_Number`| ☑️ `Lua.Number` |
@@ -124,7 +124,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_equal`| ☑️ `lua.equal()` |
 | `lua_error`| ☑️📢 `lua.raiseError()` |
 | `lua_gc`| ☑️ `lua.gc()` + `lua.gcIsRunning()` |
-| `lua_getallocf`| ➖ `lua.getAllocF()` |
+| `lua_getallocf`| ☑️📢 `lua.getAllocator()` |
 | `lua_getfenv`||
 | `lua_getfield`| ☑️ `lua.getField()` |
 | `lua_getglobal`| ☑️ `lua.getGlobal()` |
@@ -148,7 +148,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_newstate`| ☑️📢 `Lua.init()` |
 | `lua_newtable`| ☑️ `lua.newTable()` |
 | `lua_newthread`| ☑️ `lua.newThread()` |
-| `lua_newuserdata`||
+| `lua_newuserdata`| ☑️ `lua.newUserdata()` |
 | `lua_next`| ☑️ `lua.next()` |
 | `lua_objlen`| ☑️📢 `lua.lengthOf()` |
 | `lua_pcall`| ☑️📢 `lua.protectedCall()` |
@@ -178,7 +178,7 @@ pattern has changed, such as using the Zig `init()` function pattern instead of 
 | `lua_remove`||
 | `lua_replace`||
 | `lua_resume`||
-| `lua_setallocf`|➖ `lua.setAllocF()`|
+| `lua_setallocf`| ☑️📢 `lua.setAllocator()` |
 | `lua_setfenv`||
 | `lua_setfield`| ☑️ `lua.setField()` |
 | `lua_setglobal`| ☑️ `lua.setGlobal()` |

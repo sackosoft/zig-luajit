@@ -74,6 +74,12 @@ lua.doString(
 );
 ```
 
+## Examples
+
+Some examples are provided in [examples/](./examples/) to aid users in learning to use `zig-luajit`. These
+small self-contained applications should always be working, please create an issue if they do not work for
+you.
+
 
 ## Language Binding Coverage Progress
 

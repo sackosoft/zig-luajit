@@ -283,6 +283,6 @@ The `zig-luajit` Zig languge bindings are distributed under the terms of the AGP
 license can be found in the [LICENSE](./LICENSE) file.
 
 This project depends on source code and other artifacts from third parties. Information about their respective licenses
-can be found in the [COPYRIGHT](./COPYRIGHT) file.
+can be found in the [COPYRIGHT](./COPYRIGHT.md) file.
 * [The LuaJIT Project](https://luajit.org/)
 * [Lua](https://www.lua.org/)

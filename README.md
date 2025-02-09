@@ -109,7 +109,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | C Type Definition | Available in `zig-luajit` |
 |--------------|---------------------------|
 | `lua_State`| ☑️ `Lua` |
-| `lua_Alloc`| ➖ Hidden, please use `std.mem.Allocator` with `lua.setAllocator()` and `lua.getAllocator()` |
+| `lua_Alloc`| ➖ Hidden, please use `lua.setAllocator()` and `lua.getAllocator()` |
 | `lua_CFunction`| ☑️ `lua.CFunction` |
 | `lua_Integer`| ☑️ `Lua.Integer` |
 | `lua_Number`| ☑️ `Lua.Number` |

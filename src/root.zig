@@ -684,15 +684,15 @@ pub const Lua = opaque {
     /// From: `void *lua_newuserdata(lua_State *L, size_t size);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_newuserdata
     /// Stack Behavior: `[-0, +1, m]`
-    pub fn newUserdata(lua: *Lua, size: usize) []u8 {
-        const addr: ?[*]u8 = @ptrCast(c.lua_newuserdata(asState(lua), size));
+    pub fn newUserdata(lua: *Lua, size: usize) *anyopaque {
+        const addr: ?*anyopaque = @ptrCast(c.lua_newuserdata(asState(lua), size));
 
         // I read through the LuaJIT code and I can't see any way that a `NULL` gets returned. The only error
         // condition I can find is memory alloction failure -- but that will go through the panic route.
         // Until proven otherwise, we will assume the pointer is non-null and check this assumption in Debug and
         // ReleaseSafe builds.
         assert(addr != null);
-        return addr.?[0..size];
+        return addr.?;
     }
 
     /// Pushes a light userdata onto the stack. Userdata represent C values in Lua. A light userdata
@@ -2638,28 +2638,13 @@ test "threads should share global state and not share local state" {
     try std.testing.expectEqual(100, try thread.toIntegerStrict(-1));
 }
 
-// const PredictableAllocator = struct {
-//     a: std.mem.Allocator,
-//
-//     fn init(alloc: std.mem.Allocator) !PredictableAllocator {
-//         return .{
-//             .a = alloc,
-//         };
-//     }
-//
-//     fn alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) callconv(.C) ?*align(max) anyopaque {
-//     }
-// };
-//
-// test "newUserdata should create expected memory" {
-//     var buf: [4096]u8 = undefined;
-//     const fba = std.heap.FixedBufferAllocator.init(&buf);
-//     const predictable_alloc = PredictableAllocator.init(fba.allocator());
-//
-//     const lua = try Lua.init(std.testing.allocator);
-//     lua.setAllocF(predictable_alloc.alloc);
-//     defer {
-//         lua.setAllocF(std.testing.allocator);
-//         lua.deinit();
-//     }
-// }
+test "newUserdata should create expected memory" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer {
+        lua.deinit();
+    }
+    const ud = lua.newUserdata(@sizeOf(u32));
+    const found = lua.toUserdata(-1);
+
+    try std.testing.expectEqual(ud, found);
+}

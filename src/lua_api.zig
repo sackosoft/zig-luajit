@@ -63,14 +63,6 @@ pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]con
 pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 
 
-/// Converts the value at the given acceptable index to a Lua thread. This value must be a thread;
-/// otherwise, the function returns null.
-///
-/// From: `lua_State *lua_tothread(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tothread
-/// Stack Behavior: `[-0, +0, -]`
-pub fn toThread(lua: *Lua, index: i32) ?*Lua;
-
 /// The type of the writer function used by lua_dump. Every time it produces another piece of chunk,
 /// lua_dump calls the writer, passing along the buffer to be written (p), its size (sz),
 /// and the data parameter supplied to lua_dump. The writer returns an error code:

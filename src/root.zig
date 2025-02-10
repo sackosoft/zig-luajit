@@ -1143,6 +1143,18 @@ pub const Lua = opaque {
         return 1 == c.lua_pushthread(asState(lua));
     }
 
+    /// Converts the value at the given acceptable index to a Lua thread. This value must be a thread;
+    /// otherwise, the function returns null.
+    ///
+    /// From: `lua_State *lua_tothread(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_tothread
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn toThread(lua: *Lua, index: i32) ?*Lua {
+        lua.validateStackIndex(index);
+
+        return @ptrCast(c.lua_tothread(asState(lua), index));
+    }
+
     /// Pops `n` elements from the stack.
     ///
     /// From: `void lua_pop(lua_State *L, int n);`
@@ -2774,6 +2786,40 @@ test "threads should share global state and not share local state" {
 
     try std.testing.expectEqual(70, try lua.toIntegerStrict(-1));
     try std.testing.expectEqual(100, try thread.toIntegerStrict(-1));
+}
+
+test "threads should have the identity property according to toThread()" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const t1 = lua.newThread();
+    const t2 = lua.newThread();
+    try std.testing.expect(t1 != t2);
+
+    const a1 = lua.toThread(-2);
+    try std.testing.expect(a1 != null);
+
+    const a2 = lua.toThread(-1);
+    try std.testing.expect(a2 != null);
+
+    try std.testing.expect(a1 != a2);
+}
+
+test "toThread() should return null for unsupported types" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    try std.testing.expect(lua.toThread(-1) == null);
+    lua.pop(1);
+
+    lua.pushNil();
+    try std.testing.expect(lua.toThread(-1) == null);
+    lua.pop(1);
+
+    lua.pushBoolean(false);
+    try std.testing.expect(lua.toThread(-1) == null);
+    lua.pop(1);
 }
 
 test "newUserdata should create expected memory" {

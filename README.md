@@ -85,7 +85,7 @@ you.
 
 | API | Support |
 |---|---|
-| Lua C API (`lua_*`) | 88% available (82/92) |
+| Lua C API (`lua_*`) | 89% available (83/92) |
 | Auxilary Library (`luaL_*`) | 6% available (3/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
@@ -197,7 +197,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_tonumber`| ☑️ `lua.toNumber()`|
 | `lua_topointer`| ☑️ `lua.toPointer()`|
 | `lua_tostring`| ☑️ `lua.toString()`|
-| `lua_tothread`||
+| `lua_tothread`| ☑️ `lua.toThread()`|
 | `lua_touserdata`| ☑️ `lua.toUserdata()`|
 | `lua_typename`| ☑️ `lua.typeName()`|
 | `lua_type`| ☑️📢 `lua.typeOf()` |

@@ -63,16 +63,6 @@ pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]con
 pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 
 
-/// Converts the value at the given acceptable index to a generic pointer. The value can be a userdata,
-/// a table, a thread, or a function; otherwise, returns null. Different objects will give different pointers.
-/// There is no way to convert the pointer back to its original value. Typically this function is used
-/// only for debug information.
-///
-/// From: `const void *lua_topointer(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_topointer
-/// Stack Behavior: `[-0, +0, -]`
-pub fn toPointer(lua: *Lua, index: i32) ?*anyopaque;
-
 /// Converts the value at the given acceptable index to a Lua thread. This value must be a thread;
 /// otherwise, the function returns null.
 ///

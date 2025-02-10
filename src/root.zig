@@ -720,7 +720,7 @@ pub const Lua = opaque {
     }
 
     /// If the value at the given acceptable index is a full userdata, returns its block address.
-    /// If the value is a light userdata, returns its pointer. Otherwise, returns null.
+    /// If the value is a light userdata, returns its pointer. Otherwise, returns `null`.
     ///
     /// From: `void *lua_touserdata(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_touserdata
@@ -729,6 +729,32 @@ pub const Lua = opaque {
         lua.validateStackIndex(index);
 
         return @ptrCast(c.lua_touserdata(asState(lua), index));
+    }
+
+    /// Returns a pointer to the reference type Lua value at the specified stack index. If the
+    /// type of the value at the specified index is not supported then `null` will be returned instead.
+    ///
+    /// Supported value types:
+    ///    - userdata (both full and light)
+    ///    - tables
+    ///    - threads
+    ///    - functions
+    ///
+    /// Some other behaviors that may not be obvious:
+    ///    - The returned pointer is only valid while the corresponding Lua object is alive.
+    ///    - Different objects will return different pointers.
+    ///    - There is no API support for these pointers. They cannot be converted back to their original
+    ///      Lua values, nor can they be used to update those values on the stack.
+    ///
+    /// The primary use case for this function is for debugging and object identity comparison.
+    ///
+    /// From: `const void *lua_topointer(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_topointer
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn toPointer(lua: *Lua, index: i32) ?*const anyopaque {
+        lua.validateStackIndex(index);
+
+        return @ptrCast(c.lua_topointer(asState(lua), index));
     }
 
     /// Pushes a copy of the element at the given valid index onto the stack.
@@ -2916,5 +2942,44 @@ test "toCFunction should return expected function" {
     const actual = lua.toCFunction(-1);
     try std.testing.expect(actual != null);
     try std.testing.expectEqual(registeredFn, actual);
+    lua.pop(1);
+}
+
+test "toPointer should return null for unsupported types" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushInteger(42);
+    try std.testing.expect(lua.toPointer(-1) == null);
+    lua.pop(1);
+
+    lua.pushNil();
+    try std.testing.expect(lua.toPointer(-1) == null);
+    lua.pop(1);
+
+    lua.pushBoolean(false);
+    try std.testing.expect(lua.toPointer(-1) == null);
+    lua.pop(1);
+}
+
+test "toPointer should return a non-null pointer for supported types" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushLString("ASDF");
+    try std.testing.expect(lua.toPointer(-1) != null);
+    lua.pop(1);
+
+    lua.newTable();
+    try std.testing.expect(lua.toPointer(-1) != null);
+    lua.pop(1);
+
+    lua.pushCFunction(registeredFn);
+    try std.testing.expect(lua.toPointer(-1) != null);
+    lua.pop(1);
+
+    const ud = lua.newUserdata(1);
+    try std.testing.expect(lua.toPointer(-1) != null);
+    try std.testing.expectEqual(ud, lua.toPointer(-1));
     lua.pop(1);
 }

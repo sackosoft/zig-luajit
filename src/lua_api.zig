@@ -72,14 +72,6 @@ pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Writer
 pub const Writer = *const fn (lua: *Lua, buffer: *const anyopaque, size: usize, userdata: *anyopaque) i32;
 
-/// Exchange values between different threads of the same global state. This function pops n values
-/// from the stack from, and pushes them onto the stack to.
-///
-/// From: `void lua_xmove(lua_State *from, lua_State *to, int n);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_xmove
-/// Stack Behavior: `[-?, +?, -]`
-pub fn xmove(from: *Lua, to: *Lua, n: i32) void;
-
 /// Yields a coroutine. This function should only be called as the return expression of a C function.
 /// When a C function calls lua_yield, the running coroutine suspends its execution, and the call 
 /// to lua_resume that started this coroutine returns. The parameter nresults is the number of 

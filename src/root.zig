@@ -1723,6 +1723,19 @@ pub const Lua = opaque {
         return lua.protectedCall(0, Lua.MultipleReturn, 0);
     }
 
+    /// Exchange values between different threads of the same global state. This function pops n values
+    /// from the stack from, and pushes them onto the stack to.
+    ///
+    /// From: `void lua_xmove(lua_State *from, lua_State *to, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_xmove
+    /// Stack Behavior: `[-?, +?, -]`
+    pub fn xmove(from: *Lua, to: *Lua, n: i32) void {
+        assert(n >= 0);
+        assert(n <= from.getTop());
+
+        return c.lua_xmove(asState(from), asState(to), n);
+    }
+
     /// Used by the `gc()` to control and query aspects of the garbage collector.
     pub const GcOpcode = enum(i32) {
         /// From `LUA_GC_STOP`: Stops the garbage collector.
@@ -3028,4 +3041,26 @@ test "toPointer should return a non-null pointer for supported types" {
     try std.testing.expect(lua.toPointer(-1) != null);
     try std.testing.expectEqual(ud, lua.toPointer(-1));
     lua.pop(1);
+}
+
+test "xmove should migrate values from one thread to another" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const t1 = lua.newThread();
+    const t2 = lua.newThread();
+
+    t1.pushInteger(42);
+    t2.pushInteger(42);
+    // Use method syntax
+    t1.xmove(t2, 1);
+
+    try std.testing.expectEqual(0, t1.getTop());
+    try std.testing.expectEqual(2, t2.getTop());
+    try std.testing.expect(t2.equal(-1, -2));
+
+    // Or use function syntax
+    Lua.xmove(t2, t1, 1);
+    try std.testing.expectEqual(1, t1.getTop());
+    try std.testing.expectEqual(1, t2.getTop());
 }

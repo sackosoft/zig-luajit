@@ -38,31 +38,6 @@ pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]co
 
 
 
-/// A reader function type used by `lua_load` for loading chunks of code. The function is called repeatedly
-/// to retrieve pieces of a chunk. It must return a pointer to a memory block with a new piece of the chunk
-/// and set the size parameter. To signal the end of the chunk, it must return null or set size to zero.
-/// The reader may return pieces of any size greater than zero.
-///
-/// From: `typedef const char * (*lua_Reader)(lua_State *L, void *data, size_t *size);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Reader
-pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]const u8;
-
-/// Starts and resumes a coroutine in a given thread. To start a coroutine, you first create a new thread
-/// (see https://www.lua.org/manual/5.1/manual.html#lua_newthread); then you push onto its stack the main function 
-/// plus any arguments; then you call lua_resume, with narg being the number of arguments. 
-///
-/// Returns LUA_YIELD if the coroutine yields, 0 if the coroutine finishes its execution without errors, 
-/// or an error code in case of errors. In case of errors, the stack is not unwound, so you can use the debug API over it. 
-/// The error message is on the top of the stack.
-///
-/// Note: This function was renamed from `resume` due to naming conflicts with Zig's `resume` keyword.
-///
-/// From: `int lua_resume(lua_State *L, int narg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_resume
-/// Stack Behavior: `[-?, +?, -]`
-pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
-
-
 /// The type of the writer function used by lua_dump. Every time it produces another piece of chunk,
 /// lua_dump calls the writer, passing along the buffer to be written (p), its size (sz),
 /// and the data parameter supplied to lua_dump. The writer returns an error code:
@@ -72,12 +47,11 @@ pub fn resumeCoroutine(lua: *Lua, narg: i32) i32;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Writer
 pub const Writer = *const fn (lua: *Lua, buffer: *const anyopaque, size: usize, userdata: *anyopaque) i32;
 
-/// Yields a coroutine. This function should only be called as the return expression of a C function.
-/// When a C function calls lua_yield, the running coroutine suspends its execution, and the call 
-/// to lua_resume that started this coroutine returns. The parameter nresults is the number of 
-/// values from the stack that are passed as results to lua_resume.
+/// A reader function type used by `lua_load` for loading chunks of code. The function is called repeatedly
+/// to retrieve pieces of a chunk. It must return a pointer to a memory block with a new piece of the chunk
+/// and set the size parameter. To signal the end of the chunk, it must return null or set size to zero.
+/// The reader may return pieces of any size greater than zero.
 ///
-/// From: `int lua_yield(lua_State *L, int nresults);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_yield
-/// Stack Behavior: `[-?, +?, -]`
-pub fn yield(lua: *Lua, nresults: i32) i32;
+/// From: `typedef const char * (*lua_Reader)(lua_State *L, void *data, size_t *size);`
+/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Reader
+pub const Reader = *const fn (lua: *Lua, data: *anyopaque, size: *usize) ?[*]const u8;

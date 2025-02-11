@@ -1788,6 +1788,44 @@ pub const Lua = opaque {
     pub fn gcIsRunning(lua: *Lua) bool {
         return 1 == c.lua_gc(asState(lua), c.LUA_GCISRUNNING, 0);
     }
+
+    /// Starts and resumes a coroutine in a given thread. To start a coroutine, you first create a new thread then you
+    /// push onto its stack the main function plus any arguments; then you call `resumeCoroutine(), with narg being the
+    /// number of arguments.
+    ///
+    /// To restart a yielded coroutine, you put on its stack only the values to be passed as results from yield, and
+    /// then call `resumeCoroutine()`.
+    ///
+    /// Returns `Lua.Status.yield` if the coroutine yields, `Lua.Status.ok` if the coroutine finishes its execution
+    /// without errors, or an error code in case of errors. In case of errors, the stack is not unwound, so you can use
+    /// the debug API over it. The error message is on the top of the stack.
+    ///
+    /// Note: This function was renamed from `resume` due to naming conflicts with Zig's `resume` keyword.
+    ///
+    /// From: `int lua_resume(lua_State *L, int narg);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_resume
+    /// Stack Behavior: `[-?, +?, -]`
+    pub fn resumeCoroutine(lua: *Lua, narg: i32) Lua.Status {
+        assert(narg >= 0);
+        const s = c.lua_resume(asState(lua), narg);
+        assert(Lua.Status.is_status(s));
+        return @enumFromInt(s);
+    }
+
+    /// Yields a coroutine. This function should only be called as the return expression of a C function. When a C
+    /// function calls `yieldCoroutine()`, the running coroutine suspends its execution, and the call to
+    /// `resumeCoroutine()` returns. The parameter nresults is the number of values from the stack that are passed as
+    /// results to `resumeCoroutine`.
+    ///
+    /// Note: This function was renamed from `yield` for consistency with `resumeCoroutine()`.
+    ///
+    /// From: `int lua_yield(lua_State *L, int nresults);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_yield
+    /// Stack Behavior: `[-?, +?, -]`
+    pub fn yieldCoroutine(lua: *Lua, nresults: i32) i32 {
+        assert(nresults >= 0);
+        return c.lua_yield(asState(lua), nresults);
+    }
 };
 
 test "Lua can be initialized with an allocator" {

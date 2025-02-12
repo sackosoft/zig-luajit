@@ -23,7 +23,7 @@ completely by human hands -- no `translate-c` or LLMs.
 
 ## Zig Version
 
-The `main` branch targets Zig's `master` (nightly) deployment (currently `0.14.0-dev.XXXX`).
+The `main` branch targets recent builds of Zig's `master` branch (last tested with Zig `0.14.0-dev.3197+1d8857bbe`).
 
 ## Installation & Usage
 

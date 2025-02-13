@@ -101,14 +101,6 @@ pub fn checkLString(lua: *Lua, narg: i32, length: ?*usize) [*:0]const u8;
 /// Stack Behavior: `[-0, +0, v]`
 pub fn checkOption(lua: *Lua, narg: i32, def: ?[:0]const u8, lst: []const [:0]const u8) i32;
 
-/// Grows the stack size to top + sz elements, raising an error if the stack cannot grow to that size.
-/// msg is an additional text to go into the error message.
-///
-/// From: `void luaL_checkstack(lua_State *L, int sz, const char *msg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkstack
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkStack(lua: *Lua, sz: i32, msg: [*:0]const u8) void;
-
 /// Checks whether the function argument `narg` is a string and returns this string. 
 /// This function uses `lua_tolstring` to get its result, so all conversions and caveats of that function apply here.
 ///

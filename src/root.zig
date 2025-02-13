@@ -153,14 +153,24 @@ pub const Lua = opaque {
 
         assert(extra >= 0);
 
-        const state = asState(lua);
-        const size: i32 = @intCast(c.lua_gettop(state));
-        if (size + extra > MaxStackSize) {
+        if (lua.getTop() + extra > MaxStackSize) {
             return error.StackOverflow;
         }
         if (0 == c.lua_checkstack(asState(lua), @intCast(extra))) {
             return error.OutOfMemory;
         }
+    }
+
+    /// Grows the stack size to have `extra` additional elements, raising an error if the stack cannot grow to that
+    /// size. The `message` is an additional text to go into the error message.
+    ///
+    /// From: `void luaL_checkstack(lua_State *L, int sz, const char *msg);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkstack
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkStackOrError(lua: *Lua, extra: i32, message: [:0]const u8) void {
+        assert(extra >= 0);
+
+        return c.luaL_checkstack(asState(lua), extra, @ptrCast(message.ptr));
     }
 
     /// Returns the name of the type encoded by the value `t`.
@@ -2211,6 +2221,23 @@ test "checkStack should return StackOverflow when requested space is too large" 
     try std.testing.expectError(error.StackOverflow, lua.checkStack(9000));
 }
 
+test "checkStackOrError should return raise an error for stack overflow" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn Fn(l: *Lua) callconv(.c) i32 {
+            l.checkStackOrError(9000, "CUSTOM ERROR MESSAGE");
+            return 0;
+        }
+    };
+
+    lua.pushCFunction(T.Fn);
+    const actual = lua.protectedCall(0, 0, 0);
+    try std.testing.expectError(Lua.CallError.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "stack overflow (CUSTOM ERROR MESSAGE)", try lua.toLString(-1));
+}
+
 const FailingAllocator = struct {
     fn allocator(self: *@This()) std.mem.Allocator {
         return .{
@@ -2269,6 +2296,29 @@ test "checkStack should return OOM when allocation fails." {
     }
 
     try std.testing.expectError(error.OutOfMemory, lua.checkStack(100));
+}
+
+test "checkStackOrError should return raise an error during allocation failure" {
+    var fa: FailingAllocator = .{};
+
+    const lua = try Lua.init(std.testing.allocator);
+    defer {
+        lua.setAllocator(std.testing.allocator);
+        lua.deinit();
+    }
+
+    const T = struct {
+        fn Fn(l: *Lua) callconv(.c) i32 {
+            l.checkStackOrError(100, "CUSTOM ERROR MESSAGE");
+            return 0;
+        }
+    };
+
+    lua.pushCFunction(T.Fn);
+    lua.setAllocator(fa.allocator());
+    const actual = lua.protectedCall(0, 0, 0);
+    try std.testing.expectError(Lua.CallError.OutOfMemory, actual);
+    try std.testing.expectEqualSlices(u8, "not enough memory", try lua.toLString(-1));
 }
 
 test "status should be ok after ok executions" {

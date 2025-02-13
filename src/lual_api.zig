@@ -87,20 +87,6 @@ pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 /// Stack Behavior: `[-0, +0, v]`
 pub fn checkAny(lua: *Lua, narg: i32) void;
 
-/// Checks whether the function argument narg is a number and returns this number cast to an int.
-///
-/// From: `int luaL_checkint(lua_State *L, int narg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkint
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkInt(lua: *Lua, narg: i32) i32;
-
-/// Checks whether the function argument narg is a number and returns this number cast to a long.
-///
-/// From: `long luaL_checklong(lua_State *L, int narg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checklong
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkLong(lua: *Lua, narg: i32) c_long;
-
 /// Checks whether the function argument narg is a string and returns this string;
 /// if l is not null, fills l with the string's length. This function uses
 /// lua_tolstring to get its result, so all conversions and caveats of that function apply here.
@@ -109,13 +95,6 @@ pub fn checkLong(lua: *Lua, narg: i32) c_long;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checklstring
 /// Stack Behavior: `[-0, +0, v]`
 pub fn checkLString(lua: *Lua, narg: i32, length: ?*usize) [*:0]const u8;
-
-/// Checks whether the function argument narg is a number and returns this number.
-///
-/// From: `lua_Number luaL_checknumber(lua_State *L, int narg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checknumber
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkNumber(lua: *Lua, narg: i32) f64;
 
 /// Checks whether the function argument `narg` is a string and searches for this string in the array `lst`
 /// (which must be NULL-terminated). Returns the index in the array where the string was found. Raises an

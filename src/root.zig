@@ -1805,9 +1805,9 @@ pub const Lua = opaque {
     /// From: `int lua_resume(lua_State *L, int narg);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_resume
     /// Stack Behavior: `[-?, +?, -]`
-    pub fn resumeCoroutine(lua: *Lua, narg: i32) Lua.Status {
-        assert(narg >= 0);
-        const s = c.lua_resume(asState(lua), narg);
+    pub fn resumeCoroutine(lua: *Lua, nargs: i32) Lua.Status {
+        assert(nargs >= 0);
+        const s = c.lua_resume(asState(lua), nargs);
         assert(Lua.Status.is_status(s));
         return @enumFromInt(s);
     }
@@ -1837,6 +1837,18 @@ pub const Lua = opaque {
         assert(arg_n <= lua.getTop());
 
         return c.luaL_checkinteger(asState(lua), arg_n);
+    }
+
+    /// Checks whether the function argument narg is a number and returns this number.
+    ///
+    /// From: `lua_Number luaL_checknumber(lua_State *L, int narg);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checknumber
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkNumber(lua: *Lua, arg_n: i32) Lua.Number {
+        assert(arg_n >= 0);
+        assert(arg_n <= lua.getTop());
+
+        return c.luaL_checknumber(asState(lua), arg_n);
     }
 
     /// Used by C functions to validate received arguments. Checks whether the condition is true. If not, raises an
@@ -3143,7 +3155,7 @@ test "xmove should migrate values from one thread to another" {
     try std.testing.expectEqual(1, t2.getTop());
 }
 
-test "checkInteger should return given value" {
+test "checkInteger should return given value or raise an error" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -3159,13 +3171,46 @@ test "checkInteger should return given value" {
     lua.pushCFunction(T.EchoInteger);
     lua.pushInteger(expected);
     try lua.protectedCall(1, 1, 0);
-    try std.testing.expectEqual(expected, lua.toInteger(1));
+    try std.testing.expectEqual(expected, lua.toInteger(-1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoInteger);
+    lua.pushNumber(42.444);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(expected, lua.toInteger(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.EchoInteger);
     lua.pushString("NotANumber");
     const actual = lua.protectedCall(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
+}
+
+test "checkNumber should return given value or raise an error" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn Echo(l: *Lua) callconv(.c) i32 {
+            const val = l.checkNumber(1);
+            l.pushNumber(val);
+            return 1;
+        }
+    };
+
+    const expected: Lua.Number = 42.720;
+    lua.pushCFunction(T.Echo);
+    lua.pushNumber(expected);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(expected, lua.toNumber(1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.Echo);
+    lua.pushString("NotANumber");
+    const actual = lua.protectedCall(1, 1, 0);
+    try std.testing.expectError(error.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
 }
 
 test "checkArgument should return error when argument is invalid and succeed when argument is OK" {

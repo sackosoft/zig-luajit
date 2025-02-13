@@ -86,7 +86,7 @@ you.
 | API | Support |
 |---|---|
 | Lua C API (`lua_*`) | 90% available (84/92) |
-| Auxilary Library (`luaL_*`) | 10% available (5/48) |
+| Auxilary Library (`luaL_*`) | 16% available (8/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
 ## Coverage and Compatibility
@@ -223,10 +223,10 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_callmeta`||
 | `luaL_checkany`||
 | `luaL_checkinteger`| ☑️ `lua.checkInteger()`|
-| `luaL_checkint`||
-| `luaL_checklong`||
+| `luaL_checkint`| 🆖 please use `lua.checkInteger()` |
+| `luaL_checklong`| 🆖 please use `lua.checkInteger()` |
 | `luaL_checklstring`||
-| `luaL_checknumber`||
+| `luaL_checknumber`| ☑️ `lua.checkNumber()`|
 | `luaL_checkoption`||
 | `luaL_checkstack`||
 | `luaL_checkstring`||

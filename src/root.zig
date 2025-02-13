@@ -1833,7 +1833,28 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkinteger
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkInteger(lua: *Lua, arg_n: i32) Lua.Integer {
+        assert(arg_n >= 0);
+        assert(arg_n <= lua.getTop());
+
         return c.luaL_checkinteger(asState(lua), arg_n);
+    }
+
+    /// Used by C functions to validate received arguments. Checks whether the condition is true. If not, raises an
+    /// error with a specific message indicating the bad argument and its number in the function call stack.
+    ///
+    /// Error message format: `bad argument #<arg_n> to <func> (<extra_message>)`
+    ///
+    /// From: `void luaL_argcheck(lua_State *L, int cond, int narg, const char *extramsg);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argcheck
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkArgument(lua: *Lua, condition: bool, arg_n: i32, extra_message: ?[:0]const u8) void {
+        assert(arg_n >= 0);
+        assert(arg_n <= lua.getTop());
+
+        if (condition) {
+            const ptr: [*c]const u8 = @ptrCast(if (extra_message) |m| m else null);
+            _ = c.luaL_argerror(asState(lua), arg_n, ptr);
+        }
     }
 };
 
@@ -3126,8 +3147,8 @@ test "checkInteger should return given value" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    const A = struct {
-        fn T(l: *Lua) callconv(.c) i32 {
+    const T = struct {
+        fn EchoInteger(l: *Lua) callconv(.c) i32 {
             const val = l.checkInteger(1);
             l.pushInteger(val);
             return 1;
@@ -3135,14 +3156,42 @@ test "checkInteger should return given value" {
     };
 
     const expected: Lua.Integer = 42;
-    lua.pushCFunction(A.T);
+    lua.pushCFunction(T.EchoInteger);
     lua.pushInteger(expected);
     try lua.protectedCall(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toInteger(1));
     lua.pop(1);
 
-    lua.pushCFunction(A.T);
+    lua.pushCFunction(T.EchoInteger);
     lua.pushString("NotANumber");
     const actual = lua.protectedCall(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
+}
+
+test "checkArgument should return error when argument is invalid and succeed when argument is OK" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn EchoInteger(l: *Lua) callconv(.c) i32 {
+            const val = l.toInteger(1);
+            l.checkArgument(val != 42, 1, "FOOBAR");
+            l.pushInteger(val);
+            return 1;
+        }
+    };
+
+    lua.pushCFunction(T.EchoInteger);
+    lua.pushInteger(42);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(42, lua.toInteger(1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoInteger);
+    lua.pushInteger(1);
+    const actual = lua.protectedCall(1, 1, 0);
+    try std.testing.expectError(error.Runtime, actual);
+
+    const message = try lua.toLString(-1);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (FOOBAR)", message);
 }

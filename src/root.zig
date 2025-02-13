@@ -1858,6 +1858,16 @@ pub const Lua = opaque {
     }
 
     /// Used by C functions to validate received arguments.
+    /// Checks whether the function argument is a userdata of the specified type.
+    ///
+    /// From: `void *luaL_checkudata(lua_State *L, int narg, const char *tname);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkudata
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkUserdata(lua: *Lua, arg_n: i32, type_name: [:0]const u8) ?*anyopaque {
+        return c.luaL_checkudata(asState(lua), arg_n, @ptrCast(type_name.ptr));
+    }
+
+    /// Used by C functions to validate received arguments.
     /// Checks whether the function has an argument of any type (including nil) at the specified position.
     ///
     /// From: `void luaL_checkany(lua_State *L, int narg);`

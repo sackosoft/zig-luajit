@@ -230,8 +230,8 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_checkoption`||
 | `luaL_checkstack`| ☑️📢 `lua.checkStackOrError()`|
 | `luaL_checkstring`||
-| `luaL_checktype`| ☑️ `lua.checkType()`|
-| `luaL_checkudata`||
+| `luaL_checktype`| ☑️ `lua.checkType()` |
+| `luaL_checkudata`| ➖ `lua.checkUserdata()`|
 | `luaL_dofile`||
 | `luaL_dostring`| ☑️ `lua.doString()` |
 | `luaL_error`||

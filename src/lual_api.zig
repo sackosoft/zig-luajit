@@ -109,13 +109,6 @@ pub fn checkOption(lua: *Lua, narg: i32, def: ?[:0]const u8, lst: []const [:0]co
 /// Stack Behavior: `[-0, +0, v]`
 pub fn checkString(lua: *Lua, narg: i32) []const u8;
 
-/// Checks whether the function argument is a userdata of the specified type.
-///
-/// From: `void *luaL_checkudata(lua_State *L, int narg, const char *tname);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkudata
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkUserData(lua: *Lua, narg: i32, tname: [*:0]const u8) *anyopaque;
-
 /// Loads and runs the given file. It is equivalent to calling `luaL_loadfile(L, filename)` and then `lua_pcall(L, 0, LUA_MULTRET, 0)`.
 /// Returns 0 if there are no errors or 1 in case of errors.
 ///

@@ -109,14 +109,6 @@ pub fn checkOption(lua: *Lua, narg: i32, def: ?[:0]const u8, lst: []const [:0]co
 /// Stack Behavior: `[-0, +0, v]`
 pub fn checkString(lua: *Lua, narg: i32) []const u8;
 
-/// Checks whether the function argument `narg` has type `t`.
-/// See `lua_type` for the encoding of types for `t`.
-///
-/// From: `void luaL_checktype(lua_State *L, int narg, int t);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checktype
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkType(lua: *Lua, narg: i32, t: i32) void;
-
 /// Checks whether the function argument is a userdata of the specified type.
 ///
 /// From: `void *luaL_checkudata(lua_State *L, int narg, const char *tname);`

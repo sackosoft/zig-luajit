@@ -1858,13 +1858,23 @@ pub const Lua = opaque {
     }
 
     /// Used by C functions to validate received arguments.
-    /// Checks whether the function has an argument of any type (including nil) at the specified position. Useful for
+    /// Checks whether the function has an argument of any type (including nil) at the specified position.
     ///
     /// From: `void luaL_checkany(lua_State *L, int narg);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkany
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkAny(lua: *Lua, arg_n: i32) void {
         return c.luaL_checkany(asState(lua), arg_n);
+    }
+
+    /// Used by C functions to validate received arguments.
+    /// Checks whether the function argument `narg` has type `t`. See `lua_type` for the encoding of types for `t`.
+    ///
+    /// From: `void luaL_checktype(lua_State *L, int narg, int t);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checktype
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkType(lua: *Lua, arg_n: i32, t: Lua.Type) void {
+        return c.luaL_checktype(asState(lua), arg_n, @intCast(@intFromEnum(t)));
     }
 
     /// Used by C functions to validate received arguments.
@@ -3287,6 +3297,34 @@ test "checkAny should validate presence of arguments" {
     const actual = lua.protectedCall(0, 0, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (value expected)", try lua.toLString(-1));
+}
+
+test "checkType should validate argument type" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn Fn(l: *Lua) callconv(.c) i32 {
+            l.checkType(1, .string);
+            return 0;
+        }
+    };
+
+    lua.pushCFunction(T.Fn);
+    lua.pushLString("happy path");
+    try lua.protectedCall(1, 0, 0);
+    try std.testing.expectEqual(0, lua.getTop());
+
+    lua.pushCFunction(T.Fn);
+    const a1 = lua.protectedCall(0, 0, 0);
+    try std.testing.expectError(error.Runtime, a1);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (string expected, got no value)", try lua.toLString(-1));
+
+    lua.pushCFunction(T.Fn);
+    lua.pushInteger(42);
+    const a2 = lua.protectedCall(1, 0, 0);
+    try std.testing.expectError(error.Runtime, a2);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (string expected, got number)", try lua.toLString(-1));
 }
 
 test "checkArgument should return error when argument is invalid and succeed when argument is OK" {

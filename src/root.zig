@@ -1827,32 +1827,39 @@ pub const Lua = opaque {
         return c.lua_yield(asState(lua), nresults);
     }
 
+    /// Used by C functions to validate received arguments.
     /// Checks whether the function argument `narg` is a number and returns this number cast to a `lua_Integer`.
     ///
     /// From: `lua_Integer luaL_checkinteger(lua_State *L, int narg);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkinteger
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkInteger(lua: *Lua, arg_n: i32) Lua.Integer {
-        assert(arg_n >= 0);
-        assert(arg_n <= lua.getTop());
-
         return c.luaL_checkinteger(asState(lua), arg_n);
     }
 
+    /// Used by C functions to validate received arguments.
     /// Checks whether the function argument narg is a number and returns this number.
     ///
     /// From: `lua_Number luaL_checknumber(lua_State *L, int narg);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checknumber
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkNumber(lua: *Lua, arg_n: i32) Lua.Number {
-        assert(arg_n >= 0);
-        assert(arg_n <= lua.getTop());
-
         return c.luaL_checknumber(asState(lua), arg_n);
     }
 
-    /// Used by C functions to validate received arguments. Checks whether the condition is true. If not, raises an
-    /// error with a specific message indicating the bad argument and its number in the function call stack.
+    /// Used by C functions to validate received arguments.
+    /// Checks whether the function has an argument of any type (including nil) at the specified position. Useful for
+    ///
+    /// From: `void luaL_checkany(lua_State *L, int narg);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkany
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkAny(lua: *Lua, arg_n: i32) void {
+        return c.luaL_checkany(asState(lua), arg_n);
+    }
+
+    /// Used by C functions to validate received arguments.
+    /// Checks whether the condition is true. If not, raises an error with a specific message indicating the bad
+    /// argument and its number in the function call stack.
     ///
     /// Error message format: `bad argument #<arg_n> to <func> (<extra_message>)`
     ///
@@ -1860,9 +1867,6 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argcheck
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkArgument(lua: *Lua, condition: bool, arg_n: i32, extra_message: ?[:0]const u8) void {
-        assert(arg_n >= 0);
-        assert(arg_n <= lua.getTop());
-
         if (condition) {
             const ptr: [*c]const u8 = @ptrCast(if (extra_message) |m| m else null);
             _ = c.luaL_argerror(asState(lua), arg_n, ptr);
@@ -3211,6 +3215,28 @@ test "checkNumber should return given value or raise an error" {
     const actual = lua.protectedCall(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
+}
+
+test "checkAny should validate presence of arguments" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn Fn(l: *Lua) callconv(.c) i32 {
+            l.checkAny(1);
+            return 0;
+        }
+    };
+
+    lua.pushCFunction(T.Fn);
+    lua.pushBoolean(true);
+    try lua.protectedCall(1, 0, 0);
+    try std.testing.expectEqual(0, lua.getTop());
+
+    lua.pushCFunction(T.Fn);
+    const actual = lua.protectedCall(0, 0, 0);
+    try std.testing.expectError(error.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (value expected)", try lua.toLString(-1));
 }
 
 test "checkArgument should return error when argument is invalid and succeed when argument is OK" {

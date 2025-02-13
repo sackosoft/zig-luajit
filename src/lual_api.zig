@@ -80,13 +80,6 @@ pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
 /// Stack Behavior: `[-0, +(0|1), e]`
 pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 
-/// Checks whether the function has an argument of any type (including nil) at the specified position.
-///
-/// From: `void luaL_checkany(lua_State *L, int narg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkany
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkAny(lua: *Lua, narg: i32) void;
-
 /// Checks whether the function argument narg is a string and returns this string;
 /// if l is not null, fills l with the string's length. This function uses
 /// lua_tolstring to get its result, so all conversions and caveats of that function apply here.

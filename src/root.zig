@@ -1826,6 +1826,15 @@ pub const Lua = opaque {
         assert(nresults >= 0);
         return c.lua_yield(asState(lua), nresults);
     }
+
+    /// Checks whether the function argument `narg` is a number and returns this number cast to a `lua_Integer`.
+    ///
+    /// From: `lua_Integer luaL_checkinteger(lua_State *L, int narg);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkinteger
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkInteger(lua: *Lua, arg_n: i32) Lua.Integer {
+        return c.luaL_checkinteger(asState(lua), arg_n);
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -3111,4 +3120,29 @@ test "xmove should migrate values from one thread to another" {
     Lua.xmove(t2, t1, 1);
     try std.testing.expectEqual(1, t1.getTop());
     try std.testing.expectEqual(1, t2.getTop());
+}
+
+test "checkInteger should return given value" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const A = struct {
+        fn T(l: *Lua) callconv(.c) i32 {
+            const val = l.checkInteger(1);
+            l.pushInteger(val);
+            return 1;
+        }
+    };
+
+    const expected: Lua.Integer = 42;
+    lua.pushCFunction(A.T);
+    lua.pushInteger(expected);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(expected, lua.toInteger(1));
+    lua.pop(1);
+
+    lua.pushCFunction(A.T);
+    lua.pushString("NotANumber");
+    const actual = lua.protectedCall(1, 1, 0);
+    try std.testing.expectError(error.Runtime, actual);
 }

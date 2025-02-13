@@ -41,14 +41,6 @@ pub fn addString(buffer: *Buffer, s: [*:0]const u8) void;
 /// Stack Behavior: `[-1, +0, m]`
 pub fn addValue(buffer: *Buffer) void;
 
-/// Checks whether the condition is true. If not, raises an error with a specific message indicating
-/// the bad argument and its number in the function call stack.
-///
-/// From: `void luaL_argcheck(lua_State *L, int cond, int narg, const char *extramsg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argcheck
-/// Stack Behavior: `[-0, +0, v]`
-pub fn argCheck(lua: *Lua, condition: bool, arg_number: i32, extra_message: ?[]const u8) void;
-
 /// Raises an error with the message "bad argument #narg to func (extramsg)". The function
 /// func is retrieved from the call stack. This function never returns, but it is an idiom
 /// to use it as a return statement.
@@ -94,13 +86,6 @@ pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkany
 /// Stack Behavior: `[-0, +0, v]`
 pub fn checkAny(lua: *Lua, narg: i32) void;
-
-/// Checks whether the function argument `narg` is a number and returns this number cast to a `lua_Integer`.
-///
-/// From: `lua_Integer luaL_checkinteger(lua_State *L, int narg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkinteger
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkInteger(lua: *Lua, narg: i32) LuaInteger;
 
 /// Checks whether the function argument narg is a number and returns this number cast to an int.
 ///

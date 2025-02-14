@@ -80,18 +80,6 @@ pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
 /// Stack Behavior: `[-0, +(0|1), e]`
 pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 
-/// Checks whether the function argument `narg` is a string and searches for this string in the array `lst`
-/// (which must be NULL-terminated). Returns the index in the array where the string was found. Raises an
-/// error if the argument is not a string or if the string cannot be found. If `def` is not `null`, the
-/// function uses `def` as a default value when there is no argument `narg` or if this argument is `nil`.
-/// This is a useful function for mapping strings to enums (the usual convention in Lua libraries is to
-/// use strings instead of numbers to select options).
-///
-/// From: `int luaL_checkoption(lua_State *L, int narg, const char *def, const char *const lst[]);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkoption
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkOption(lua: *Lua, narg: i32, def: ?[:0]const u8, lst: []const [:0]const u8) i32;
-
 /// Loads and runs the given file. It is equivalent to calling `luaL_loadfile(L, filename)` and then `lua_pcall(L, 0, LUA_MULTRET, 0)`.
 /// Returns 0 if there are no errors or 1 in case of errors.
 ///

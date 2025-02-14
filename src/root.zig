@@ -1901,6 +1901,31 @@ pub const Lua = opaque {
     }
 
     /// Used by C functions to validate received arguments.
+    /// Checks whether the function argument `arg_n` is a string and searches for this string in the array `options`
+    /// (which must be NULL-terminated).
+    ///
+    /// Returns the index in the array where the string was found or raises an error if the argument is not a string
+    /// or if the string cannot be found. If `default` is not `null` then the function uses `default` as a default value
+    /// when there is no argument `arg_n` or if this argument is `nil`.
+    ///
+    /// This is a useful function for mapping strings to enums (the usual convention in Lua libraries is to
+    /// use strings instead of numbers to select options).
+    ///
+    /// From: `int luaL_checkoption(lua_State *L, int narg, const char *def, const char *const lst[]);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkoption
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkOption(lua: *Lua, arg_n: i32, options: []const [*:0]const u8, default: ?[:0]const u8) usize {
+        const index = c.luaL_checkoption(
+            asState(lua),
+            arg_n,
+            @ptrCast(if (default) |p| p.ptr else null),
+            @ptrCast(options.ptr),
+        );
+        assert(index >= 0);
+        return @intCast(index);
+    }
+
+    /// Used by C functions to validate received arguments.
     /// Checks whether the function has an argument of any type (including nil) at the specified position.
     ///
     /// From: `void luaL_checkany(lua_State *L, int narg);`
@@ -3406,6 +3431,40 @@ test "checkAny should validate presence of arguments" {
     const actual = lua.protectedCall(0, 0, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (value expected)", try lua.toLString(-1));
+}
+
+test "checkOption() should validate arguments and use default" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn EchoStringWithDefault(l: *Lua) callconv(.c) i32 {
+            const actual = l.checkOption(1, &.{ "A", "B", "C" }, "C");
+            l.pushInteger(@intCast(actual));
+            return 1;
+        }
+        fn EchoString(l: *Lua) callconv(.c) i32 {
+            const actual = l.checkOption(1, &.{ "A", "B", "C" }, null);
+            l.pushInteger(@intCast(actual));
+            return 1;
+        }
+    };
+
+    lua.pushCFunction(T.EchoStringWithDefault);
+    try lua.protectedCall(0, 1, 0);
+    const a1 = try lua.toIntegerStrict(-1);
+    try std.testing.expectEqual(2, a1); // The default value should find the match
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoString);
+    const a2 = lua.protectedCall(0, 1, 0);
+    try std.testing.expectError(Lua.CallError.Runtime, a2); // No default value so the check should fail
+
+    lua.pushCFunction(T.EchoString);
+    lua.pushLString("C");
+    try lua.protectedCall(1, 1, 0);
+    const a3 = try lua.toIntegerStrict(-1);
+    try std.testing.expectEqual(2, a3); // The value should be found at the third index
 }
 
 test "checkType should validate argument type" {

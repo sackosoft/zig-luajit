@@ -92,14 +92,6 @@ pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 /// Stack Behavior: `[-0, +0, v]`
 pub fn checkOption(lua: *Lua, narg: i32, def: ?[:0]const u8, lst: []const [:0]const u8) i32;
 
-/// Checks whether the function argument `narg` is a string and returns this string. 
-/// This function uses `lua_tolstring` to get its result, so all conversions and caveats of that function apply here.
-///
-/// From: `const char *luaL_checkstring(lua_State *L, int narg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkstring
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkString(lua: *Lua, narg: i32) []const u8;
-
 /// Loads and runs the given file. It is equivalent to calling `luaL_loadfile(L, filename)` and then `lua_pcall(L, 0, LUA_MULTRET, 0)`.
 /// Returns 0 if there are no errors or 1 in case of errors.
 ///

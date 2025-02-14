@@ -80,15 +80,6 @@ pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
 /// Stack Behavior: `[-0, +(0|1), e]`
 pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 
-/// Checks whether the function argument narg is a string and returns this string;
-/// if l is not null, fills l with the string's length. This function uses
-/// lua_tolstring to get its result, so all conversions and caveats of that function apply here.
-///
-/// From: `const char *luaL_checklstring(lua_State *L, int narg, size_t *l);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checklstring
-/// Stack Behavior: `[-0, +0, v]`
-pub fn checkLString(lua: *Lua, narg: i32, length: ?*usize) [*:0]const u8;
-
 /// Checks whether the function argument `narg` is a string and searches for this string in the array `lst`
 /// (which must be NULL-terminated). Returns the index in the array where the string was found. Raises an
 /// error if the argument is not a string or if the string cannot be found. If `def` is not `null`, the

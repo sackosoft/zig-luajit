@@ -1848,6 +1848,18 @@ pub const Lua = opaque {
     }
 
     /// Used by C functions to validate received arguments.
+    /// Checks whether the function argument `arg_n` is a number and returns this number cast to a `lua_Integer`.
+    /// If the function argument `arg_n` is a number, returns this number cast to a lua_Integer.
+    /// If this argument is absent or is nil, returns `default`. Otherwise, raises an error.
+    ///
+    /// From: `lua_Integer luaL_optinteger(lua_State *L, int narg, lua_Integer d);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optinteger
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkIntegerOptional(lua: *Lua, arg_n: i32, default: Lua.Integer) Lua.Integer {
+        return c.luaL_optinteger(asState(lua), arg_n, default);
+    }
+
+    /// Used by C functions to validate received arguments.
     /// Checks whether the function argument narg is a number and returns this number.
     ///
     /// From: `lua_Number luaL_checknumber(lua_State *L, int narg);`
@@ -3313,6 +3325,44 @@ test "checkInteger should return given value or raise an error" {
     lua.pop(1);
 
     lua.pushCFunction(T.EchoInteger);
+    lua.pushString("NotANumber");
+    const actual = lua.protectedCall(1, 1, 0);
+    try std.testing.expectError(error.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
+}
+
+test "checkIntegerOptional should return given value, default or raise an error" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const default: Lua.Integer = 42;
+    const T = struct {
+        fn EchoIntegerOptional(l: *Lua) callconv(.c) i32 {
+            const val = l.checkIntegerOptional(1, default);
+            l.pushInteger(val);
+            return 1;
+        }
+    };
+
+    const expected: Lua.Integer = 33;
+    lua.pushCFunction(T.EchoIntegerOptional);
+    lua.pushInteger(expected);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(expected, lua.toInteger(-1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoIntegerOptional);
+    lua.pushNumber(33.444);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(expected, lua.toInteger(-1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoIntegerOptional);
+    try lua.protectedCall(0, 1, 0);
+    try std.testing.expectEqual(default, lua.toInteger(-1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoIntegerOptional);
     lua.pushString("NotANumber");
     const actual = lua.protectedCall(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);

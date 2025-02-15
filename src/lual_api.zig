@@ -166,14 +166,6 @@ pub fn newMetatable(lua: *Lua, tname: [*:0]const u8) i32;
 /// Stack Behavior: `[-0, +0, -]`
 pub fn newState() ?*Lua;
 
-/// If the function argument narg is a number, returns this number cast to a lua_Integer.
-/// If this argument is absent or is nil, returns d. Otherwise, raises an error.
-///
-/// From: `lua_Integer luaL_optinteger(lua_State *L, int narg, lua_Integer d);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optinteger
-/// Stack Behavior: `[-0, +0, v]`
-pub fn optInteger(lua: *Lua, narg: i32, default: LuaInteger) LuaInteger;
-
 /// If the function argument `narg` is a number, returns this number cast to an `i32`.
 /// If this argument is absent or is `nil`, returns `d`. Otherwise, raises an error.
 ///

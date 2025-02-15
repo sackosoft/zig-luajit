@@ -166,23 +166,6 @@ pub fn newMetatable(lua: *Lua, tname: [*:0]const u8) i32;
 /// Stack Behavior: `[-0, +0, -]`
 pub fn newState() ?*Lua;
 
-/// If the function argument `narg` is a number, returns this number cast to an `i32`.
-/// If this argument is absent or is `nil`, returns `d`. Otherwise, raises an error.
-///
-/// From: `int luaL_optint(lua_State *L, int narg, int d);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optint
-/// Stack Behavior: `[-0, +0, v]`
-pub fn optInt(lua: *Lua, narg: i32, default: i32) i32;
-
-/// If the function argument narg is a number, returns this number cast to a long.
-/// If this argument is absent or is nil, returns d.
-/// Otherwise, raises an error.
-///
-/// From: `long luaL_optlong(lua_State *L, int narg, long d);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optlong
-/// Stack Behavior: `[-0, +0, v]`
-pub fn optLong(lua: *Lua, narg: i32, default: i64) i64;
-
 /// If the function argument narg is a string, returns this string. If this argument is absent or is nil,
 /// returns d. Otherwise, raises an error. If l is not null, fills the position *l with the result's length.
 ///

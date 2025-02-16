@@ -3660,6 +3660,25 @@ test "ref and unref in user table" {
     try std.testing.expectEqual(0, lua.lengthOf(1));
 }
 
+test "ref should return nil" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.newTable();
+    lua.pushNil();
+    const ref = lua.ref(1);
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expectEqual(Lua.Ref.Nil, ref);
+
+    const t = lua.getTableIndexRaw(1, ref);
+    try std.testing.expectEqual(Lua.Type.nil, t);
+    try std.testing.expect(lua.isNil(-1));
+
+    lua.unref(1, ref);
+    try std.testing.expectEqual(0, lua.lengthOf(1));
+}
+
 test "ref and unref in registry" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();

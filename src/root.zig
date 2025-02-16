@@ -226,12 +226,11 @@ pub const Lua = opaque {
 
         // Make sure we only run these checks in safety-checked build modes.
         if (isSafeBuildTarget) {
-            if (index <= c.LUA_REGISTRYINDEX) {
+            if (index <= PseudoIndex.Registry) {
                 const max_upvalues_count = 255;
-                assert(@as(i32, @intCast(c.LUA_GLOBALSINDEX - max_upvalues_count)) <= index); // Safety check failed: pseudo-index exceeds maximum number of upvalues (255). This can also happen if your stack index has been corrupted and become a very large negative number.
+                assert(@as(i32, @intCast(PseudoIndex.Globals - max_upvalues_count)) <= index); // Safety check failed: pseudo-index exceeds maximum number of upvalues (255). This can also happen if your stack index has been corrupted and become a very large negative number.
             } else if (index < 0) {
                 assert(-lua.getTop() <= index); // Safety check failed: Stack index goes below the bottom of the stack.
-
             } else {
                 assert(index <= lua.getTop()); // Safety check failed: Stack index exceeds the top of the stack.
             }
@@ -627,30 +626,58 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_CFunction
     pub const CFunction = *const fn (lua: *Lua) callconv(.c) i32;
 
-    /// Returns the pseudo-index to the specified up value of a C function closure.
+    /// Used for accessing special variables like the C registry, environment table and global tables.
     ///
-    /// When a C function is created, it is possible to associate some values with it, thus creating a "closure"
-    /// (see https://www.lua.org/manual/5.1/manual.html#lua_pushcclosure and https://www.lua.org/manual/5.1/manual.html#3.4).
-    /// When this happens, the values are popped from the stack and managed by the Lua runtime. C functions may
-    /// reference these "upvalues" by a pseudo-index returned by this function. These pseudo-indices are not
-    /// references to the stack like other indices, instead, they are assocaited with the C function and managed
-    /// by the Lua runtime.
-    ///
-    /// The first value associated with the function is at position `upvalueIndex(1)`, the second at
-    /// `upvalueIndex(2)`, and so on. C closures support only 255 upvalues.
-    ///
-    /// From: `#define lua_upvalueindex(i)`
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.4
-    /// Stack Behavior: `[-0, 0, -]`
-    pub fn upvalueIndex(lua: *Lua, index: u8) i32 {
-        lua.skipIndexValidation(
-            @intCast(index),
-            "upvalueIndex() is type-restricted by the `u8` to a safe range.",
-        );
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.3
+    pub const PseudoIndex = struct {
+        /// The registry table index. This is a special table that can be used by C/Zig code to store Lua values
+        /// for later retrieval. Unlike the global table, the registry table is not accessible from Lua code.
+        ///
+        /// Lua provides a registry, a pre-defined table that can be used by any C code to store whatever Lua value
+        /// it needs to store. This table is always located at `PseudoIndex.Registry`. Any C library can store
+        /// data into this table, but it should take care to choose keys different from those used by other libraries, to
+        /// avoid collisions. Typically, you should use as key a string containing your library name or a light userdata
+        /// with the address of a C object in your code.
+        ///
+        /// The integer keys in the registry are used by the reference mechanism, implemented by the auxiliary
+        /// library, and therefore should not be used for other purposes.
+        ///
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.5
+        pub const Registry: i32 = c.LUA_REGISTRYINDEX;
 
-        const globals_index: i32 = @intCast(c.LUA_GLOBALSINDEX);
-        return @intCast(globals_index - index);
-    }
+        /// The environment table index for the current function. For Lua functions, this is the _ENV table
+        /// where global variables are stored. For C/Zig functions, this is initially set to the global table.
+        ///
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#2.9
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.5
+        pub const Environment: i32 = c.LUA_ENVIRONINDEX;
+
+        /// The globals table index. This table lives at a special index (not directly on the stack) and contains all
+        /// global variables. This is the same table as the default environment for Lua code.
+        ///
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#2.9
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.5
+        pub const Globals: i32 = c.LUA_GLOBALSINDEX;
+
+        /// Returns a pseudo-index that refers to the upvalue at position `index` in the current function.
+        /// Upvalues are numbered from 1 upward. This is used when manipulating upvalues from C/Zig code.
+        ///
+        /// When a C function is created, it is possible to associate some values with it, thus creating a "closure"
+        /// (see https://www.lua.org/manual/5.1/manual.html#lua_pushcclosure and https://www.lua.org/manual/5.1/manual.html#3.4).
+        /// When this happens, the values are popped from the stack and managed by the Lua runtime. C functions may
+        /// reference these "upvalues" by a pseudo-index returned by this function. These pseudo-indices are not
+        /// references to the stack like other indices, instead, they are assocaited with the C function and managed
+        /// by the Lua runtime.
+        ///
+        /// The first value associated with the function is at position `PseudoIndex.upvalue(1)`, the second at
+        /// `PseudoIndex.upvalue(2)`, and so on. C closures support only 255 upvalues.
+        ///
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.4.3
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#3.5
+        pub fn upvalue(index: u8) i32 {
+            return Globals - index;
+        }
+    };
 
     /// Pushes a C function onto the stack. This function receives a pointer to a C function and pushes
     /// onto the stack a Lua value of type function that, when called, invokes the corresponding C function.
@@ -964,6 +991,7 @@ pub const Lua = opaque {
         c.lua_rawget(asState(lua), index);
         return lua.typeOf(-1);
     }
+
     /// Pushes onto the stack the value `t[n]`, where `t` is the value at the given valid index.
     /// The access is raw; that is, it does not invoke metamethods.
     ///
@@ -978,6 +1006,46 @@ pub const Lua = opaque {
 
         c.lua_rawgeti(asState(lua), index, n);
         return lua.typeOf(-1);
+    }
+
+    pub const Ref = struct {
+        pub const None: i32 = c.LUA_NOREF;
+        pub const Nil: i32 = c.LUA_REFNIL;
+    };
+
+    /// Creates and returns a reference in the table at the specified index for the object at the top of the stack,
+    /// then pops that object. The reference is a unique integer key that can be used to retrieve the object later.
+    ///
+    /// * You can retrieve the referenced object by calling `getTableIndexRaw()` with the returned reference as the key
+    /// * The function `unref()` frees a reference and its associated object
+    /// * If the object at the top of the stack is `nil` then `ref()` returns the constant `Lua.Ref.Nil`
+    ///
+    /// The constant `Lua.Ref.None` is guaranteed to be different from any reference returned by `ref()`.
+    ///
+    /// This function is typically used to store Lua values that need to persist between C/Zig function calls,
+    /// often using `Lua.PseudoIndex.Registry` as the table index.
+    ///
+    /// From: `int luaL_ref(lua_State *L, int t);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_ref
+    /// Stack Behavior: `[-1, +0, m]`
+    pub fn ref(lua: *Lua, index: i32) i32 {
+        lua.validateStackIndex(index);
+
+        return c.luaL_ref(asState(lua), index);
+    }
+
+    /// Releases a reference from the table at the specified index. The entry is removed from the table, allowing the
+    /// referred object to be collected. The reference is freed to be used again.
+    ///
+    /// If the reference is `Lua.Ref.None` or `Lua.Ref.Nil`, this function does nothing.
+    ///
+    /// From: `void luaL_unref(lua_State *L, int t, int ref);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_unref
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn unref(lua: *Lua, index: i32, reference: i32) void {
+        lua.validateStackIndex(index);
+
+        return c.luaL_unref(asState(lua), index, reference);
     }
 
     /// Does the equivalent of `t[k] = v`, where `t` is the acceptable index of the table on the stack, `v` is
@@ -2530,7 +2598,7 @@ fn dummyCFunction(lua: *Lua) callconv(.c) i32 {
 }
 
 fn dummyCClosure(lua: *Lua) callconv(.c) i32 {
-    const n = lua.toNumber(lua.upvalueIndex(1));
+    const n = lua.toNumber(Lua.PseudoIndex.upvalue(1));
     lua.pushNumber(n);
     return 1;
 }
@@ -3571,4 +3639,48 @@ test "checkArgument should return error when argument is invalid and succeed whe
 
     const message = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (FOOBAR)", message);
+}
+
+test "ref and unref in user table" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.newTable();
+    lua.pushLString("foo");
+    const ref = lua.ref(1);
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(Lua.Ref.None != ref);
+    try std.testing.expect(Lua.Ref.Nil != ref);
+
+    const t = lua.getTableIndexRaw(1, ref);
+    try std.testing.expectEqual(Lua.Type.string, t);
+
+    lua.unref(1, ref);
+    try std.testing.expectEqual(0, lua.lengthOf(1));
+}
+
+test "ref and unref in registry" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.pushValue(Lua.PseudoIndex.Registry);
+    const length_before = lua.lengthOf(1);
+    lua.pop(1);
+
+    lua.pushLString("foo");
+    const ref = lua.ref(Lua.PseudoIndex.Registry);
+
+    try std.testing.expectEqual(0, lua.getTop());
+    try std.testing.expect(Lua.Ref.None != ref);
+    try std.testing.expect(Lua.Ref.Nil != ref);
+
+    const t = lua.getTableIndexRaw(Lua.PseudoIndex.Registry, ref);
+    try std.testing.expectEqual(Lua.Type.string, t);
+    try std.testing.expectEqualStrings("foo", try lua.toLString(-1));
+    lua.pop(1);
+
+    lua.unref(Lua.PseudoIndex.Registry, ref);
+    lua.pushValue(Lua.PseudoIndex.Registry);
+    try std.testing.expectEqual(length_before, lua.lengthOf(1));
 }

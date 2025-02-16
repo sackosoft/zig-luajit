@@ -86,7 +86,7 @@ you.
 | API | Support |
 |---|---|
 | Lua C API (`lua_*`) | 90% available (84/92) |
-| Auxilary Library (`luaL_*`) | 34% available (17/48) |
+| Auxilary Library (`luaL_*`) | 40% available (20/48) |
 | LuaJIT Extensions | *No plans to implement.* |
 
 ## Coverage and Compatibility
@@ -242,7 +242,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_loadfile`            ||
 | `luaL_loadstring`          ||
 | `luaL_newmetatable`        ||
-| `luaL_newstate`            ||
+| `luaL_newstate`            | 🆖 please use `Lua.init()` |
 | `luaL_openlibs`            | ☑️ `lua.openLibs()` |
 | `luaL_optinteger`          | ☑️📢 `lua.checkIntegerOptional()` |
 | `luaL_optint`              | 🆖 please use `lua.checkIntegerOptional()` |
@@ -252,12 +252,12 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_optstring`           ||
 | `luaL_prepbuffer`          ||
 | `luaL_pushresult`          ||
-| `luaL_ref`                 ||
+| `luaL_ref`                 | ☑️ `lua.ref()` |
+| `luaL_unref`               | ☑️ `lua.unref()` |
 | `luaL_register`            ||
 | `luaL_Reg`                 ||
 | `luaL_typename`            | ☑️ `lua.typeName()` |
 | `luaL_typerror`            ||
-| `luaL_unref`               ||
 | `luaL_where`               ||
 
 ## Additions to the API in `zig-luajit`

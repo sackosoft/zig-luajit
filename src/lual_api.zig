@@ -206,18 +206,6 @@ pub fn prepBuffer(buffer: *Buffer) [*]u8;
 /// Stack Behavior: `[-?, +1, m]`
 pub fn pushResult(buffer: *LuaBuffer) void;
 
-/// Creates and returns a reference, in the table at index t, for the object at the top of the stack (and pops the object).
-/// A reference is a unique integer key. As long as you do not manually add integer keys into table t,
-/// luaL_ref ensures the uniqueness of the key it returns. You can retrieve an object referred by reference r
-/// by calling lua_rawgeti(L, t, r). Function luaL_unref frees a reference and its associated object.
-/// If the object at the top of the stack is nil, luaL_ref returns the constant LUA_REFNIL.
-/// The constant LUA_NOREF is guaranteed to be different from any reference returned by luaL_ref.
-///
-/// From: `int luaL_ref(lua_State *L, int t);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_ref
-/// Stack Behavior: `[-1, +0, m]`
-pub fn ref(lua: *Lua, table_index: i32) i32;
-
 /// Opens a library. When called with libname equal to null, it simply registers all functions in the list l
 /// into the table on the top of the stack. When called with a non-null libname, creates a new table t,
 /// sets it as the value of the global variable libname, sets it as the value of package.loaded[libname],
@@ -257,16 +245,6 @@ pub fn typeName(lua: *Lua, index: i32) ?[:0]const u8;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_typerror
 /// Stack Behavior: `[-0, +0, v]`
 pub fn typeError(lua: *Lua, narg: i32, tname: [*:0]const u8) i32;
-
-/// Releases a reference from the table at a specified index. The entry is removed from the table, 
-/// allowing the referred object to be collected. The reference is freed to be used again.
-///
-/// If the reference is LUA_NOREF or LUA_REFNIL, this function does nothing.
-///
-/// From: `void luaL_unref(lua_State *L, int t, int ref);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_unref
-/// Stack Behavior: `[-0, +0, -]`
-pub fn unref(lua: *Lua, table_index: i32, reference: i32) void;
 
 /// Pushes onto the stack a string identifying the current position of the control at level `lvl` in the call stack.
 /// Typically this string has the format: `chunkname:currentline:`. 

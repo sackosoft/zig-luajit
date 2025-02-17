@@ -1938,6 +1938,17 @@ pub const Lua = opaque {
     }
 
     /// Used by C functions to validate received arguments.
+    /// If the function argument is a number, returns this number. If the argument is absent or is nil,
+    /// returns the default value. Otherwise, raises an error.
+    ///
+    /// From: `lua_Number luaL_optnumber(lua_State *L, int narg, lua_Number d);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optnumber
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkNumberOptional(lua: *Lua, arg_n: i32, default: Lua.Number) Lua.Number {
+        return c.luaL_optnumber(asState(lua), arg_n, default);
+    }
+
+    /// Used by C functions to validate received arguments.
     /// Checks whether the function argument `narg` is a string and returns this string.
     /// This function uses `lua_tolstring` to get its result, so all conversions and caveats of that function apply here.
     ///
@@ -3454,6 +3465,37 @@ test "checkNumber should return given value or raise an error" {
     lua.pushNumber(expected);
     try lua.protectedCall(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toNumber(1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.Echo);
+    lua.pushString("NotANumber");
+    const actual = lua.protectedCall(1, 1, 0);
+    try std.testing.expectError(error.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
+}
+
+test "checkNumberOptional should return given value or raise an error" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn Echo(l: *Lua) callconv(.c) i32 {
+            const val = l.checkNumberOptional(1, 13.33);
+            l.pushNumber(val);
+            return 1;
+        }
+    };
+
+    const expected: Lua.Number = 42.720;
+    lua.pushCFunction(T.Echo);
+    lua.pushNumber(expected);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(expected, lua.toNumber(-1));
+    lua.pop(1);
+
+    lua.pushCFunction(T.Echo);
+    try lua.protectedCall(0, 1, 0);
+    try std.testing.expectEqual(13.33, lua.toNumber(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.Echo);

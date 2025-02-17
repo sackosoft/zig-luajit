@@ -174,14 +174,6 @@ pub fn newState() ?*Lua;
 /// Stack Behavior: `[-0, +0, v]`
 pub fn optLString(lua: *Lua, narg: i32, default: ?[]const u8, length: ?*usize) ?[]const u8;
 
-/// If the function argument is a number, returns this number. If the argument is absent or is nil, 
-/// returns the default value. Otherwise, raises an error.
-///
-/// From: `lua_Number luaL_optnumber(lua_State *L, int narg, lua_Number d);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optnumber
-/// Stack Behavior: `[-0, +0, v]`
-pub fn optNumber(lua: *Lua, narg: i32, default: f64) f64;
-
 /// If the function argument narg is a string, returns this string. If this argument is absent or is nil,
 /// returns d. Otherwise, raises an error.
 ///

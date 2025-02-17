@@ -4,6 +4,15 @@
 // This file contains brainstorming and draft translations of the C API to Lua.
 
 
+
+/// The type used by the Lua API to represent integral values. 
+/// By default it is a signed integral type that the machine handles "comfortably".
+///
+/// From: `typedef ptrdiff_t lua_Integer;`
+/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Integer
+pub const Integer = isize;
+
+
 /// Dumps a function as a binary chunk. Receives a Lua function on the top of the stack and produces a
 /// binary chunk that, if loaded again, results in a function equivalent to the one dumped. As it produces
 /// parts of the chunk, lua_dump calls function writer (see https://www.lua.org/manual/5.1/manual.html#lua_Writer)
@@ -14,14 +23,6 @@
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_dump
 /// Stack Behavior: `[-0, +0, m]`
 pub fn dump(lua: *Lua, writer: LuaWriter, data: *anyopaque) i32;
-
-
-/// The type used by the Lua API to represent integral values. 
-/// By default it is a signed integral type that the machine handles "comfortably".
-///
-/// From: `typedef ptrdiff_t lua_Integer;`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Integer
-pub const Integer = isize;
 
 /// Loads a Lua chunk. If there are no errors, pushes the compiled chunk as a Lua function on top of the stack.
 /// Otherwise, it pushes an error message. Returns:
@@ -34,7 +35,7 @@ pub const Integer = isize;
 /// From: `int lua_load(lua_State *L, lua_Reader reader, void *data, const char *chunkname);`
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_load
 /// Stack Behavior: `[-0, +1, -]`
-pub fn load(lua: *Lua, reader: lua.Reader, data: ?*anyopaque, chunkname: ?[:0]const u8) lua.Status;
+pub fn load(lua: *Lua, reader: std.io.Reader, data: ?*anyopaque, chunkname: ?[:0]const u8) lua.Status;
 
 
 

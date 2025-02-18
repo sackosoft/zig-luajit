@@ -1387,7 +1387,7 @@ pub const Lua = opaque {
         ok = c.LUA_OK,
 
         /// Coroutine has suspended execution via yield. Indicates normal coroutine suspension, not an
-        /// error condition. The coroutine can be resumed later with lua_resume().
+        /// error condition. The coroutine can be resumed later with `resumeCoroutine()`.
         yield = c.LUA_YIELD,
 
         /// Indicates that the last execution results in a Lua runtime error. This may indicate usage of
@@ -1903,6 +1903,91 @@ pub const Lua = opaque {
     pub fn yieldCoroutine(lua: *Lua, nresults: i32) i32 {
         assert(nresults >= 0);
         return c.lua_yield(asState(lua), nresults);
+    }
+
+    /// Dumps the function on the top of the stack to a binary chunk. This function can be restored to the stack by
+    /// calling `load()` with the binary chunk written by this function. The restored function is equivalent to the one
+    /// dumped.
+    ///
+    /// As it produces parts of the chunk, `dump()` calls functions on the given writer instance.
+    ///
+    /// This function does not pop the Lua function from the stack.
+    ///
+    /// From: `int lua_dump(lua_State *L, lua_Writer writer, void *data);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_dump
+    /// Stack Behavior: `[-0, +0, m]`
+    pub fn dump(lua: *Lua, writer: std.io.AnyWriter) anyerror!void {
+        const DumpContext = struct {
+            writer: std.io.AnyWriter,
+
+            fn dumpAdapter(l: *Lua, bytes: ?*const anyopaque, size: usize, ud: ?*anyopaque) callconv(.c) i32 {
+                assert(bytes != null);
+                assert(ud != null);
+
+                _ = l;
+
+                const context: *@This() = @alignCast(@ptrCast(ud));
+                const slice: []const u8 = @as([*]const u8, @ptrCast(bytes))[0..size];
+                context.writer.writeAll(slice) catch |err| {
+                    return @intCast(@intFromError(err));
+                };
+                return 0;
+            }
+        };
+
+        var context: DumpContext = .{
+            .writer = writer,
+        };
+
+        const res = c.lua_dump(asState(lua), @ptrCast(&DumpContext.dumpAdapter), &context);
+
+        return switch (res) {
+            0 => return,
+            else => |err| {
+                const error_value: std.meta.Int(.unsigned, @bitSizeOf(anyerror)) = @intCast(err);
+                return @errorFromInt(error_value);
+            },
+        };
+    }
+
+    /// Loads the function in the given chunk and pushes the valid function to the top of the stack. If there is an
+    /// error with the syntax of the function, or the data cannot be loaded, then an error is returned instead.
+    ///
+    /// This function only loads a chunk; it does not run it. Automatically detects whether the chunk is text or binary.
+    ///
+    /// From: `int lua_load(lua_State *L, lua_Reader reader, void *data, const char *chunkname);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_load
+    /// Stack Behavior: `[-0, +1, -]`
+    pub fn load(lua: *Lua, reader: std.io.AnyReader, chunkname: ?[:0]const u8) Lua.Status {
+        const LoadContext = struct {
+            reader: std.io.AnyReader,
+            read_buffer: []u8,
+
+            fn loadAdapter(l: *Lua, ud: ?*anyopaque, size: *usize) callconv(.c) [*]const u8 {
+                assert(ud != null);
+
+                const context: *@This() = @alignCast(@ptrCast(ud.?));
+                const actual = context.reader.read(context.read_buffer) catch |err| {
+                    _ = l.pushFString("Unable to load function, found error '%s' while reading.", .{@errorName(err).ptr});
+                    l.raiseError();
+                };
+                size.* = actual;
+                return @ptrCast(context.read_buffer.ptr);
+            }
+        };
+
+        // TODO: The read buffer size should comptime constant and user controlled? Do users ever create functions that
+        // are more than a few kilobytes?
+        // TODO: Should the default be larger?
+        var read_buffer: [1024]u8 = undefined;
+        var context: LoadContext = .{
+            .reader = reader,
+            .read_buffer = read_buffer[0..],
+        };
+
+        const s = c.lua_load(asState(lua), @ptrCast(&LoadContext.loadAdapter), &context, if (chunkname) |p| p.ptr else null);
+        assert(Lua.Status.is_status(s));
+        return @enumFromInt(s);
     }
 
     /// Used by C functions to validate received arguments.
@@ -3744,4 +3829,50 @@ test "ref and unref in registry" {
     lua.unref(Lua.PseudoIndex.Registry, ref);
     lua.pushValue(Lua.PseudoIndex.Registry);
     try std.testing.expectEqual(length_before, lua.lengthOf(1));
+}
+
+test "Lua functions can be serialized and restored using dump() and load()" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var buf: [256]u8 = undefined;
+    var fbs_write = std.io.fixedBufferStream(&buf);
+
+    try lua.doString("return function(x) return x * 2 end");
+    try std.testing.expectEqual(1, lua.getTop()); // The stack should contain one value, a function.
+    try lua.dump(fbs_write.writer().any());
+
+    lua.pop(1);
+    try std.testing.expectEqual(0, lua.getTop()); // The stack should be empty, ensuring that the function is fully restored from the binary chunk.
+
+    var fbs_read = std.io.fixedBufferStream(fbs_write.getWritten());
+    const status = lua.load(fbs_read.reader().any(), null);
+    try std.testing.expectEqual(Lua.Status.ok, status); // The function should be loaded to the stack successfully.
+
+    lua.pushInteger(21);
+    try lua.protectedCall(1, 1, 0);
+    try std.testing.expectEqual(42, try lua.toIntegerStrict(-1)); // The function should be the "multiply by two" function from above.
+}
+
+test "dump() should report the same errors returned by the AnyWriter" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var buf: [16]u8 = undefined;
+    var fbs = std.io.fixedBufferStream(&buf);
+
+    try lua.doString("return function(x) return x * 2 end");
+    const actual = lua.dump(fbs.writer().any());
+    try std.testing.expectError(error.NoSpaceLeft, actual);
+}
+
+test "load() should report syntax errors when loading invalid binary chunk" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var buf: [3]u8 = .{ 0, 0, 0 };
+    var fbs = std.io.fixedBufferStream(&buf);
+
+    const actual = lua.load(fbs.reader().any(), null);
+    try std.testing.expectEqual(Lua.Status.syntax_error, actual);
 }

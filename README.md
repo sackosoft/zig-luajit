@@ -125,7 +125,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_concat`               | ☑️ `lua.concat()` |
 | `lua_cpcall`               | ☑️📢 `lua.protectedCallCFunction()` |
 | `lua_createtable`          | ☑️ `lua.createTable()` |
-| `lua_dump`                 ||
+| `lua_dump`                 | ➖ subject to changes. |
 | `lua_equal`                | ☑️ `lua.equal()` |
 | `lua_error`                | ☑️📢 `lua.raiseError()` |
 | `lua_gc`                   | ☑️ `lua.gc()` + `lua.gcIsRunning()` |
@@ -149,7 +149,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_isthread`             | ☑️ `lua.isThread()` |
 | `lua_isuserdata`           | ☑️ `lua.isUserdata()` |
 | `lua_lessthan`             | ☑️ `lua.lessThan()` |
-| `lua_load`                 ||
+| `lua_load`                 | ➖ subject to changes. |
 | `lua_newstate`             | ☑️📢 `Lua.init()` |
 | `lua_newtable`             | ☑️ `lua.newTable()` |
 | `lua_newthread`            | ☑️ `lua.newThread()` |

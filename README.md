@@ -137,6 +137,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_getfield`             | ☑️ `lua.getField()`                  |
 | `lua_getglobal`            | ☑️ `lua.getGlobal()`                 |
 | `lua_getmetatable`         | ☑️ `lua.getMetatable()`              |
+| `lua_gettable`             | ☑️ `lua.getTable()`                  |
 | `lua_gettop`               | ☑️ `lua.getTop()`                    |
 | `lua_insert`               | ☑️ `lua.insert()`                    |
 | `lua_isboolean`            | ☑️ `lua.isBoolean()`                 |
@@ -144,8 +145,8 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_isfunction`           | ☑️ `lua.isFunction()`                |
 | `lua_islightuserdata`      | ☑️ `lua.isLightUserdata()`           |
 | `lua_isnil`                | ☑️ `lua.isNil()`                     |
-| `lua_isnoneornil`          | ☑️ `lua.isNilOrNone()`               |
 | `lua_isnone`               | ☑️ `lua.isNone()`                    |
+| `lua_isnoneornil`          | ☑️ `lua.isNilOrNone()`               |
 | `lua_isnumber`             | ☑️ `lua.isNumber()`                  |
 | `lua_isstring`             | ☑️ `lua.isString()`                  |
 | `lua_istable`              | ☑️ `lua.isTable()`                   |
@@ -175,22 +176,21 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_pushthread`           | ☑️ `lua.pushString()`                |
 | `lua_pushvalue`            | ☑️ `lua.pushValue()`                 |
 | `lua_pushvfstring`         | 🆖 please use `lua.pushFString()`   |
-| `lua_gettable`             | ☑️ `lua.getTable()`                  |
 | `lua_rawequal`             | ☑️📢 `lua.equalRaw()`                |
-| `lua_settable`             | ☑️ `lua.setTable()`                  |
-| `lua_rawget`               | ☑️📢 `lua.getTableRaw()`             |
-| `lua_rawset`               | ☑️📢 `lua.setTableRaw()`             |
 | `lua_rawgeti`              | ☑️📢 `lua.getTableIndexRaw()`        |
+| `lua_rawget`               | ☑️📢 `lua.getTableRaw()`             |
 | `lua_rawseti`              | ☑️📢 `lua.setTableIndexRaw()`        |
+| `lua_rawset`               | ☑️📢 `lua.setTableRaw()`             |
 | `lua_register`             | ☑️ `lua.register()`                  |
 | `lua_remove`               | ☑️ `lua.remove()`                    |
 | `lua_replace`              | ☑️ `lua.replace()`                   |
-| `lua_resume`               |                                     |
+| `lua_resume`               | ➖ Hidden, see [Issue #6][ISSUE-6]  |
 | `lua_setallocf`            | ☑️📢 `lua.setAllocator()`            |
 | `lua_setfenv`              | ☑️📢 `lua.setEnvironment()`          |
 | `lua_setfield`             | ☑️ `lua.setField()`                  |
 | `lua_setglobal`            | ☑️ `lua.setGlobal()`                 |
 | `lua_setmetatable`         | ☑️ `lua.setMetatable()`              |
+| `lua_settable`             | ☑️ `lua.setTable()`                  |
 | `lua_settop`               | ☑️ `lua.setTop()`                    |
 | `lua_status`               | ☑️ `lua.status()`                    |
 | `lua_toboolean`            | ☑️ `lua.toBoolean()`                 |
@@ -202,10 +202,12 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_tostring`             | ☑️ `lua.toString()`                  |
 | `lua_tothread`             | ☑️ `lua.toThread()`                  |
 | `lua_touserdata`           | ☑️ `lua.toUserdata()`                |
-| `lua_typename`             | ☑️ `lua.typeName()`                  |
 | `lua_type`                 | ☑️📢 `lua.typeOf()`                  |
+| `lua_typename`             | ☑️ `lua.typeName()`                  |
 | `lua_xmove`                | ☑️ `lua.xmove()`                     |
-| `lua_yield`                |                                     |
+| `lua_yield`                | ➖ Hidden, see [Issue #6][ISSUE-6]  |
+
+[ISSUE-6]: https://github.com/sackosoft/zig-luajit/issues/6
 
 The `zig-luajit` project has not yet reached the 1.0 release, the API is subject to change without notice.
 

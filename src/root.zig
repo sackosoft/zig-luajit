@@ -538,18 +538,18 @@ pub const Lua = opaque {
     }
 
     fn typeIsNotNumber(t: Lua.Type) NotNumberError {
-        return switch (t) {
+        switch (t) {
             .number => unreachable,
-            .string => error.StringIsNotNumber,
-            .none => error.NoneIsNotNumber,
-            .nil => error.NilIsNotNumber,
-            .boolean => error.BooleanIsNotNumber,
-            .light_userdata => error.LightUserdataIsNotNumber,
-            .table => error.TableIsNotNumber,
-            .function => error.FunctionIsNotNumber,
-            .userdata => error.UserdataIsNotNumber,
-            .thread => error.ThreadIsNotNumber,
-        };
+            .string => return error.StringIsNotNumber,
+            .none => return error.NoneIsNotNumber,
+            .nil => return error.NilIsNotNumber,
+            .boolean => return error.BooleanIsNotNumber,
+            .light_userdata => return error.LightUserdataIsNotNumber,
+            .table => return error.TableIsNotNumber,
+            .function => return error.FunctionIsNotNumber,
+            .userdata => return error.UserdataIsNotNumber,
+            .thread => return error.ThreadIsNotNumber,
+        }
     }
 
     /// Converts the Lua value at the given acceptable index to the signed integral type `Lua.Integer`.
@@ -1882,7 +1882,7 @@ pub const Lua = opaque {
     /// From: `int lua_resume(lua_State *L, int narg);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_resume
     /// Stack Behavior: `[-?, +?, -]`
-    pub fn resumeCoroutine(lua: *Lua, nargs: i32) Lua.Status {
+    fn resumeCoroutine(lua: *Lua, nargs: i32) Lua.Status {
         assert(nargs >= 0);
         const s = c.lua_resume(asState(lua), nargs);
         assert(Lua.Status.is_status(s));
@@ -1899,7 +1899,7 @@ pub const Lua = opaque {
     /// From: `int lua_yield(lua_State *L, int nresults);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_yield
     /// Stack Behavior: `[-?, +?, -]`
-    pub fn yieldCoroutine(lua: *Lua, nresults: i32) i32 {
+    fn yieldCoroutine(lua: *Lua, nresults: i32) i32 {
         assert(nresults >= 0);
         return c.lua_yield(asState(lua), nresults);
     }
@@ -3896,4 +3896,32 @@ test "load() should report runtime errors when reading fails" {
     const actual = lua.load(err_reader, null);
     try std.testing.expectEqual(Lua.Status.runtime_error, actual);
     try std.testing.expectEqualStrings("Unable to load function, found error 'TestingError' while reading.", try lua.toLString(-1));
+}
+
+test "suspend and resume coroutines" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn asyncFn(l: *Lua) callconv(.c) i32 {
+            l.pushInteger(10);
+            if (1 == 1) return l.yieldCoroutine(1);
+
+            l.pushInteger(20);
+            return 1;
+        }
+    };
+
+    const thread = lua.newThread();
+
+    thread.pushCFunction(T.asyncFn);
+    const s1 = thread.resumeCoroutine(0);
+    try std.testing.expectEqual(Lua.Status.yield, s1);
+    try std.testing.expectEqual(10, try thread.toIntegerStrict(-1));
+
+    const s2 = thread.resumeCoroutine(0);
+    try std.testing.expectEqual(Lua.Status.ok, s2);
+
+    // TODO: This does not return the expected behavior - I do not think yield and resume work as expected.
+    // try std.testing.expectEqual(20, try thread.toIntegerStrict(-1));
 }

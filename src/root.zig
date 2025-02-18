@@ -8,7 +8,6 @@ const builtin = @import("builtin");
 const isSafeBuildTarget: bool = builtin.mode == .ReleaseSafe or builtin.mode == .Debug;
 
 const c = @import("c");
-
 const aa = @import("allocator_adapter.zig");
 
 /// A Lua state represents the entire context of a Lua interpreter.
@@ -3875,4 +3874,26 @@ test "load() should report syntax errors when loading invalid binary chunk" {
 
     const actual = lua.load(fbs.reader().any(), null);
     try std.testing.expectEqual(Lua.Status.syntax_error, actual);
+}
+
+test "load() should report runtime errors when reading fails" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const ErrRead = struct {
+        fn errRead(context: *const anyopaque, buffer: []u8) anyerror!usize {
+            _ = context;
+            _ = buffer;
+            return error.TestingError;
+        }
+    };
+
+    const err_reader = std.io.AnyReader{
+        .context = @ptrCast(&lua),
+        .readFn = &ErrRead.errRead,
+    };
+
+    const actual = lua.load(err_reader, null);
+    try std.testing.expectEqual(Lua.Status.runtime_error, actual);
+    try std.testing.expectEqualStrings("Unable to load function, found error 'TestingError' while reading.", try lua.toLString(-1));
 }

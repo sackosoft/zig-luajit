@@ -83,11 +83,11 @@ you.
 
 ## Language Binding Coverage Progress
 
-| API | Support |
-|---|---|
-| Lua C API (`lua_*`) | 90% available (84/92) |
-| Auxilary Library (`luaL_*`) | 42% available (21/48) |
-| LuaJIT Extensions | *No plans to implement.* |
+| API                         | Support                  |
+|-----------------------------|--------------------------|
+| Lua C API (`lua_*`)         | 97% available (90/92)    |
+| Auxilary Library (`luaL_*`) | 42% available (21/48)    |
+| LuaJIT Extensions           | *No plans to implement.* |
 
 ## Coverage and Compatibility
 
@@ -106,103 +106,106 @@ This section describes the current status of Zig language bindings ("the Zig API
 
 ### Core C API Coverage (`lua_`)
 
-| C Type Definition | Available in `zig-luajit` |
-|--------------|---------------------------|
-| `lua_State`                | ☑️ `Lua` |
+| C Type Definition          | Available in `zig-luajit`                                           |
+|----------------------------|---------------------------------------------------------------------|
+| `lua_State`                | ☑️ `Lua`                                                             |
 | `lua_Alloc`                | ➖ Hidden, please use `lua.setAllocator()` and `lua.getAllocator()` |
-| `lua_CFunction`            | ☑️ `lua.CFunction` |
-| `lua_Integer`              | ☑️ `Lua.Integer` |
-| `lua_Number`               | ☑️ `Lua.Number` |
-| `lua_Reader`               ||
-| `lua_Writer`               ||
+| `lua_CFunction`            | ☑️ `lua.CFunction`                                                   |
+| `lua_Integer`              | ☑️ `Lua.Integer`                                                     |
+| `lua_Number`               | ☑️ `Lua.Number`                                                      |
+| `lua_Reader`               | ☑️ [`std.io.AnyReader`][ZIG-DOC-ANYREADER]                           |
+| `lua_Writer`               | ☑️ [`std.io.AnyWriter`][ZIG-DOC-ANYWRITER]                           |
 
-| C API Symbols | Available in `zig-luajit` |
-|--------------|---------------------------|
-| `lua_atpanic`              | ☑️ `lua.atPanic()` |
-| `lua_call`                 | ☑️ `lua.call()` |
-| `lua_checkstack`           | ☑️ `lua.checkStack()` |
-| `lua_close`                | ☑️📢 `lua.deinit()` |
-| `lua_concat`               | ☑️ `lua.concat()` |
-| `lua_cpcall`               | ☑️📢 `lua.protectedCallCFunction()` |
-| `lua_createtable`          | ☑️ `lua.createTable()` |
-| `lua_dump`                 | ➖ subject to changes. |
-| `lua_equal`                | ☑️ `lua.equal()` |
-| `lua_error`                | ☑️📢 `lua.raiseError()` |
-| `lua_gc`                   | ☑️ `lua.gc()` + `lua.gcIsRunning()` |
-| `lua_getallocf`            | ☑️📢 `lua.getAllocator()` |
-| `lua_getfenv`              | ☑️📢 `lua.getEnvironment()` |
-| `lua_getfield`             | ☑️ `lua.getField()` |
-| `lua_getglobal`            | ☑️ `lua.getGlobal()` |
-| `lua_getmetatable`         | ☑️ `lua.getMetatable()` |
-| `lua_gettop`               | ☑️ `lua.getTop()` |
-| `lua_insert`               | ☑️ `lua.insert()` |
-| `lua_isboolean`            | ☑️ `lua.isBoolean()` |
-| `lua_iscfunction`          | ☑️ `lua.isCFunction()` |
-| `lua_isfunction`           | ☑️ `lua.isFunction()` |
-| `lua_islightuserdata`      | ☑️ `lua.isLightUserdata()` |
-| `lua_isnil`                | ☑️ `lua.isNil()` |
-| `lua_isnoneornil`          | ☑️ `lua.isNilOrNone()` |
-| `lua_isnone`               | ☑️ `lua.isNone()` |
-| `lua_isnumber`             | ☑️ `lua.isNumber()` |
-| `lua_isstring`             | ☑️ `lua.isString()` |
-| `lua_istable`              | ☑️ `lua.isTable()` |
-| `lua_isthread`             | ☑️ `lua.isThread()` |
-| `lua_isuserdata`           | ☑️ `lua.isUserdata()` |
-| `lua_lessthan`             | ☑️ `lua.lessThan()` |
-| `lua_load`                 | ➖ subject to changes. |
-| `lua_newstate`             | ☑️📢 `Lua.init()` |
-| `lua_newtable`             | ☑️ `lua.newTable()` |
-| `lua_newthread`            | ☑️ `lua.newThread()` |
-| `lua_newuserdata`          | ☑️ `lua.newUserdata()` |
-| `lua_next`                 | ☑️ `lua.next()` |
-| `lua_objlen`               | ☑️📢 `lua.lengthOf()` |
-| `lua_pcall`                | ☑️📢 `lua.protectedCall()` |
-| `lua_pop`                  | ☑️ `lua.pop()` |
-| `lua_pushboolean`          | ☑️ `lua.pushBoolean()` |
-| `lua_pushcclosure`         | ☑️ `lua.pushCClosure()` |
-| `lua_pushcfunction`        | ☑️ `lua.pushCFunction()` |
-| `lua_pushfstring`          | ☑️ `lua.pushFString()` |
-| `lua_pushinteger`          | ☑️ `lua.pushInteger()`|
-| `lua_pushlightuserdata`    | ☑️ `lua.pushLightUserdata()`|
-| `lua_pushliteral`          | 🆖 please use `lua.pushLString()` |
-| `lua_pushlstring`          | ☑️ `lua.pushLString()` |
-| `lua_pushnil`              | ☑️ `lua.pushNil()`|
-| `lua_pushnumber`           | ☑️ `lua.pushNumber()` |
-| `lua_pushstring`           | ☑️ `lua.pushString()` |
-| `lua_pushthread`           | ☑️ `lua.pushString()` |
-| `lua_pushvalue`            | ☑️ `lua.pushValue()` |
-| `lua_pushvfstring`         | 🆖 please use `lua.pushFString()` |
-| `lua_gettable`             | ☑️ `lua.getTable()` |
-| `lua_rawequal`             | ☑️📢 `lua.equalRaw()` |
-| `lua_settable`             | ☑️ `lua.setTable()` |
-| `lua_rawget`               | ☑️📢 `lua.getTableRaw()` |
-| `lua_rawset`               | ☑️📢 `lua.setTableRaw()` |
-| `lua_rawgeti`              | ☑️📢 `lua.getTableIndexRaw()` |
-| `lua_rawseti`              | ☑️📢 `lua.setTableIndexRaw()` |
-| `lua_register`             | ☑️ `lua.register()` |
-| `lua_remove`               | ☑️ `lua.remove()` |
-| `lua_replace`              | ☑️ `lua.replace()` |
-| `lua_resume`               ||
-| `lua_setallocf`            | ☑️📢 `lua.setAllocator()` |
-| `lua_setfenv`              | ☑️📢 `lua.setEnvironment()` |
-| `lua_setfield`             | ☑️ `lua.setField()` |
-| `lua_setglobal`            | ☑️ `lua.setGlobal()` |
-| `lua_setmetatable`         | ☑️ `lua.setMetatable()` |
-| `lua_settop`               | ☑️ `lua.setTop()` |
-| `lua_status`               | ☑️ `lua.status()` |
-| `lua_toboolean`            | ☑️ `lua.toBoolean()`|
-| `lua_tocfunction`          | ☑️ `lua.toCFunction()`|
-| `lua_tointeger`            | ☑️ `lua.toInteger()`|
-| `lua_tolstring`            | ☑️ `lua.toLString()`|
-| `lua_tonumber`             | ☑️ `lua.toNumber()`|
-| `lua_topointer`            | ☑️ `lua.toPointer()`|
-| `lua_tostring`             | ☑️ `lua.toString()`|
-| `lua_tothread`             | ☑️ `lua.toThread()`|
-| `lua_touserdata`           | ☑️ `lua.toUserdata()`|
-| `lua_typename`             | ☑️ `lua.typeName()`|
-| `lua_type`                 | ☑️📢 `lua.typeOf()` |
-| `lua_xmove`                | ☑️ `lua.xmove()`|
-| `lua_yield`                ||
+[ZIG-DOC-ANYREADER]: https://ziglang.org/documentation/master/std/#std.io.AnyReader
+[ZIG-DOC-ANYWRITER]: https://ziglang.org/documentation/master/std/#std.io.AnyWriter
+
+| C API Symbols              | Available in `zig-luajit`           |
+|----------------------------|-------------------------------------|
+| `lua_atpanic`              | ☑️ `lua.atPanic()`                   |
+| `lua_call`                 | ☑️ `lua.call()`                      |
+| `lua_checkstack`           | ☑️ `lua.checkStack()`                |
+| `lua_close`                | ☑️📢 `lua.deinit()`                  |
+| `lua_concat`               | ☑️ `lua.concat()`                    |
+| `lua_cpcall`               | ☑️📢 `lua.protectedCallCFunction()`  |
+| `lua_createtable`          | ☑️ `lua.createTable()`               |
+| `lua_dump`                 | ☑️ `lua.dump()`                      |
+| `lua_equal`                | ☑️ `lua.equal()`                     |
+| `lua_error`                | ☑️📢 `lua.raiseError()`              |
+| `lua_gc`                   | ☑️ `lua.gc()` + `lua.gcIsRunning()`  |
+| `lua_getallocf`            | ☑️📢 `lua.getAllocator()`            |
+| `lua_getfenv`              | ☑️📢 `lua.getEnvironment()`          |
+| `lua_getfield`             | ☑️ `lua.getField()`                  |
+| `lua_getglobal`            | ☑️ `lua.getGlobal()`                 |
+| `lua_getmetatable`         | ☑️ `lua.getMetatable()`              |
+| `lua_gettop`               | ☑️ `lua.getTop()`                    |
+| `lua_insert`               | ☑️ `lua.insert()`                    |
+| `lua_isboolean`            | ☑️ `lua.isBoolean()`                 |
+| `lua_iscfunction`          | ☑️ `lua.isCFunction()`               |
+| `lua_isfunction`           | ☑️ `lua.isFunction()`                |
+| `lua_islightuserdata`      | ☑️ `lua.isLightUserdata()`           |
+| `lua_isnil`                | ☑️ `lua.isNil()`                     |
+| `lua_isnoneornil`          | ☑️ `lua.isNilOrNone()`               |
+| `lua_isnone`               | ☑️ `lua.isNone()`                    |
+| `lua_isnumber`             | ☑️ `lua.isNumber()`                  |
+| `lua_isstring`             | ☑️ `lua.isString()`                  |
+| `lua_istable`              | ☑️ `lua.isTable()`                   |
+| `lua_isthread`             | ☑️ `lua.isThread()`                  |
+| `lua_isuserdata`           | ☑️ `lua.isUserdata()`                |
+| `lua_lessthan`             | ☑️ `lua.lessThan()`                  |
+| `lua_load`                 | ☑️ `lua.load()`                      |
+| `lua_newstate`             | ☑️📢 `Lua.init()`                    |
+| `lua_newtable`             | ☑️ `lua.newTable()`                  |
+| `lua_newthread`            | ☑️ `lua.newThread()`                 |
+| `lua_newuserdata`          | ☑️ `lua.newUserdata()`               |
+| `lua_next`                 | ☑️ `lua.next()`                      |
+| `lua_objlen`               | ☑️📢 `lua.lengthOf()`                |
+| `lua_pcall`                | ☑️📢 `lua.protectedCall()`           |
+| `lua_pop`                  | ☑️ `lua.pop()`                       |
+| `lua_pushboolean`          | ☑️ `lua.pushBoolean()`               |
+| `lua_pushcclosure`         | ☑️ `lua.pushCClosure()`              |
+| `lua_pushcfunction`        | ☑️ `lua.pushCFunction()`             |
+| `lua_pushfstring`          | ☑️ `lua.pushFString()`               |
+| `lua_pushinteger`          | ☑️ `lua.pushInteger()`               |
+| `lua_pushlightuserdata`    | ☑️ `lua.pushLightUserdata()`         |
+| `lua_pushliteral`          | 🆖 please use `lua.pushLString()`   |
+| `lua_pushlstring`          | ☑️ `lua.pushLString()`               |
+| `lua_pushnil`              | ☑️ `lua.pushNil()`                   |
+| `lua_pushnumber`           | ☑️ `lua.pushNumber()`                |
+| `lua_pushstring`           | ☑️ `lua.pushString()`                |
+| `lua_pushthread`           | ☑️ `lua.pushString()`                |
+| `lua_pushvalue`            | ☑️ `lua.pushValue()`                 |
+| `lua_pushvfstring`         | 🆖 please use `lua.pushFString()`   |
+| `lua_gettable`             | ☑️ `lua.getTable()`                  |
+| `lua_rawequal`             | ☑️📢 `lua.equalRaw()`                |
+| `lua_settable`             | ☑️ `lua.setTable()`                  |
+| `lua_rawget`               | ☑️📢 `lua.getTableRaw()`             |
+| `lua_rawset`               | ☑️📢 `lua.setTableRaw()`             |
+| `lua_rawgeti`              | ☑️📢 `lua.getTableIndexRaw()`        |
+| `lua_rawseti`              | ☑️📢 `lua.setTableIndexRaw()`        |
+| `lua_register`             | ☑️ `lua.register()`                  |
+| `lua_remove`               | ☑️ `lua.remove()`                    |
+| `lua_replace`              | ☑️ `lua.replace()`                   |
+| `lua_resume`               |                                     |
+| `lua_setallocf`            | ☑️📢 `lua.setAllocator()`            |
+| `lua_setfenv`              | ☑️📢 `lua.setEnvironment()`          |
+| `lua_setfield`             | ☑️ `lua.setField()`                  |
+| `lua_setglobal`            | ☑️ `lua.setGlobal()`                 |
+| `lua_setmetatable`         | ☑️ `lua.setMetatable()`              |
+| `lua_settop`               | ☑️ `lua.setTop()`                    |
+| `lua_status`               | ☑️ `lua.status()`                    |
+| `lua_toboolean`            | ☑️ `lua.toBoolean()`                 |
+| `lua_tocfunction`          | ☑️ `lua.toCFunction()`               |
+| `lua_tointeger`            | ☑️ `lua.toInteger()`                 |
+| `lua_tolstring`            | ☑️ `lua.toLString()`                 |
+| `lua_tonumber`             | ☑️ `lua.toNumber()`                  |
+| `lua_topointer`            | ☑️ `lua.toPointer()`                 |
+| `lua_tostring`             | ☑️ `lua.toString()`                  |
+| `lua_tothread`             | ☑️ `lua.toThread()`                  |
+| `lua_touserdata`           | ☑️ `lua.toUserdata()`                |
+| `lua_typename`             | ☑️ `lua.typeName()`                  |
+| `lua_type`                 | ☑️📢 `lua.typeOf()`                  |
+| `lua_xmove`                | ☑️ `lua.xmove()`                     |
+| `lua_yield`                |                                     |
 
 The `zig-luajit` project has not yet reached the 1.0 release, the API is subject to change without notice.
 

@@ -83,11 +83,13 @@ you.
 
 ## Language Binding Coverage Progress
 
-| API                         | Support                  |
-|-----------------------------|--------------------------|
-| Lua C API (`lua_*`)         | 97% available (90/92)    |
-| Auxilary Library (`luaL_*`) | 42% available (21/48)    |
-| LuaJIT Extensions           | *No plans to implement.* |
+| API                         | Support                               |
+|-----------------------------|---------------------------------------|
+| Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
+| Auxilary Library (`luaL_*`) | 42% coverage (21/48)                  |
+| LuaJIT Extensions           | *No plans to implement.*              |
+
+*†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
 
 ## Coverage and Compatibility
 

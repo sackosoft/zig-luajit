@@ -904,13 +904,11 @@ pub const Lua = opaque {
     /// * '%d' - Insert a `Lua.Integer`, usually an `i64`, and
     /// * '%c' - Insert a single character represented by a number.
     ///
-    /// **Usage of this function is discouraged**, consider instead using Zig `std.fmt` primitives in combination with
-    /// `lua.pushString()` or `lua.pushLString()`.
-    ///
+    /// See also: `raiseErrorFormat()`
     /// From: `const char *lua_pushfstring(lua_State *L, const char *fmt, ...);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pushfstring
     /// Stack Behavior: `[-0, +1, m]`
-    pub fn pushFString(lua: *Lua, comptime format: []const u8, args: anytype) [:0]const u8 {
+    pub fn pushFString(lua: *Lua, comptime format: [:0]const u8, args: anytype) [:0]const u8 {
         const string: ?[*:0]const u8 = @call(.auto, c.lua_pushfstring, .{ asState(lua), format.ptr } ++ args);
         if (string) |s| {
             // NOTE: This seems dangerous. I don't really like this solution, but it doesn't look like there is any other option.
@@ -1472,16 +1470,35 @@ pub const Lua = opaque {
         return 1 == c.lua_next(asState(lua), index);
     }
 
-    /// Generates a Lua error. The error message (which can actually be a Lua value of any type)
-    /// must be on the stack top. This function does a long jump and therefore never returns.
-    ///
-    /// Note: This function was renamed from `error` due to naming conflicts with Zig's `error` keyword.
+    /// Raises an error with the error message on the top of the stack. The error message may be a Lua value of any
+    /// type, but usually a string is best. This function does a long jump and therefore never returns.
     ///
     /// From: `int lua_error(lua_State *L);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_error
     /// Stack Behavior: `[-1, +0, v]`
     pub fn raiseError(lua: *Lua) noreturn {
         _ = c.lua_error(asState(lua));
+        unreachable;
+    }
+
+    /// Raises an error with the given error message format and optional arguments. The error message follows
+    /// the same rules as `pushFString()` and includes the file name and line number where the error occurred,
+    /// if such information is available. This function does a long jump and therefore never returns.
+    ///
+    /// In the given `format` string, format specifiers are restricted to the following options:
+    /// * '%%' - Insert a literal '%' character in the string.
+    /// * '%s' - Insert a zero-terminated string,
+    /// * '%f' - Insert a `Lua.Number`, usually an `f64`,
+    /// * '%p' - Insert a pointer-width ineger formatted as hexadecimal,
+    /// * '%d' - Insert a `Lua.Integer`, usually an `i64`, and
+    /// * '%c' - Insert a single character represented by a number.
+    ///
+    /// See also: `pushFString()`
+    /// From: `int luaL_error(lua_State *L, const char *fmt, ...);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_error
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn raiseErrorFormat(lua: *Lua, format: [:0]const u8, args: anytype) noreturn {
+        _ = @call(.auto, c.luaL_error, .{ asState(lua), format.ptr } ++ args);
         unreachable;
     }
 
@@ -2779,19 +2796,37 @@ test "c functions and closures with protectedCall" {
     lua.pop(1);
 }
 
-fn errorRaisingCFunction(lua: *Lua) callconv(.c) i32 {
-    lua.pushLString("error raised");
-    lua.raiseError();
-}
-
-test "c functions raising error with protectedCall" {
+test "protectedCall should capture error raised by c function" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    lua.pushCFunction(errorRaisingCFunction);
+    const T = struct {
+        fn errorRaisingCFunction(l: *Lua) callconv(.c) i32 {
+            l.pushLString("error raised");
+            l.raiseError();
+        }
+    };
+
+    lua.pushCFunction(T.errorRaisingCFunction);
     const actual = lua.protectedCall(0, 0, 0);
     try std.testing.expectError(Lua.CallError.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "error raised", try lua.toLString(-1));
+}
+
+test "protectedCall should capture formatted error raised by c function" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn formattedErrorRaisingCFunction(l: *Lua) callconv(.c) i32 {
+            return l.raiseErrorFormat("%%-%s-%%,%f,%d,'%c'", .{ "Hello", @as(f64, 13.3), @as(i32, 42), @as(u8, 'A') });
+        }
+    };
+
+    lua.pushCFunction(T.formattedErrorRaisingCFunction);
+    const actual = lua.protectedCall(0, 0, 0);
+    try std.testing.expectError(Lua.CallError.Runtime, actual);
+    try std.testing.expectEqualSlices(u8, "%-Hello-%,13.3,42,'A'", try lua.toLString(-1));
 }
 
 test "openLibs doesn't effect the stack" {

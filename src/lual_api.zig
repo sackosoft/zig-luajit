@@ -90,15 +90,6 @@ pub fn doFile(lua: *Lua, filename: [*:0]const u8) LuaError!void;
 
 
 
-/// Raises an error with the given error message format and optional arguments. The error message follows
-/// the same rules as lua_pushfstring and includes the file name and line number where the error occurred,
-/// if such information is available. This function never returns.
-///
-/// From: `int luaL_error(lua_State *L, const char *fmt, ...);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_error
-/// Stack Behavior: `[-0, +0, v]`
-pub fn lError(lua: *Lua, comptime fmt: []const u8, ...) noreturn;
-
 /// Pushes onto the stack the field `e` from the metatable of the object at index `obj`.
 /// If the object does not have a metatable, or if the metatable does not have this field,
 /// returns 0 and pushes nothing.

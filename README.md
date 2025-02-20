@@ -17,13 +17,13 @@ TODO: Capture attention with a visualization, diagram, demo or other visual plac
 
 ## About
 
-This project attempts to provide the most idiomatic Zig language bindings for the Lua C API and C API Auxilary Library. The `zig-luajit` project emphasizes
-safety by making liberal use of runtime safety checks in `Debug` and `ReleaseSafe` builds. Translations of types and functions is a work in progress and done
-completely by human hands -- no `translate-c` or LLMs.
+The goal of the `zig-luajit` project is to provide the most idiomatic Zig language bindings for the LuaJIT C API and C
+API Auxilary Library. Additionally the `zig-luajit` project emphasizes safety by making liberal use of runtime safety
+checks in `Debug` and `ReleaseSafe` builds and provides full test coverage of the API.
 
 ## Zig Version
 
-The `main` branch targets recent builds of Zig's `master` branch (last tested with Zig `0.14.0-dev.3197+1d8857bbe`).
+The `main` branch targets recent builds of Zig's `master` branch (last tested with Zig `0.14.0-dev.3267+59dc15fa0`).
 
 ## Installation & Usage
 

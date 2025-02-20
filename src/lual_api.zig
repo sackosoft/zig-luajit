@@ -197,13 +197,6 @@ pub const Reg = extern struct {
     func: ?*const fn (state: *Lua) callconv(.C) c_int,
 };
 
-/// Returns the name of the type of the value at the given index.
-///
-/// From: `const char *luaL_typename(lua_State *L, int index);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_typename
-/// Stack Behavior: `[-0, +0, -]`
-pub fn typeName(lua: *Lua, index: i32) ?[:0]const u8;
-
 /// Generates an error with a message like "location: bad argument narg to 'func' (tname expected, got rt)",
 /// where location is produced by luaL_where, func is the name of the current function,
 /// and rt is the type name of the actual argument.

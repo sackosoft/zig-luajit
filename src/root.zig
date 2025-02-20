@@ -178,7 +178,7 @@ pub const Lua = opaque {
     /// From: `const char *lua_typename(lua_State *L, int tp);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_typename
     /// Stack Behavior: `[-0, +0, -]`
-    pub fn typeName(lua: *Lua, t: Lua.Type) [:0]const u8 {
+    pub fn getTypeName(lua: *Lua, t: Lua.Type) [:0]const u8 {
         _ = lua;
 
         const type_to_name: [12][:0]const u8 = .{
@@ -196,9 +196,25 @@ pub const Lua = opaque {
             "cdata",
         };
         const index = @intFromEnum(t) + 1;
-        assert(index >= 0);
+        assert(index >= 0 and index < type_to_name.len);
 
         return type_to_name[@as(usize, @intCast(index))];
+    }
+
+    /// Returns the name of the type of the value at the given index.
+    /// Caller *does not* own the returned slice.
+    ///
+    /// From: `const char *luaL_typename(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_typename
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn getTypeNameAt(lua: *Lua, index: i32) [:0]const u8 {
+        lua.skipIndexValidation(
+            index,
+            "getType() safely returns `Lua.Type.none` when the index is not valid, and this has a valid name of 'no value'.",
+        );
+
+        const t = lua.getType(index);
+        return lua.getTypeName(t);
     }
 
     /// Explicitly marks stack index usage as intentionally unchecked. Used when the Lua C API behavior
@@ -247,7 +263,7 @@ pub const Lua = opaque {
     pub fn getType(lua: *Lua, index: i32) Lua.Type {
         lua.skipIndexValidation(
             index,
-            "getType() safely returns `None` when the index is not valid (required by Lua spec).",
+            "getType() safely returns `Lua.Type.none` when the index is not valid (required by Lua spec).",
         );
 
         const t = c.lua_type(asState(lua), index);
@@ -1449,8 +1465,8 @@ pub const Lua = opaque {
     /// // Assuming the table is at the top of the stack, we start by pushing nil, which cannot be a table key.
     /// lua.pushNil();
     /// while (lua.next(-2)) {
-    ///     std.debug.print("The key is a '{s}'\n", .{lua.typeName(lua.getType(-2))});
-    ///     std.debug.print("The value is a '{s}'\n", .{lua.typeName(lua.getType(-1))});
+    ///     std.debug.print("The key is a '{s}'\n", .{lua.getTypeName(lua.getType(-2))});
+    ///     std.debug.print("The value is a '{s}'\n", .{lua.getTypeName(lua.getType(-1))});
     ///
     ///     // Remove the 'value' from the stack, the key remains at the top for `next()` to find.
     ///     lua.pop(1);
@@ -2232,6 +2248,7 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expect(lua.isNoneOrNil(1));
     try std.testing.expect(!(lua.getType(1) == Lua.Type.none));
     try std.testing.expect(!lua.isNone(1));
+    try std.testing.expectEqualSlices(u8, "nil", lua.getTypeNameAt(1));
     lua.pop(1);
 
     lua.pushBoolean(true);
@@ -2248,6 +2265,7 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expect(!lua.isTable(1));
     try std.testing.expect(!lua.isThread(1));
     try std.testing.expect(!lua.isUserdata(1));
+    try std.testing.expectEqualSlices(u8, "boolean", lua.getTypeNameAt(1));
     lua.pop(1);
 
     lua.pushInteger(42);
@@ -2265,6 +2283,7 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expect(!lua.isTable(1));
     try std.testing.expect(!lua.isThread(1));
     try std.testing.expect(!lua.isUserdata(1));
+    try std.testing.expectEqualSlices(u8, "number", lua.getTypeNameAt(1));
     lua.pop(1);
 
     lua.pushNumber(42.4);
@@ -2282,19 +2301,23 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expect(!lua.isTable(1));
     try std.testing.expect(!lua.isThread(1));
     try std.testing.expect(!lua.isUserdata(1));
+    try std.testing.expectEqualSlices(u8, "number", lua.getTypeNameAt(1));
     lua.pop(1);
 
     lua.pushString("abc");
     try std.testing.expect(lua.isString(1));
+    try std.testing.expectEqualSlices(u8, "string", lua.getTypeNameAt(1));
     lua.pop(1);
 
     lua.pushLString("abc");
     try std.testing.expect(lua.isString(1));
+    try std.testing.expectEqualSlices(u8, "string", lua.getTypeNameAt(1));
     lua.pop(1);
 
     lua.newTable();
     try std.testing.expect(lua.isTable(1));
     try std.testing.expectEqual(Lua.Type.table, lua.getType(1));
+    try std.testing.expectEqualSlices(u8, "table", lua.getTypeNameAt(1));
     lua.pop(1);
 
     lua.createTable(1, 0);
@@ -2302,16 +2325,16 @@ test "Lua type checking functions return true when stack contains value" {
     try std.testing.expectEqual(Lua.Type.table, lua.getType(1));
     lua.pop(1);
 
-    try std.testing.expectEqualSlices(u8, "no value", lua.typeName(Lua.Type.none));
-    try std.testing.expectEqualSlices(u8, "nil", lua.typeName(Lua.Type.nil));
-    try std.testing.expectEqualSlices(u8, "boolean", lua.typeName(Lua.Type.boolean));
-    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.userdata));
-    try std.testing.expectEqualSlices(u8, "number", lua.typeName(Lua.Type.number));
-    try std.testing.expectEqualSlices(u8, "string", lua.typeName(Lua.Type.string));
-    try std.testing.expectEqualSlices(u8, "table", lua.typeName(Lua.Type.table));
-    try std.testing.expectEqualSlices(u8, "function", lua.typeName(Lua.Type.function));
-    try std.testing.expectEqualSlices(u8, "userdata", lua.typeName(Lua.Type.light_userdata));
-    try std.testing.expectEqualSlices(u8, "thread", lua.typeName(Lua.Type.thread));
+    try std.testing.expectEqualSlices(u8, "no value", lua.getTypeName(Lua.Type.none));
+    try std.testing.expectEqualSlices(u8, "nil", lua.getTypeName(Lua.Type.nil));
+    try std.testing.expectEqualSlices(u8, "boolean", lua.getTypeName(Lua.Type.boolean));
+    try std.testing.expectEqualSlices(u8, "userdata", lua.getTypeName(Lua.Type.userdata));
+    try std.testing.expectEqualSlices(u8, "number", lua.getTypeName(Lua.Type.number));
+    try std.testing.expectEqualSlices(u8, "string", lua.getTypeName(Lua.Type.string));
+    try std.testing.expectEqualSlices(u8, "table", lua.getTypeName(Lua.Type.table));
+    try std.testing.expectEqualSlices(u8, "function", lua.getTypeName(Lua.Type.function));
+    try std.testing.expectEqualSlices(u8, "userdata", lua.getTypeName(Lua.Type.light_userdata));
+    try std.testing.expectEqualSlices(u8, "thread", lua.getTypeName(Lua.Type.thread));
 }
 
 test "toBoolean and toBooleanStrict" {

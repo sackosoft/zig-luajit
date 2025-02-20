@@ -162,7 +162,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_newthread`            | ☑️ `lua.newThread()`                 |
 | `lua_newuserdata`          | ☑️ `lua.newUserdata()`               |
 | `lua_next`                 | ☑️ `lua.next()`                      |
-| `lua_objlen`               | ☑️📢 `lua.getLenth()`                |
+| `lua_objlen`               | ☑️📢 `lua.getLength()`               |
 | `lua_pop`                  | ☑️ `lua.pop()`                       |
 | `lua_pushboolean`          | ☑️ `lua.pushBoolean()`               |
 | `lua_pushcclosure`         | ☑️ `lua.pushCClosure()`              |
@@ -205,7 +205,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_tothread`             | ☑️ `lua.toThread()`                  |
 | `lua_touserdata`           | ☑️ `lua.toUserdata()`                |
 | `lua_type`                 | ☑️📢 `lua.getType()`                 |
-| `lua_typename`             | ☑️ `lua.typeName()`                  |
+| `lua_typename`             | ☑️ `lua.getTypeName()`               |
 | `lua_xmove`                | ☑️ `lua.xmove()`                     |
 | `lua_yield`                | ➖ Hidden, see [Issue #6][ISSUE-6]  |
 
@@ -266,7 +266,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_ref`                 | ☑️ `lua.ref()` |
 | `luaL_unref`               | ☑️ `lua.unref()` |
 | `luaL_register`            ||
-| `luaL_typename`            | ☑️ `lua.typeName()` |
+| `luaL_typename`            | ☑️ `lua.getTypeNameAt()` |
 | `luaL_typerror`            ||
 | `luaL_where`               ||
 

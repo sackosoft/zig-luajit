@@ -2049,6 +2049,22 @@ pub const Lua = opaque {
     }
 
     /// Used by C functions to validate received arguments.
+    /// If the function argument `arg_n` is a string, returns this string. If this argument is absent or is nil,
+    /// returns d. Otherwise, raises an error.
+    ///
+    /// From: `const char *luaL_optstring(lua_State *L, int narg, const char *d);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optstring
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkStringOptional(lua: *Lua, arg_n: i32, d: [*:0]const u8) [*:0]const u8 {
+        const string: ?[*:0]const u8 = c.luaL_optlstring(asState(lua), arg_n, d, null);
+        if (string) |s| {
+            return s;
+        } else {
+            unreachable; // If the argument is not a string or convertable to a string, the argument check should fail and the call will not return.
+        }
+    }
+
+    /// Used by C functions to validate received arguments.
     /// Checks whether the function argument `arg_n` is a string and returns this string.
     /// All conversions and caveats of `lua.toLString()` also apply here.
     ///
@@ -2058,6 +2074,23 @@ pub const Lua = opaque {
     pub fn checkLString(lua: *Lua, arg_n: i32) [:0]const u8 {
         var len: usize = undefined;
         const string: ?[*]const u8 = c.luaL_checklstring(asState(lua), arg_n, &len);
+        if (string) |s| {
+            return s[0..len :0];
+        } else {
+            unreachable; // If the argument is not a string or convertable to a string, the argument check should fail and the call will not return.
+        }
+    }
+
+    /// Used by C functions to validate received arguments.
+    /// If the function argument "arg_n" is a string, returns this string. If this argument is absent or is nil,
+    /// returns d. Otherwise, raises an error.
+    ///
+    /// From: `const char *luaL_optlstring(lua_State *L, int narg, const char *d, size_t *l);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optlstring
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn checkLStringOptional(lua: *Lua, arg_n: i32, default: [:0]const u8) [:0]const u8 {
+        var len: usize = undefined;
+        const string: ?[*]const u8 = c.luaL_optlstring(asState(lua), arg_n, default, &len);
         if (string) |s| {
             return s[0..len :0];
         } else {
@@ -3622,6 +3655,38 @@ test "checkString() should validate presence of arguments and return the correct
     lua.pop(1);
 }
 
+test "checkStringOptional() should validate presence of arguments and return the correct value" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn EchoString(l: *Lua) callconv(.c) i32 {
+            const actual = l.checkStringOptional(1, "FOO");
+            l.pushString(actual);
+            return 1;
+        }
+    };
+
+    const expected = "Who is John Galt?";
+    lua.pushCFunction(T.EchoString);
+    lua.pushString(expected);
+    try lua.protectedCall(1, 1, 0);
+    const a1 = try lua.toLString(-1);
+    try std.testing.expectEqualSlices(u8, expected, a1);
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoString);
+    try lua.protectedCall(0, 1, 0);
+    try std.testing.expectEqualSlices(u8, "FOO", (try lua.toString(-1))[0..3 :0]);
+
+    lua.pushCFunction(T.EchoString);
+    lua.pushInteger(42);
+    try lua.protectedCall(1, 1, 0);
+    const a3 = try lua.toLString(-1);
+    try std.testing.expectEqualStrings("42", a3);
+    lua.pop(1);
+}
+
 test "checkLString() should validate presence of arguments and return the correct value" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
@@ -3646,6 +3711,38 @@ test "checkLString() should validate presence of arguments and return the correc
     const a2 = lua.protectedCall(0, 1, 0);
     try std.testing.expectError(error.Runtime, a2);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (string expected, got no value)", try lua.toLString(-1));
+
+    lua.pushCFunction(T.EchoString);
+    lua.pushInteger(42);
+    try lua.protectedCall(1, 1, 0);
+    const a3 = try lua.toLString(-1);
+    try std.testing.expectEqualSlices(u8, "42", a3);
+    lua.pop(1);
+}
+
+test "checkLStringOptional() should validate presence of arguments and return the correct value" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn EchoString(l: *Lua) callconv(.c) i32 {
+            const actual = l.checkLStringOptional(1, "FOO");
+            l.pushLString(actual);
+            return 1;
+        }
+    };
+
+    const expected = "Who is John Galt?";
+    lua.pushCFunction(T.EchoString);
+    lua.pushLString(expected);
+    try lua.protectedCall(1, 1, 0);
+    const a1 = try lua.toLString(-1);
+    try std.testing.expectEqualSlices(u8, expected, a1);
+    lua.pop(1);
+
+    lua.pushCFunction(T.EchoString);
+    try lua.protectedCall(0, 1, 0);
+    try std.testing.expectEqualSlices(u8, "FOO", try lua.toLString(-1));
 
     lua.pushCFunction(T.EchoString);
     lua.pushInteger(42);

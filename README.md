@@ -86,7 +86,7 @@ you.
 | API                         | Support                               |
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 42% coverage (21/48)                  |
+| Auxilary Library (`luaL_*`) | 44% coverage (23/48)                  |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -216,6 +216,11 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 
 ### Auxilary Library Coverage (`luaL_`)
 
+| C Type Definition          | Available in `zig-luajit`                                           |
+|----------------------------|---------------------------------------------------------------------|
+| `luaL_Buffer`              ||
+| `luaL_Reg`                 ||
+
 | C API Symbol | Available in `zig-luajit` |
 |--------------|---------------------------|
 | `luaL_addchar`             ||
@@ -225,7 +230,6 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_addvalue`            ||
 | `luaL_argcheck`            | ☑️📢 `lua.checkArgument()` |
 | `luaL_argerror`            ||
-| `luaL_Buffer`              ||
 | `luaL_buffinit`            ||
 | `luaL_callmeta`            ||
 | `luaL_checkany`            | ☑️ `lua.checkAny()`|
@@ -254,15 +258,14 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_optinteger`          | ☑️📢 `lua.checkIntegerOptional()` |
 | `luaL_optint`              | 🆖 please use `lua.checkIntegerOptional()` |
 | `luaL_optlong`             | 🆖 please use `lua.checkIntegerOptional()` |
-| `luaL_optlstring`          ||
+| `luaL_optlstring`          | ☑️📢 `lua.checkLStringOptional()` |
 | `luaL_optnumber`           | ☑️📢 `lua.checkNumberOptional()` |
-| `luaL_optstring`           ||
+| `luaL_optstring`           | ☑️📢 `lua.checkStringOptional()` |
 | `luaL_prepbuffer`          ||
 | `luaL_pushresult`          ||
 | `luaL_ref`                 | ☑️ `lua.ref()` |
 | `luaL_unref`               | ☑️ `lua.unref()` |
 | `luaL_register`            ||
-| `luaL_Reg`                 ||
 | `luaL_typename`            | ☑️ `lua.typeName()` |
 | `luaL_typerror`            ||
 | `luaL_where`               ||

@@ -166,22 +166,6 @@ pub fn newMetatable(lua: *Lua, tname: [*:0]const u8) i32;
 /// Stack Behavior: `[-0, +0, -]`
 pub fn newState() ?*Lua;
 
-/// If the function argument narg is a string, returns this string. If this argument is absent or is nil,
-/// returns d. Otherwise, raises an error. If l is not null, fills the position *l with the result's length.
-///
-/// From: `const char *luaL_optlstring(lua_State *L, int narg, const char *d, size_t *l);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optlstring
-/// Stack Behavior: `[-0, +0, v]`
-pub fn optLString(lua: *Lua, narg: i32, default: ?[]const u8, length: ?*usize) ?[]const u8;
-
-/// If the function argument narg is a string, returns this string. If this argument is absent or is nil,
-/// returns d. Otherwise, raises an error.
-///
-/// From: `const char *luaL_optstring(lua_State *L, int narg, const char *d);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_optstring
-/// Stack Behavior: `[-0, +0, v]`
-pub fn optString(lua: *Lua, narg: i32, d: ?[:0]const u8) ?[:0]const u8;
-
 /// Returns an address to a space of size LUAL_BUFFERSIZE where you can copy a string to be added to buffer B.
 /// After copying the string into this space you must call luaL_addsize with the size of the string to actually
 /// add it to the buffer.

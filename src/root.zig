@@ -202,7 +202,7 @@ pub const Lua = opaque {
     }
 
     /// Explicitly marks stack index usage as intentionally unchecked. Used when the Lua C API behavior
-    /// is well-defined even for invalid indices, such as `typeOf()` returning `Lua.Type.None` when
+    /// is well-defined even for invalid indices, such as `getType()` returning `Lua.Type.None` when
     /// accessing an invalid or unacceptable index.
     ///
     /// This function serves as documentation and serves no functional purpose. It should be used to help
@@ -244,10 +244,10 @@ pub const Lua = opaque {
     /// From: `int lua_type(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_type
     /// Stack Behavior: `[-0, +0, -]`
-    pub fn typeOf(lua: *Lua, index: i32) Lua.Type {
+    pub fn getType(lua: *Lua, index: i32) Lua.Type {
         lua.skipIndexValidation(
             index,
-            "typeOf() safely returns `None` when the index is not valid (required by Lua spec).",
+            "getType() safely returns `None` when the index is not valid (required by Lua spec).",
         );
 
         const t = c.lua_type(asState(lua), index);
@@ -266,7 +266,7 @@ pub const Lua = opaque {
             "isNoneOrNil() safely returns `true` when the index is not valid (required by Lua spec).",
         );
 
-        return lua.typeOf(index) == Lua.Type.none or lua.typeOf(index) == Lua.Type.nil;
+        return lua.getType(index) == Lua.Type.none or lua.getType(index) == Lua.Type.nil;
     }
 
     /// Returns true if the given acceptable index is not valid (that is, it refers to an element outside the
@@ -281,7 +281,7 @@ pub const Lua = opaque {
             "isNone() safely returns `true` when the index is not valid (required by Lua spec).",
         );
 
-        return lua.typeOf(index) == Lua.Type.none;
+        return lua.getType(index) == Lua.Type.none;
     }
 
     /// Returns true if the value at the given acceptable index is nil, and false otherwise.
@@ -292,7 +292,7 @@ pub const Lua = opaque {
     pub fn isNil(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.nil;
+        return lua.getType(index) == Lua.Type.nil;
     }
 
     /// Returns true if the value at the given acceptable index has type boolean, false otherwise.
@@ -303,7 +303,7 @@ pub const Lua = opaque {
     pub fn isBoolean(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.boolean;
+        return lua.getType(index) == Lua.Type.boolean;
     }
 
     /// Returns true if the value at the given acceptable index is a function (either C or Lua), and false otherwise.
@@ -314,7 +314,7 @@ pub const Lua = opaque {
     pub fn isFunction(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.function;
+        return lua.getType(index) == Lua.Type.function;
     }
 
     /// Returns true if the value at the given acceptable index is a light userdata, false otherwise.
@@ -325,7 +325,7 @@ pub const Lua = opaque {
     pub fn isLightUserdata(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.light_userdata;
+        return lua.getType(index) == Lua.Type.light_userdata;
     }
 
     /// Returns true if the value at the given acceptable index is a table, false otherwise.
@@ -336,7 +336,7 @@ pub const Lua = opaque {
     pub fn isTable(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.table;
+        return lua.getType(index) == Lua.Type.table;
     }
 
     /// Returns true if the value at the given acceptable index is a thread, and false otherwise.
@@ -347,7 +347,7 @@ pub const Lua = opaque {
     pub fn isThread(lua: *Lua, index: i32) bool {
         lua.validateStackIndex(index);
 
-        return lua.typeOf(index) == Lua.Type.thread;
+        return lua.getType(index) == Lua.Type.thread;
     }
 
     /// Returns true if the value at the given acceptable index is a number and an integer; that is, the number
@@ -460,7 +460,7 @@ pub const Lua = opaque {
             "toBooleanStrict() safely returns `error.NoneIsNotBoolean` when the index is not valid.",
         );
 
-        return switch (lua.typeOf(index)) {
+        return switch (lua.getType(index)) {
             .boolean => lua.toBoolean(index),
 
             .none => error.NoneIsNotBoolean,
@@ -480,7 +480,7 @@ pub const Lua = opaque {
     /// returns `false`. Returns `false` when called with a non-valid index.
     ///
     /// Callers may use `toBooleanStrict()` when seeking only to return the content of a boolean value on the stack.
-    /// Callers may also use `typeOf()` or `isBoolean()` to check the value on the stack before evaluating its value.
+    /// Callers may also use `getType()` or `isBoolean()` to check the value on the stack before evaluating its value.
     ///
     /// From: `int lua_toboolean(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_toboolean
@@ -529,7 +529,7 @@ pub const Lua = opaque {
             "toIntegerStrict() safely returns `error.NoneIsNotNumber` when the index is not valid.",
         );
 
-        const t = lua.typeOf(index);
+        const t = lua.getType(index);
         if (t == Lua.Type.number) {
             return c.lua_tointeger(asState(lua), index);
         } else {
@@ -589,7 +589,7 @@ pub const Lua = opaque {
             "toNumberStrict() safely returns `error.NoneIsNotNumber` when the index is not valid.",
         );
 
-        const t = lua.typeOf(index);
+        const t = lua.getType(index);
         if (t == Lua.Type.number) {
             return c.lua_tonumber(asState(lua), index);
         } else {
@@ -850,7 +850,7 @@ pub const Lua = opaque {
         if (string) |s| {
             return s;
         } else {
-            return typeIsNotString(lua.typeOf(index));
+            return typeIsNotString(lua.getType(index));
         }
     }
 
@@ -889,7 +889,7 @@ pub const Lua = opaque {
         if (string) |s| {
             return s[0..len :0];
         } else {
-            return typeIsNotString(lua.typeOf(index));
+            return typeIsNotString(lua.getType(index));
         }
     }
 
@@ -971,7 +971,7 @@ pub const Lua = opaque {
         assert(lua.isTable(index));
 
         c.lua_gettable(asState(lua), index);
-        return lua.typeOf(-1);
+        return lua.getType(-1);
     }
 
     /// Similar to `getTable()`, but this implementation will not invoke any metamethods.
@@ -986,7 +986,7 @@ pub const Lua = opaque {
         assert(lua.isTable(index));
 
         c.lua_rawget(asState(lua), index);
-        return lua.typeOf(-1);
+        return lua.getType(-1);
     }
 
     /// Pushes onto the stack the value `t[n]`, where `t` is the value at the given valid index.
@@ -1002,7 +1002,7 @@ pub const Lua = opaque {
         assert(lua.isTable(index));
 
         c.lua_rawgeti(asState(lua), index, n);
-        return lua.typeOf(-1);
+        return lua.getType(-1);
     }
 
     pub const Ref = struct {
@@ -1123,7 +1123,7 @@ pub const Lua = opaque {
         assert(lua.isTable(index));
 
         c.lua_getfield(asState(lua), index, @ptrCast(key.ptr));
-        return lua.typeOf(-1);
+        return lua.getType(-1);
     }
 
     /// Does the equivalent to `t[k] = v`, where `t` is the value at the given valid index and `v` is the value at the
@@ -1147,7 +1147,7 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-0, +1, e]`
     pub fn getGlobal(lua: *Lua, name: [:0]const u8) Lua.Type {
         c.lua_getglobal(asState(lua), asCString(name));
-        return lua.typeOf(-1);
+        return lua.getType(-1);
     }
 
     /// Pops a value from the stack and sets it as the new value of global `name`.
@@ -1432,7 +1432,7 @@ pub const Lua = opaque {
     /// From: `size_t lua_objlen(lua_State *L, int index);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_objlen
     /// Stack Behavior: `[-0, +0, -]`
-    pub fn lengthOf(lua: *Lua, index: i32) usize {
+    pub fn getLength(lua: *Lua, index: i32) usize {
         // This function can safely return 0 when the index is not valid, but I'd rather see callers
         // check the type to make that determination rather than rely on this implictly returning that.
         lua.validateStackIndex(index);
@@ -1449,8 +1449,8 @@ pub const Lua = opaque {
     /// // Assuming the table is at the top of the stack, we start by pushing nil, which cannot be a table key.
     /// lua.pushNil();
     /// while (lua.next(-2)) {
-    ///     std.debug.print("The key is a '{s}'\n", .{lua.typeName(lua.typeOf(-2))});
-    ///     std.debug.print("The value is a '{s}'\n", .{lua.typeName(lua.typeOf(-1))});
+    ///     std.debug.print("The key is a '{s}'\n", .{lua.typeName(lua.getType(-2))});
+    ///     std.debug.print("The value is a '{s}'\n", .{lua.typeName(lua.getType(-1))});
     ///
     ///     // Remove the 'value' from the stack, the key remains at the top for `next()` to find.
     ///     lua.pop(1);
@@ -1519,9 +1519,9 @@ pub const Lua = opaque {
     } || CallError;
 
     /// Used as the value for `nresults` to return all results from the function on the stack when invoking
-    /// `call()` or `protectedCall()`.
+    /// `call()` or `callProtected()`.
     ///
-    /// Usually, when using `call()` or `protectedCall()`, the function results are pushed onto the stack when
+    /// Usually, when using `call()` or `callProtected()`, the function results are pushed onto the stack when
     /// the function returns, then the number of results is adjusted to the value of `nresults` specified by the
     /// caller. By using `Lua.MultipleReturn`, all results from the function are left on the stack.
     pub const MultipleReturn: i32 = c.LUA_MULTRET;
@@ -1560,7 +1560,7 @@ pub const Lua = opaque {
     /// From: `int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_pcall
     /// Stack Behavior: `[-(nargs + 1), +(nresults|1), -]`
-    pub fn protectedCall(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) ProtectedCallError!void {
+    pub fn callProtected(lua: *Lua, nargs: i32, nresults: i32, errfunc: i32) ProtectedCallError!void {
         assert(nargs >= 0);
         assert(nresults >= 0 or nresults == Lua.MultipleReturn);
 
@@ -1578,7 +1578,7 @@ pub const Lua = opaque {
     /// From: `int lua_cpcall(lua_State *L, lua_CFunction func, void *ud);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_cpcall
     /// Stack Behavior: `[-0, +(0|1), -]`
-    pub fn protectedCallCFunction(lua: *Lua, f: CFunction, ud: ?*anyopaque) ProtectedCallError!void {
+    pub fn callProtectedC(lua: *Lua, f: CFunction, ud: ?*anyopaque) ProtectedCallError!void {
         const res = c.lua_cpcall(asState(lua), asCFn(f), ud);
         assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
 
@@ -1795,7 +1795,7 @@ pub const Lua = opaque {
     } || ProtectedCallError;
 
     /// Loads the Lua chunk in the given string and, if there are no errors, pushes the compiled chunk as a
-    /// Lua function on top of the stack before executing it using `protectedCall()`. Essentially, `doString()`
+    /// Lua function on top of the stack before executing it using `callProtected()`. Essentially, `doString()`
     /// executes the provided zero-terminated Lua code.
     ///
     /// From: `int luaL_dostring(lua_State *L, const char *str);`
@@ -1814,7 +1814,7 @@ pub const Lua = opaque {
             },
         }
 
-        return lua.protectedCall(0, Lua.MultipleReturn, 0);
+        return lua.callProtected(0, Lua.MultipleReturn, 0);
     }
 
     /// Exchange values between different threads of the same global state. This function pops n values
@@ -2203,7 +2203,7 @@ test "Lua type checking functions should work for an empty stack." {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.none);
+    try std.testing.expect(lua.getType(1) == Lua.Type.none);
     try std.testing.expect(lua.isNone(1));
     try std.testing.expect(lua.isNoneOrNil(1));
 }
@@ -2227,15 +2227,15 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushNil();
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.nil);
+    try std.testing.expect(lua.getType(1) == Lua.Type.nil);
     try std.testing.expect(lua.isNil(1));
     try std.testing.expect(lua.isNoneOrNil(1));
-    try std.testing.expect(!(lua.typeOf(1) == Lua.Type.none));
+    try std.testing.expect(!(lua.getType(1) == Lua.Type.none));
     try std.testing.expect(!lua.isNone(1));
     lua.pop(1);
 
     lua.pushBoolean(true);
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.boolean);
+    try std.testing.expect(lua.getType(1) == Lua.Type.boolean);
     try std.testing.expect(lua.isBoolean(1));
     try std.testing.expect(!lua.isNil(1));
     try std.testing.expect(!lua.isNoneOrNil(1));
@@ -2251,7 +2251,7 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushInteger(42);
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.number);
+    try std.testing.expect(lua.getType(1) == Lua.Type.number);
     try std.testing.expect(lua.isInteger(1));
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
@@ -2268,7 +2268,7 @@ test "Lua type checking functions return true when stack contains value" {
     lua.pop(1);
 
     lua.pushNumber(42.4);
-    try std.testing.expect(lua.typeOf(1) == Lua.Type.number);
+    try std.testing.expect(lua.getType(1) == Lua.Type.number);
     try std.testing.expect(lua.isNumber(1));
     try std.testing.expect(lua.isString(1));
     try std.testing.expect(!lua.isInteger(1));
@@ -2294,12 +2294,12 @@ test "Lua type checking functions return true when stack contains value" {
 
     lua.newTable();
     try std.testing.expect(lua.isTable(1));
-    try std.testing.expectEqual(Lua.Type.table, lua.typeOf(1));
+    try std.testing.expectEqual(Lua.Type.table, lua.getType(1));
     lua.pop(1);
 
     lua.createTable(1, 0);
     try std.testing.expect(lua.isTable(1));
-    try std.testing.expectEqual(Lua.Type.table, lua.typeOf(1));
+    try std.testing.expectEqual(Lua.Type.table, lua.getType(1));
     lua.pop(1);
 
     try std.testing.expectEqualSlices(u8, "no value", lua.typeName(Lua.Type.none));
@@ -2536,7 +2536,7 @@ test "checkStackOrError should return raise an error for stack overflow" {
     };
 
     lua.pushCFunction(T.Fn);
-    const actual = lua.protectedCall(0, 0, 0);
+    const actual = lua.callProtected(0, 0, 0);
     try std.testing.expectError(Lua.CallError.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "stack overflow (CUSTOM ERROR MESSAGE)", try lua.toLString(-1));
 }
@@ -2619,7 +2619,7 @@ test "checkStackOrError should return raise an error during allocation failure" 
 
     lua.pushCFunction(T.Fn);
     lua.setAllocator(fa.allocator());
-    const actual = lua.protectedCall(0, 0, 0);
+    const actual = lua.callProtected(0, 0, 0);
     try std.testing.expectError(Lua.CallError.OutOfMemory, actual);
     try std.testing.expectEqualSlices(u8, "not enough memory", try lua.toLString(-1));
 }
@@ -2710,7 +2710,7 @@ test "getglobal and setglobal" {
     try std.testing.expectEqual(42, lua.toInteger(-1));
 }
 
-test "lengthOf" {
+test "getLength" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -2720,20 +2720,20 @@ test "lengthOf" {
     lua.setTable(-3);
     lua.pushInteger(2);
     lua.pushString("Ayo");
-    try std.testing.expectEqual(3, lua.lengthOf(-1));
+    try std.testing.expectEqual(3, lua.getLength(-1));
     lua.setTable(-3);
-    try std.testing.expectEqual(2, lua.lengthOf(-1));
+    try std.testing.expectEqual(2, lua.getLength(-1));
     lua.pop(1);
 
     lua.pushInteger(257);
-    try std.testing.expectEqual(3, lua.lengthOf(-1)); // Implicit conversion to string
+    try std.testing.expectEqual(3, lua.getLength(-1)); // Implicit conversion to string
     lua.pop(1);
     lua.pushNumber(145.125);
-    try std.testing.expectEqual(7, lua.lengthOf(-1)); // Implicit conversion to string
+    try std.testing.expectEqual(7, lua.getLength(-1)); // Implicit conversion to string
     lua.pop(1);
 
     lua.pushNil();
-    try std.testing.expectEqual(0, lua.lengthOf(-1));
+    try std.testing.expectEqual(0, lua.getLength(-1));
     lua.pop(1);
 }
 
@@ -2772,7 +2772,7 @@ test "c functions and closures with call" {
     lua.pop(1);
 }
 
-test "c functions and closures with protectedCall" {
+test "c functions and closures with callProtected" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -2780,7 +2780,7 @@ test "c functions and closures with protectedCall" {
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
     try std.testing.expect(lua.isFunction(1) and lua.isFunction(-1));
-    try lua.protectedCall(0, 0, 0);
+    try lua.callProtected(0, 0, 0);
     try std.testing.expectEqual(0, lua.getTop());
 
     const expected: i64 = 42;
@@ -2789,14 +2789,14 @@ test "c functions and closures with protectedCall" {
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isCFunction(1) and lua.isCFunction(-1));
     try std.testing.expect(lua.isFunction(1) and lua.isFunction(-1));
-    try lua.protectedCall(0, 1, 0);
+    try lua.callProtected(0, 1, 0);
     try std.testing.expectEqual(1, lua.getTop());
     const actual = lua.toInteger(-1);
     try std.testing.expectEqual(expected, actual);
     lua.pop(1);
 }
 
-test "protectedCall should capture error raised by c function" {
+test "callProtected should capture error raised by c function" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -2808,12 +2808,12 @@ test "protectedCall should capture error raised by c function" {
     };
 
     lua.pushCFunction(T.errorRaisingCFunction);
-    const actual = lua.protectedCall(0, 0, 0);
+    const actual = lua.callProtected(0, 0, 0);
     try std.testing.expectError(Lua.CallError.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "error raised", try lua.toLString(-1));
 }
 
-test "protectedCall should capture formatted error raised by c function" {
+test "callProtected should capture formatted error raised by c function" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -2824,7 +2824,7 @@ test "protectedCall should capture formatted error raised by c function" {
     };
 
     lua.pushCFunction(T.formattedErrorRaisingCFunction);
-    const actual = lua.protectedCall(0, 0, 0);
+    const actual = lua.callProtected(0, 0, 0);
     try std.testing.expectError(Lua.CallError.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "%-Hello-%,13.3,42,'A'", try lua.toLString(-1));
 }
@@ -3127,26 +3127,23 @@ test "metatables can be accessed" {
     lua.setTop(0);
 }
 
-fn cfnForProtectedCall(lua: *Lua) callconv(.c) i32 {
-    std.testing.expectEqual(1, lua.getTop()) catch std.debug.panic("Test assertion failed.", .{});
-    std.testing.expect(lua.isLightUserdata(1)) catch std.debug.panic("Test assertion failed.", .{});
-
-    lua.pushLString("EXPECTED ERROR 123");
-    return lua.raiseError();
-}
-
 test "proctected call for c functions" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    const actual = lua.protectedCallCFunction(cfnForProtectedCall, null);
+    const T = struct {
+        fn cFunctionForProtectedCall(l: *Lua) callconv(.c) i32 {
+            std.testing.expectEqual(1, l.getTop()) catch std.debug.panic("Test assertion failed.", .{});
+            std.testing.expect(l.isLightUserdata(1)) catch std.debug.panic("Test assertion failed.", .{});
+
+            l.pushLString("EXPECTED ERROR 123");
+            return l.raiseError();
+        }
+    };
+
+    const actual = lua.callProtectedC(T.cFunctionForProtectedCall, null);
     try std.testing.expectError(Lua.CallError.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "EXPECTED ERROR 123", try lua.toLString(-1));
-}
-
-fn newPanicFunction(lua: *Lua) callconv(.c) i32 {
-    _ = lua;
-    return 0;
 }
 
 test "override error function with atpanic" {
@@ -3156,11 +3153,17 @@ test "override error function with atpanic" {
     // This test case is actually kind of useless, I don't want to hack doing a long jump into these tests
     // to avoid application exit. So we will just call the function and make sure the application doesn't
     // crash. But it's not really testing that the panic function gets called in any way right now.
+    const T = struct {
+        fn newPanicFunction(l: *Lua) callconv(.c) i32 {
+            _ = l;
+            return 0;
+        }
+    };
 
-    const actual = lua.atPanic(newPanicFunction);
+    const actual = lua.atPanic(T.newPanicFunction);
     try std.testing.expect(actual == null);
     const new = lua.atPanic(actual);
-    try std.testing.expect(new.? == newPanicFunction);
+    try std.testing.expect(new.? == T.newPanicFunction);
 }
 
 test "garbage collector controls" {
@@ -3316,12 +3319,12 @@ test "pushThread should return whether it is running on the main thread or not" 
     defer lua.deinit();
 
     try std.testing.expect(lua.pushThread());
-    try std.testing.expectEqual(Lua.Type.thread, lua.typeOf(-1));
+    try std.testing.expectEqual(Lua.Type.thread, lua.getType(-1));
     lua.pop(1);
 
     const coroutine = lua.newThread();
     try std.testing.expect(!coroutine.pushThread());
-    try std.testing.expectEqual(Lua.Type.thread, lua.typeOf(-1));
+    try std.testing.expectEqual(Lua.Type.thread, lua.getType(-1));
     lua.pop(1);
 }
 
@@ -3545,19 +3548,19 @@ test "checkInteger should return given value or raise an error" {
     const expected: Lua.Integer = 42;
     lua.pushCFunction(T.EchoInteger);
     lua.pushInteger(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toInteger(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.EchoInteger);
     lua.pushNumber(42.444);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toInteger(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.EchoInteger);
     lua.pushString("NotANumber");
-    const actual = lua.protectedCall(1, 1, 0);
+    const actual = lua.callProtected(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
 }
@@ -3578,24 +3581,24 @@ test "checkIntegerOptional should return given value, default or raise an error"
     const expected: Lua.Integer = 33;
     lua.pushCFunction(T.EchoIntegerOptional);
     lua.pushInteger(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toInteger(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.EchoIntegerOptional);
     lua.pushNumber(33.444);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toInteger(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.EchoIntegerOptional);
-    try lua.protectedCall(0, 1, 0);
+    try lua.callProtected(0, 1, 0);
     try std.testing.expectEqual(default, lua.toInteger(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.EchoIntegerOptional);
     lua.pushString("NotANumber");
-    const actual = lua.protectedCall(1, 1, 0);
+    const actual = lua.callProtected(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
 }
@@ -3615,13 +3618,13 @@ test "checkNumber should return given value or raise an error" {
     const expected: Lua.Number = 42.720;
     lua.pushCFunction(T.Echo);
     lua.pushNumber(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toNumber(1));
     lua.pop(1);
 
     lua.pushCFunction(T.Echo);
     lua.pushString("NotANumber");
-    const actual = lua.protectedCall(1, 1, 0);
+    const actual = lua.callProtected(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
 }
@@ -3641,18 +3644,18 @@ test "checkNumberOptional should return given value or raise an error" {
     const expected: Lua.Number = 42.720;
     lua.pushCFunction(T.Echo);
     lua.pushNumber(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(expected, lua.toNumber(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.Echo);
-    try lua.protectedCall(0, 1, 0);
+    try lua.callProtected(0, 1, 0);
     try std.testing.expectEqual(13.33, lua.toNumber(-1));
     lua.pop(1);
 
     lua.pushCFunction(T.Echo);
     lua.pushString("NotANumber");
-    const actual = lua.protectedCall(1, 1, 0);
+    const actual = lua.callProtected(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (number expected, got string)", try lua.toLString(-1));
 }
@@ -3672,19 +3675,19 @@ test "checkString() should validate presence of arguments and return the correct
     const expected = "Who is John Galt?";
     lua.pushCFunction(T.EchoString);
     lua.pushString(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a1 = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, expected, a1);
     lua.pop(1);
 
     lua.pushCFunction(T.EchoString);
-    const a2 = lua.protectedCall(0, 1, 0);
+    const a2 = lua.callProtected(0, 1, 0);
     try std.testing.expectError(error.Runtime, a2);
     try std.testing.expectEqualStrings("bad argument #1 to '?' (string expected, got no value)", try lua.toLString(-1));
 
     lua.pushCFunction(T.EchoString);
     lua.pushInteger(42);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a3 = try lua.toLString(-1);
     try std.testing.expectEqualStrings("42", a3);
     lua.pop(1);
@@ -3705,18 +3708,18 @@ test "checkStringOptional() should validate presence of arguments and return the
     const expected = "Who is John Galt?";
     lua.pushCFunction(T.EchoString);
     lua.pushString(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a1 = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, expected, a1);
     lua.pop(1);
 
     lua.pushCFunction(T.EchoString);
-    try lua.protectedCall(0, 1, 0);
+    try lua.callProtected(0, 1, 0);
     try std.testing.expectEqualSlices(u8, "FOO", (try lua.toString(-1))[0..3 :0]);
 
     lua.pushCFunction(T.EchoString);
     lua.pushInteger(42);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a3 = try lua.toLString(-1);
     try std.testing.expectEqualStrings("42", a3);
     lua.pop(1);
@@ -3737,19 +3740,19 @@ test "checkLString() should validate presence of arguments and return the correc
     const expected = "Who is John Galt?";
     lua.pushCFunction(T.EchoString);
     lua.pushLString(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a1 = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, expected, a1);
     lua.pop(1);
 
     lua.pushCFunction(T.EchoString);
-    const a2 = lua.protectedCall(0, 1, 0);
+    const a2 = lua.callProtected(0, 1, 0);
     try std.testing.expectError(error.Runtime, a2);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (string expected, got no value)", try lua.toLString(-1));
 
     lua.pushCFunction(T.EchoString);
     lua.pushInteger(42);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a3 = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, "42", a3);
     lua.pop(1);
@@ -3770,18 +3773,18 @@ test "checkLStringOptional() should validate presence of arguments and return th
     const expected = "Who is John Galt?";
     lua.pushCFunction(T.EchoString);
     lua.pushLString(expected);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a1 = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, expected, a1);
     lua.pop(1);
 
     lua.pushCFunction(T.EchoString);
-    try lua.protectedCall(0, 1, 0);
+    try lua.callProtected(0, 1, 0);
     try std.testing.expectEqualSlices(u8, "FOO", try lua.toLString(-1));
 
     lua.pushCFunction(T.EchoString);
     lua.pushInteger(42);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a3 = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, "42", a3);
     lua.pop(1);
@@ -3800,11 +3803,11 @@ test "checkAny should validate presence of arguments" {
 
     lua.pushCFunction(T.Fn);
     lua.pushBoolean(true);
-    try lua.protectedCall(1, 0, 0);
+    try lua.callProtected(1, 0, 0);
     try std.testing.expectEqual(0, lua.getTop());
 
     lua.pushCFunction(T.Fn);
-    const actual = lua.protectedCall(0, 0, 0);
+    const actual = lua.callProtected(0, 0, 0);
     try std.testing.expectError(error.Runtime, actual);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (value expected)", try lua.toLString(-1));
 }
@@ -3827,18 +3830,18 @@ test "checkOption() should validate arguments and use default" {
     };
 
     lua.pushCFunction(T.EchoStringWithDefault);
-    try lua.protectedCall(0, 1, 0);
+    try lua.callProtected(0, 1, 0);
     const a1 = try lua.toIntegerStrict(-1);
     try std.testing.expectEqual(2, a1); // The default value should find the match
     lua.pop(1);
 
     lua.pushCFunction(T.EchoString);
-    const a2 = lua.protectedCall(0, 1, 0);
+    const a2 = lua.callProtected(0, 1, 0);
     try std.testing.expectError(Lua.CallError.Runtime, a2); // No default value so the check should fail
 
     lua.pushCFunction(T.EchoString);
     lua.pushLString("C");
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     const a3 = try lua.toIntegerStrict(-1);
     try std.testing.expectEqual(2, a3); // The value should be found at the third index
 }
@@ -3856,17 +3859,17 @@ test "checkType should validate argument type" {
 
     lua.pushCFunction(T.Fn);
     lua.pushLString("happy path");
-    try lua.protectedCall(1, 0, 0);
+    try lua.callProtected(1, 0, 0);
     try std.testing.expectEqual(0, lua.getTop());
 
     lua.pushCFunction(T.Fn);
-    const a1 = lua.protectedCall(0, 0, 0);
+    const a1 = lua.callProtected(0, 0, 0);
     try std.testing.expectError(error.Runtime, a1);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (string expected, got no value)", try lua.toLString(-1));
 
     lua.pushCFunction(T.Fn);
     lua.pushInteger(42);
-    const a2 = lua.protectedCall(1, 0, 0);
+    const a2 = lua.callProtected(1, 0, 0);
     try std.testing.expectError(error.Runtime, a2);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (string expected, got number)", try lua.toLString(-1));
 }
@@ -3886,13 +3889,13 @@ test "checkArgument should return error when argument is invalid and succeed whe
 
     lua.pushCFunction(T.EchoInteger);
     lua.pushInteger(42);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(42, lua.toInteger(1));
     lua.pop(1);
 
     lua.pushCFunction(T.EchoInteger);
     lua.pushInteger(1);
-    const actual = lua.protectedCall(1, 1, 0);
+    const actual = lua.callProtected(1, 1, 0);
     try std.testing.expectError(error.Runtime, actual);
 
     const message = try lua.toLString(-1);
@@ -3915,7 +3918,7 @@ test "ref and unref in user table" {
     try std.testing.expectEqual(Lua.Type.string, t);
 
     lua.unref(1, ref);
-    try std.testing.expectEqual(0, lua.lengthOf(1));
+    try std.testing.expectEqual(0, lua.getLength(1));
 }
 
 test "ref should return nil" {
@@ -3934,7 +3937,7 @@ test "ref should return nil" {
     try std.testing.expect(lua.isNil(-1));
 
     lua.unref(1, ref);
-    try std.testing.expectEqual(0, lua.lengthOf(1));
+    try std.testing.expectEqual(0, lua.getLength(1));
 }
 
 test "ref and unref in registry" {
@@ -3942,7 +3945,7 @@ test "ref and unref in registry" {
     defer lua.deinit();
 
     lua.pushValue(Lua.PseudoIndex.Registry);
-    const length_before = lua.lengthOf(1);
+    const length_before = lua.getLength(1);
     lua.pop(1);
 
     lua.pushLString("foo");
@@ -3959,7 +3962,7 @@ test "ref and unref in registry" {
 
     lua.unref(Lua.PseudoIndex.Registry, ref);
     lua.pushValue(Lua.PseudoIndex.Registry);
-    try std.testing.expectEqual(length_before, lua.lengthOf(1));
+    try std.testing.expectEqual(length_before, lua.getLength(1));
 }
 
 test "Lua functions can be serialized and restored using dump() and load()" {
@@ -3981,7 +3984,7 @@ test "Lua functions can be serialized and restored using dump() and load()" {
     try std.testing.expectEqual(Lua.Status.ok, status); // The function should be loaded to the stack successfully.
 
     lua.pushInteger(21);
-    try lua.protectedCall(1, 1, 0);
+    try lua.callProtected(1, 1, 0);
     try std.testing.expectEqual(42, try lua.toIntegerStrict(-1)); // The function should be the "multiply by two" function from above.
 }
 

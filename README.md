@@ -125,10 +125,11 @@ This section describes the current status of Zig language bindings ("the Zig API
 |----------------------------|-------------------------------------|
 | `lua_atpanic`              | ☑️ `lua.atPanic()`                   |
 | `lua_call`                 | ☑️ `lua.call()`                      |
+| `lua_pcall`                | ☑️📢 `lua.callProtected()`           |
+| `lua_cpcall`               | ☑️📢 `lua.callProtectedC()`          |
 | `lua_checkstack`           | ☑️ `lua.checkStack()`                |
 | `lua_close`                | ☑️📢 `lua.deinit()`                  |
 | `lua_concat`               | ☑️ `lua.concat()`                    |
-| `lua_cpcall`               | ☑️📢 `lua.protectedCallCFunction()`  |
 | `lua_createtable`          | ☑️ `lua.createTable()`               |
 | `lua_dump`                 | ☑️ `lua.dump()`                      |
 | `lua_equal`                | ☑️ `lua.equal()`                     |
@@ -161,8 +162,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_newthread`            | ☑️ `lua.newThread()`                 |
 | `lua_newuserdata`          | ☑️ `lua.newUserdata()`               |
 | `lua_next`                 | ☑️ `lua.next()`                      |
-| `lua_objlen`               | ☑️📢 `lua.lengthOf()`                |
-| `lua_pcall`                | ☑️📢 `lua.protectedCall()`           |
+| `lua_objlen`               | ☑️📢 `lua.getLenth()`                |
 | `lua_pop`                  | ☑️ `lua.pop()`                       |
 | `lua_pushboolean`          | ☑️ `lua.pushBoolean()`               |
 | `lua_pushcclosure`         | ☑️ `lua.pushCClosure()`              |
@@ -175,7 +175,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_pushnil`              | ☑️ `lua.pushNil()`                   |
 | `lua_pushnumber`           | ☑️ `lua.pushNumber()`                |
 | `lua_pushstring`           | ☑️ `lua.pushString()`                |
-| `lua_pushthread`           | ☑️ `lua.pushString()`                |
+| `lua_pushthread`           | ☑️ `lua.pushThread()`                |
 | `lua_pushvalue`            | ☑️ `lua.pushValue()`                 |
 | `lua_pushvfstring`         | 🆖 please use `lua.pushFString()`   |
 | `lua_rawequal`             | ☑️📢 `lua.equalRaw()`                |
@@ -204,7 +204,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_tostring`             | ☑️ `lua.toString()`                  |
 | `lua_tothread`             | ☑️ `lua.toThread()`                  |
 | `lua_touserdata`           | ☑️ `lua.toUserdata()`                |
-| `lua_type`                 | ☑️📢 `lua.typeOf()`                  |
+| `lua_type`                 | ☑️📢 `lua.getType()`                 |
 | `lua_typename`             | ☑️ `lua.typeName()`                  |
 | `lua_xmove`                | ☑️ `lua.xmove()`                     |
 | `lua_yield`                | ➖ Hidden, see [Issue #6][ISSUE-6]  |

@@ -173,30 +173,6 @@ pub fn prepBuffer(buffer: *Buffer) [*]u8;
 /// Stack Behavior: `[-?, +1, m]`
 pub fn pushResult(buffer: *LuaBuffer) void;
 
-/// Opens a library. When called with libname equal to null, it simply registers all functions in the list l
-/// into the table on the top of the stack. When called with a non-null libname, creates a new table t,
-/// sets it as the value of the global variable libname, sets it as the value of package.loaded[libname],
-/// and registers on it all functions in the list l. If there is a table in package.loaded[libname] or in
-/// variable libname, reuses this table instead of creating a new one. In any case the function leaves
-/// the table on the top of the stack.
-///
-/// From: `void luaL_register(lua_State *L, const char *libname, const luaL_Reg *l);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_register
-/// Stack Behavior: `[-(0|1), +1, m]`
-pub fn register(lua: *Lua, lib_name: ?[:0]const u8, funcs: []const LuaReg) void;
-
-/// Type for arrays of functions to be registered by `luaL_register`. 
-/// `name` is the function name and `func` is a pointer to the function.
-/// Any array of `luaL_Reg` must end with a sentinel entry in which both 
-/// `name` and `func` are `null`.
-///
-/// From: `typedef struct luaL_Reg { const char *name; lua_CFunction func; } luaL_Reg;`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_Reg
-pub const Reg = extern struct {
-    name: ?[*:0]const u8,
-    func: ?*const fn (state: *Lua) callconv(.C) c_int,
-};
-
 /// Generates an error with a message like "location: bad argument narg to 'func' (tname expected, got rt)",
 /// where location is produced by luaL_where, func is the name of the current function,
 /// and rt is the type name of the actual argument.

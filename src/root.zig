@@ -1317,15 +1317,6 @@ pub const Lua = opaque {
         return c.lua_replace(asState(lua), index);
     }
 
-    /// Sets the `CFunction` `f` as the new value of global `name`.
-    ///
-    /// From: `void lua_register(lua_State *L, const char *name, lua_CFunction f);`
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_register
-    /// Stack Behavior: `[-0, +0, e]`
-    pub fn register(lua: *Lua, name: [:0]const u8, f: CFunction) void {
-        return c.lua_register(asState(lua), asCString(name), asCFn(f));
-    }
-
     /// Returns whether the two values in given acceptable indices are equal, following the semantics of the Lua `==`
     /// operator, which may call metamethods.
     ///
@@ -2200,6 +2191,67 @@ pub const Lua = opaque {
             const ptr: [*c]const u8 = @ptrCast(if (extra_message) |m| m else null);
             _ = c.luaL_argerror(asState(lua), arg_n, ptr);
         }
+    }
+
+    /// Represents named functions that belong to a library that can be registered by a call to the `registerLibrary()`
+    /// function.
+    ///
+    /// Any array of this type **MUST** be terminated by a sentinel value in which both `name` and `func` are set to
+    /// `null`. Refer to `RegEnd`.
+    ///
+    /// From: `typedef struct luaL_Reg { const char *name; lua_CFunction func; } luaL_Reg;`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_Reg
+    pub const Reg = struct {
+        name: ?[*:0]const u8,
+        func: ?Lua.CFunction,
+    };
+    pub const RegEnd: Reg = .{
+        .name = null,
+        .func = null,
+    };
+
+    /// Sets the given function as the value of a new global variable named `name`.
+    ///
+    /// From: `void lua_register(lua_State *L, const char *name, lua_CFunction f);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_register
+    /// Stack Behavior: `[-0, +0, e]`
+    pub fn registerFunction(lua: *Lua, name: [:0]const u8, function: CFunction) void {
+        return c.lua_register(asState(lua), asCString(name), asCFn(function));
+    }
+
+    /// Opens a library.
+    ///
+    /// When called with `name` equal to null, registers all functions in the list `functions` into the table on the
+    /// top of the stack. The list of functions *MUST* be terminated by the `Lua.RegEnd`
+    ///
+    /// When called with a non-null `name`:
+    /// * creates a new table `t`,
+    /// * sets `t` as the value of the global variable `name`,
+    /// * sets `t` as the value of package.loaded[libname],
+    /// * and registers on it all functions in the list `functions`.
+    ///
+    /// If there is a table in package.loaded[libname] or in variable libname, reuses this table instead of creating
+    /// a new one.
+    ///
+    /// Calls to `registerLibrary()` always leave the library table on the top of the stack.
+    ///
+    /// From: `void luaL_register(lua_State *L, const char *libname, const luaL_Reg *l);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_register
+    /// Stack Behavior: `[-(0|1), +1, m]`
+    pub fn registerLibrary(lua: *Lua, name: ?[:0]const u8, functions: []const Lua.Reg) void {
+        if (isSafeBuildTarget) {
+            if (name == null) {
+                assert(lua.isTable(-1));
+            }
+            assert(functions[functions.len - 1].name == null); // When calling `lua.registerLibrary(name, functions)`, the functions must be terminated by `RegEnd`.
+            assert(functions[functions.len - 1].func == null); // When calling `lua.registerLibrary(name, functions)`, the functions must be terminated by `RegEnd`.
+        }
+
+        return c.luaL_register(
+            asState(lua),
+            if (name) |p| @ptrCast(p.ptr) else null,
+            @ptrCast(functions.ptr),
+        );
     }
 };
 
@@ -3251,16 +3303,18 @@ test "getTableIndexRaw" {
     try std.testing.expectEqual(2, lua.getTop());
 }
 
-fn registeredFn(lua: *Lua) callconv(.c) i32 {
-    lua.pushLString("Galt, John");
-    return 1;
-}
-
 test "registering named functions" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    lua.register("regREG", registeredFn);
+    const T = struct {
+        fn registeredFn(l: *Lua) callconv(.c) i32 {
+            l.pushLString("Galt, John");
+            return 1;
+        }
+    };
+
+    lua.registerFunction("regREG", T.registeredFn);
     try lua.doString(
         \\actual = regREG()
         \\if actual == 'Galt, John' then
@@ -3268,6 +3322,80 @@ test "registering named functions" {
         \\end
         \\return 0
     );
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(1, lua.toIntegerStrict(-1));
+}
+
+test "registering a library to the global namespace" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn john(l: *Lua) callconv(.c) i32 {
+            l.pushLString("Galt");
+            return 1;
+        }
+        fn hank(l: *Lua) callconv(.c) i32 {
+            l.pushLString("Reardon");
+            return 1;
+        }
+    };
+
+    lua.registerLibrary(
+        "foo",
+        &[_]Lua.Reg{
+            .{ .name = "john", .func = &T.john },
+            .{ .name = "hank", .func = &T.hank },
+            Lua.RegEnd,
+        },
+    );
+    try lua.doString(
+        \\john, hank = foo.john(), foo.hank()
+        \\if (john == 'Galt' and hank == 'Reardon') then
+        \\    return 1
+        \\end
+        \\return 0
+    );
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(1, lua.toIntegerStrict(-1));
+}
+
+test "registering a library to a table" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn john(l: *Lua) callconv(.c) i32 {
+            l.pushLString("Galt");
+            return 1;
+        }
+        fn hank(l: *Lua) callconv(.c) i32 {
+            l.pushLString("Reardon");
+            return 1;
+        }
+    };
+
+    try lua.doString(
+        \\return function(lib)
+        \\    john, hank = lib.john(), lib.hank()
+        \\    if (john == 'Galt' and hank == 'Reardon') then
+        \\        return 1
+        \\    end
+        \\    return 0
+        \\end
+    );
+
+    lua.newTable();
+    lua.registerLibrary(
+        null,
+        &[_]Lua.Reg{
+            .{ .name = "john", .func = &T.john },
+            .{ .name = "hank", .func = &T.hank },
+            Lua.RegEnd,
+        },
+    );
+
+    try lua.callProtected(1, 1, 0);
     try std.testing.expect(lua.isInteger(-1));
     try std.testing.expectEqual(1, lua.toIntegerStrict(-1));
 }
@@ -3488,10 +3616,17 @@ test "toCFunction should return expected function" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
-    lua.pushCFunction(registeredFn);
+    const T = struct {
+        fn registeredFn(l: *Lua) callconv(.c) i32 {
+            l.pushLString("Galt, John");
+            return 1;
+        }
+    };
+
+    lua.pushCFunction(T.registeredFn);
     const actual = lua.toCFunction(-1);
     try std.testing.expect(actual != null);
-    try std.testing.expectEqual(registeredFn, actual);
+    try std.testing.expectEqual(T.registeredFn, actual);
     lua.pop(1);
 }
 
@@ -3516,6 +3651,13 @@ test "toPointer should return a non-null pointer for supported types" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
+    const T = struct {
+        fn registeredFn(l: *Lua) callconv(.c) i32 {
+            l.pushLString("Galt, John");
+            return 1;
+        }
+    };
+
     lua.pushLString("ASDF");
     try std.testing.expect(lua.toPointer(-1) != null);
     lua.pop(1);
@@ -3524,7 +3666,7 @@ test "toPointer should return a non-null pointer for supported types" {
     try std.testing.expect(lua.toPointer(-1) != null);
     lua.pop(1);
 
-    lua.pushCFunction(registeredFn);
+    lua.pushCFunction(T.registeredFn);
     try std.testing.expect(lua.toPointer(-1) != null);
     lua.pop(1);
 

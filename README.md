@@ -86,7 +86,7 @@ you.
 | API                         | Support                               |
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 48% coverage (24/48)                  |
+| Auxilary Library (`luaL_*`) | 52% coverage (26/48)                  |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -183,7 +183,7 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `lua_rawget`               | ☑️📢 `lua.getTableRaw()`             |
 | `lua_rawseti`              | ☑️📢 `lua.setTableIndexRaw()`        |
 | `lua_rawset`               | ☑️📢 `lua.setTableRaw()`             |
-| `lua_register`             | ☑️ `lua.register()`                  |
+| `lua_register`             | ☑️📢 `lua.registerFunction()`        |
 | `lua_remove`               | ☑️ `lua.remove()`                    |
 | `lua_replace`              | ☑️ `lua.replace()`                   |
 | `lua_resume`               | ➖ Hidden, see [Issue #6][ISSUE-6]  |
@@ -216,13 +216,13 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 
 ### Auxilary Library Coverage (`luaL_`)
 
-| C Type Definition          | Available in `zig-luajit`                                           |
-|----------------------------|---------------------------------------------------------------------|
+| C Type Definition          | Available in `zig-luajit`           |
+|----------------------------|-------------------------------------|
 | `luaL_Buffer`              ||
-| `luaL_Reg`                 ||
+| `luaL_Reg`                 | ☑️ `Lua.Reg` and `Lua.RegEnd`        |
 
-| C API Symbol | Available in `zig-luajit` |
-|--------------|---------------------------|
+| C API Symbol               | Available in `zig-luajit`           |
+|----------------------------|-------------------------------------|
 | `luaL_addchar`             ||
 | `luaL_addlstring`          ||
 | `luaL_addsize`             ||
@@ -265,7 +265,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_pushresult`          ||
 | `luaL_ref`                 | ☑️ `lua.ref()` |
 | `luaL_unref`               | ☑️ `lua.unref()` |
-| `luaL_register`            ||
+| `luaL_register`            | ☑️📢 `lua.registerLibrary()` |
 | `luaL_typename`            | ☑️ `lua.getTypeNameAt()` |
 | `luaL_typerror`            ||
 | `luaL_where`               ||

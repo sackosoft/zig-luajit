@@ -1447,8 +1447,17 @@ pub const Lua = opaque {
         /// a protected call.
         error_handling_error = c.LUA_ERRERR,
 
+        /// Indicates that a file read operation failed, such as from `doFile()`.
+        file_error = c.LUA_ERRFILE,
+
         fn is_status(s: i32) bool {
-            return c.LUA_OK <= s and s <= c.LUA_ERRERR;
+            return s == c.LUA_OK //
+            or s == c.LUA_YIELD //
+            or s == c.LUA_ERRRUN //
+            or s == c.LUA_ERRSYNTAX //
+            or s == c.LUA_ERRMEM //
+            or s == c.LUA_ERRERR //
+            or s == c.LUA_ERRFILE;
         }
     };
 
@@ -1834,9 +1843,106 @@ pub const Lua = opaque {
         lua.call(0, 0);
     }
 
-    pub const DoStringError = error{
-        InvalidSyntax,
-    } || ProtectedCallError;
+    pub const LoadFileError = error{FileOpenOrFileRead} || LoadError;
+
+    /// Loads a file as a Lua chunk. Uses `load()` internally to load the chunk in the file named filename.
+    /// If filename is null, then it loads from the standard input. The first line in the file is ignored
+    /// if it starts with a #. Returns the same results as lua_load, but with an extra error code LUA_ERRFILE
+    /// if it cannot open/read the file. Only loads the chunk; it does not run it.
+    ///
+    /// From: `int luaL_loadfile(lua_State *L, const char *filename);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadfile
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn loadFile(lua: *Lua, filename: [:0]const u8) LoadFileError!void {
+        const res = c.luaL_loadfile(asState(lua), filename);
+        return interpretLoadFileRes(res, "loadFile()");
+    }
+
+    fn interpretLoadFileRes(res: c_int, source: []const u8) LoadFileError!void {
+        assert(Status.is_status(res));
+        const s: Lua.Status = @enumFromInt(res);
+        switch (s) {
+            .ok => return,
+            .runtime_error => return error.Runtime,
+            .syntax_error => return error.InvalidSyntax,
+            .memory_error => return error.OutOfMemory,
+            .file_error => return error.FileOpenOrFileRead,
+            else => {
+                std.debug.panic(
+                    "Attempted load from '{s}' returned an unexpected error code '{d}'. Expected to be one of [ok({d}), runtime_error({d}), syntax_error({d}), memory_error({d}) or file_error({d})].\n",
+                    .{
+                        source,
+                        res,
+                        @intFromEnum(Lua.Status.ok),
+                        @intFromEnum(Lua.Status.runtime_error),
+                        @intFromEnum(Lua.Status.syntax_error),
+                        @intFromEnum(Lua.Status.memory_error),
+                        @intFromEnum(Lua.Status.file_error),
+                    },
+                );
+            },
+        }
+    }
+
+    /// Loads a buffer as a Lua chunk. The `name` parameter is used to identify the chunk and appears in error messages.
+    ///
+    /// From: `int luaL_loadbuffer(lua_State *L, const char *buff, size_t sz, const char *name);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadbuffer
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn loadBuffer(lua: *Lua, buffer: []const u8, name: [:0]const u8) LoadError!void {
+        const res = c.luaL_loadbuffer(asState(lua), buffer.ptr, buffer.len, name.ptr);
+        return interpretLoadRes(res, "loadBuffer()");
+    }
+
+    /// Loads a string as a Lua chunk using lua_load for the zero-terminated string.
+    /// This function only loads the chunk and does not run it, returning the same results as lua_load.
+    ///
+    /// From: `int luaL_loadstring(lua_State *L, const char *s);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadstring
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn loadString(lua: *Lua, source: [:0]const u8) LoadError!void {
+        const res = c.luaL_loadstring(asState(lua), source.ptr);
+        return interpretLoadRes(res, "loadString()");
+    }
+
+    fn interpretLoadRes(res: c_int, source: []const u8) LoadError!void {
+        assert(Status.is_status(res));
+        const s: Lua.Status = @enumFromInt(res);
+        switch (s) {
+            .ok => return,
+            .runtime_error => return error.Runtime,
+            .syntax_error => return error.InvalidSyntax,
+            .memory_error => return error.OutOfMemory,
+            else => {
+                std.debug.panic(
+                    "Attempted load from '{s}' returned an unexpected error code '{d}'. Expected to be one of [ok({d}), runtime_error({d}), syntax_error({d}) or memory_error({d})].\n",
+                    .{
+                        source,
+                        res,
+                        @intFromEnum(Lua.Status.ok),
+                        @intFromEnum(Lua.Status.runtime_error),
+                        @intFromEnum(Lua.Status.syntax_error),
+                        @intFromEnum(Lua.Status.memory_error),
+                    },
+                );
+            },
+        }
+    }
+
+    pub const DoFileError = LoadFileError || ProtectedCallError;
+    pub const DoStringError = LoadError || ProtectedCallError;
+
+    /// Loads the Lua chunk in the given file and, if there are no errors, pushes the compiled chunk as a Lua
+    /// function on top of the stack before executing it using `callProtected()`. Essentially, `doFile()` executes
+    /// the Lua code in the given file.
+    ///
+    /// From: `int luaL_dofile(lua_State *L, const char *filename);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dofile
+    /// Stack Behavior: `[-0, +?, m]`
+    pub fn doFile(lua: *Lua, filename: [:0]const u8) DoFileError!void {
+        try lua.loadFile(filename);
+        return lua.callProtected(0, Lua.MultipleReturn, 0);
+    }
 
     /// Loads the Lua chunk in the given string and, if there are no errors, pushes the compiled chunk as a
     /// Lua function on top of the stack before executing it using `callProtected()`. Essentially, `doString()`
@@ -1845,19 +1951,8 @@ pub const Lua = opaque {
     /// From: `int luaL_dostring(lua_State *L, const char *str);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dostring
     /// Stack Behavior: `[-0, +?, m]`
-    pub fn doString(lua: *Lua, str: []const u8) DoStringError!void {
-        const res = c.luaL_loadbuffer(asState(lua), @ptrCast(str.ptr), str.len, "loaded_by_doString");
-        assert(Status.is_status(res)); // Expected the status to be one of the "thread status" values defined in lua.h
-
-        const s: Lua.Status = @enumFromInt(res);
-        switch (s) {
-            .syntax_error => return error.InvalidSyntax,
-            .memory_error => return error.OutOfMemory,
-            else => {
-                assert(res == 0); // luaL_loadstring returned an error code outside of the documented values.
-            },
-        }
-
+    pub fn doString(lua: *Lua, str: [:0]const u8) DoStringError!void {
+        try lua.loadString(str);
         return lua.callProtected(0, Lua.MultipleReturn, 0);
     }
 
@@ -2010,6 +2105,21 @@ pub const Lua = opaque {
         };
     }
 
+    /// The kinds of failures that can happen when the lua runtime performs a `load()` operation.
+    pub const LoadError = error{
+        /// The Lua content was loaded successfully, but content itself is not valid Lua. Either the data is malformed
+        /// or there is a user error in the loaded content.
+        InvalidSyntax,
+
+        /// Something failed during the load process, such as the reader returning an error response instead of the
+        /// next chunk of data. Note: That this is **NOT** a runtime error running the loaded code, this only indicates
+        /// that a runtime error occurred during the execution of a data load.
+        Runtime,
+
+        /// The load did not complete successfully because of a memory error from the reader.
+        OutOfMemory,
+    };
+
     /// Loads the function in the given chunk and pushes the valid function to the top of the stack. If there is an
     /// error with the syntax of the function, or the data cannot be loaded, then an error is returned instead.
     ///
@@ -2018,7 +2128,7 @@ pub const Lua = opaque {
     /// From: `int lua_load(lua_State *L, lua_Reader reader, void *data, const char *chunkname);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_load
     /// Stack Behavior: `[-0, +1, -]`
-    pub fn load(lua: *Lua, reader: std.io.AnyReader, chunkname: ?[:0]const u8) Lua.Status {
+    pub fn load(lua: *Lua, reader: std.io.AnyReader, chunkname: ?[:0]const u8) LoadError!void {
         const LoadContext = struct {
             reader: std.io.AnyReader,
             read_buffer: []u8,
@@ -2045,9 +2155,8 @@ pub const Lua = opaque {
             .read_buffer = read_buffer[0..],
         };
 
-        const s = c.lua_load(asState(lua), @ptrCast(&LoadContext.loadAdapter), &context, if (chunkname) |p| p.ptr else null);
-        assert(Lua.Status.is_status(s));
-        return @enumFromInt(s);
+        const res = c.lua_load(asState(lua), @ptrCast(&LoadContext.loadAdapter), &context, if (chunkname) |p| p.ptr else null);
+        return interpretLoadRes(res, "load()");
     }
 
     /// Used by C functions to validate received arguments.
@@ -4210,8 +4319,138 @@ test "Lua functions can be serialized and restored using dump() and load()" {
     try std.testing.expectEqual(0, lua.getTop()); // The stack should be empty, ensuring that the function is fully restored from the binary chunk.
 
     var fbs_read = std.io.fixedBufferStream(fbs_write.getWritten());
-    const status = lua.load(fbs_read.reader().any(), null);
-    try std.testing.expectEqual(Lua.Status.ok, status); // The function should be loaded to the stack successfully.
+    try lua.load(fbs_read.reader().any(), null);
+
+    lua.pushInteger(21);
+    try lua.callProtected(1, 1, 0);
+    try std.testing.expectEqual(42, try lua.toIntegerStrict(-1)); // The function should be the "multiply by two" function from above.
+}
+
+test "loadBuffer can load binary content including null bytes" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    // Equivalent to the load binary content from disk test, notice there are null bytes wtihin the string, particularly in the bytecode.
+    // 00000000  1b 4c 4a 02 08 23 72 65  74 75 72 6e 20 66 75 6e  |.LJ..#return fun|
+    // 00000010  63 74 69 6f 6e 28 78 29  20 72 65 74 75 72 6e 20  |ction(x) return |
+    // 00000020  78 20 2a 20 32 20 65 6e  64 1a 00 01 02 00 00 01  |x * 2 end.......|
+    // 00000030  02 07 01 00 18 01 00 00  4c 01 02 00 04 00 00 78  |........L......x|
+    // 00000040  00 00 03 00 00                                    |.....|
+    const binary = "\x1b\x4c\x4a\x02\x08\x23\x72\x65\x74\x75\x72\x6e\x20\x66\x75\x6e\x63\x74\x69\x6f\x6e\x28\x78\x29\x20\x72\x65\x74\x75\x72\x6e\x20\x78\x20\x2a\x20\x32\x20\x65\x6e\x64\x1a\x00\x01\x02\x00\x00\x01\x02\x07\x01\x00\x18\x01\x00\x00\x4c\x01\x02\x00\x04\x00\x00\x78\x00\x00\x03\x00\x00";
+    try lua.loadBuffer(binary, "my-test-chunk");
+    try std.testing.expectEqual(Lua.Type.function, lua.getType(-1));
+    lua.pushInteger(21);
+    try lua.callProtected(1, 1, 0);
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(42, lua.toIntegerStrict(-1));
+}
+
+test "Lua functions can be run from files with Lua source code" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openLibs();
+
+    const dir_name = try std.fs.getAppDataDir(std.testing.allocator, "zig-luajit-tests");
+    defer std.testing.allocator.free(dir_name);
+    var dir = try std.fs.cwd().makeOpenPath(dir_name, .{});
+    defer dir.close();
+    var f = try dir.createFile("test-dofile-source-code-from-file", .{});
+
+    var path_buffer: [std.fs.max_path_bytes + 1]u8 = undefined;
+    const full_path = try std.os.getFdPath(f.handle, path_buffer[0..std.fs.max_path_bytes]);
+    path_buffer[full_path.len] = 0;
+    const full_path_sentinel = path_buffer[0..full_path.len :0];
+    try f.writeAll(
+        \\ return function(x)
+        \\     return x * 2
+        \\ end
+        \\
+    );
+    f.close();
+
+    try std.testing.expectEqual(0, lua.getTop()); // The stack should be empty, ensuring that the function is fully restored from the binary chunk.
+
+    try lua.doFile(full_path_sentinel);
+    try std.testing.expectEqual(Lua.Type.function, lua.getType(-1));
+
+    lua.pushInteger(21);
+    try lua.callProtected(1, 1, 0);
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(42, lua.toIntegerStrict(-1));
+}
+
+test "loadFile should return error when file does not exist" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const actual = lua.loadFile("some_random_file_that_definitely_does_not_exist_2093u102894u12804u12894u12894u1");
+    try std.testing.expectError(Lua.LoadFileError.FileOpenOrFileRead, actual);
+}
+
+test "Lua functions can be loaded as Lua source code from a file" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openLibs();
+
+    const dir_name = try std.fs.getAppDataDir(std.testing.allocator, "zig-luajit-tests");
+    defer std.testing.allocator.free(dir_name);
+    var dir = try std.fs.cwd().makeOpenPath(dir_name, .{});
+    defer dir.close();
+    var f = try dir.createFile("test-load-source-code-from-file", .{});
+
+    var path_buffer: [std.fs.max_path_bytes + 1]u8 = undefined;
+    const full_path = try std.os.getFdPath(f.handle, path_buffer[0..std.fs.max_path_bytes]);
+    path_buffer[full_path.len] = 0;
+    const full_path_sentinel = path_buffer[0..full_path.len :0];
+    try f.writeAll(
+        \\ function foo(x)
+        \\     assert(x == 21)
+        \\ end
+        \\
+    );
+    f.close();
+
+    try std.testing.expectEqual(0, lua.getTop()); // The stack should be empty, ensuring that the function is fully restored from the binary chunk.
+
+    try lua.loadFile(full_path_sentinel);
+    try std.testing.expectEqual(Lua.Type.function, lua.getType(-1));
+
+    lua.pushInteger(21);
+    try lua.callProtected(1, 1, 0); // Assertion should pass
+}
+
+test "Lua functions can be loaded as Lua byte code (binary) from a file" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var buf: [256]u8 = undefined;
+    var fbs_write = std.io.fixedBufferStream(&buf);
+
+    try lua.doString("return function(x) return x * 2 end");
+    try std.testing.expectEqual(1, lua.getTop()); // The stack should contain one value, a function.
+    try lua.dump(fbs_write.writer().any());
+    const result = fbs_write.getWritten();
+
+    const dir_name = try std.fs.getAppDataDir(std.testing.allocator, "zig-luajit-tests");
+    defer std.testing.allocator.free(dir_name);
+    var dir = try std.fs.cwd().makeOpenPath(dir_name, .{});
+    defer dir.close();
+    var f = try dir.createFile("test-load-binary-from-file", .{});
+
+    var path_buffer: [std.fs.max_path_bytes + 1]u8 = undefined;
+    const full_path = try std.os.getFdPath(f.handle, path_buffer[0..std.fs.max_path_bytes]);
+    path_buffer[full_path.len] = 0;
+    const full_path_sentinel = path_buffer[0..full_path.len :0];
+
+    try f.writeAll(result);
+    f.close();
+
+    lua.pop(1);
+    try std.testing.expectEqual(0, lua.getTop()); // The stack should be empty, ensuring that the function is fully restored from the binary chunk.
+
+    try lua.loadFile(full_path_sentinel);
 
     lua.pushInteger(21);
     try lua.callProtected(1, 1, 0);
@@ -4238,7 +4477,7 @@ test "load() should report syntax errors when loading invalid binary chunk" {
     var fbs = std.io.fixedBufferStream(&buf);
 
     const actual = lua.load(fbs.reader().any(), null);
-    try std.testing.expectEqual(Lua.Status.syntax_error, actual);
+    try std.testing.expectError(error.InvalidSyntax, actual);
 }
 
 test "load() should report runtime errors when reading fails" {
@@ -4259,7 +4498,7 @@ test "load() should report runtime errors when reading fails" {
     };
 
     const actual = lua.load(err_reader, null);
-    try std.testing.expectEqual(Lua.Status.runtime_error, actual);
+    try std.testing.expectError(Lua.LoadError.Runtime, actual);
     try std.testing.expectEqualStrings("Unable to load function, found error 'TestingError' while reading.", try lua.toLString(-1));
 }
 

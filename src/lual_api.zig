@@ -80,41 +80,6 @@ pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
 /// Stack Behavior: `[-0, +(0|1), e]`
 pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 
-/// Loads and runs the given file. It is equivalent to calling `luaL_loadfile(L, filename)` and then `lua_pcall(L, 0, LUA_MULTRET, 0)`.
-/// Returns 0 if there are no errors or 1 in case of errors.
-///
-/// From: `int luaL_dofile(lua_State *L, const char *filename);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dofile
-/// Stack Behavior: `[-0, +?, m]`
-pub fn doFile(lua: *Lua, filename: [*:0]const u8) LuaError!void;
-
-
-/// Loads a buffer as a Lua chunk using lua_load to load the chunk in the buffer pointed to by buff with size sz.
-/// Returns the same results as lua_load. The name parameter is used for debug information and error messages.
-///
-/// From: `int luaL_loadbuffer(lua_State *L, const char *buff, size_t sz, const char *name);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadbuffer
-/// Stack Behavior: `[-0, +1, m]`
-pub fn loadBuffer(lua: *Lua, buff: [*]const u8, sz: usize, name: [*:0]const u8) LuaError;
-
-/// Loads a file as a Lua chunk. Uses lua_load to load the chunk in the file named filename.
-/// If filename is null, then it loads from the standard input. The first line in the file is ignored
-/// if it starts with a #. Returns the same results as lua_load, but with an extra error code LUA_ERRFILE
-/// if it cannot open/read the file. Only loads the chunk; it does not run it.
-///
-/// From: `int luaL_loadfile(lua_State *L, const char *filename);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadfile
-/// Stack Behavior: `[-0, +1, m]`
-pub fn loadFile(lua: *Lua, filename: ?[:0]const u8) LuaError;
-
-/// Loads a string as a Lua chunk using lua_load for the zero-terminated string.
-/// This function only loads the chunk and does not run it, returning the same results as lua_load.
-///
-/// From: `int luaL_loadstring(lua_State *L, const char *s);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadstring
-/// Stack Behavior: `[-0, +1, m]`
-pub fn loadString(lua: *Lua, source: [*:0]const u8) LuaError;
-
 /// Creates a new Lua state using the standard C realloc function for memory allocation and sets a default
 /// panic function that prints an error message to the standard error output in case of fatal errors.
 ///

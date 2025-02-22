@@ -86,7 +86,7 @@ you.
 | API                         | Support                               |
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 60% coverage (30/48)                  |
+| Auxilary Library (`luaL_*`) | 68% coverage (34/48)                  |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -243,15 +243,15 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_checkstring`         | ☑️ `lua.checkString()` |
 | `luaL_checktype`           | ☑️ `lua.checkType()` |
 | `luaL_checkudata`          | ➖ `lua.checkUserdata()`|
-| `luaL_dofile`              ||
+| `luaL_dofile`              | ☑️ `lua.doFile()` |
 | `luaL_dostring`            | ☑️ `lua.doString()` |
 | `luaL_error`               | ☑️📢 `lua.raiseErrorFormat()` |
 | `luaL_getmetafield`        | ☑️ `lua.getMetaField()` |
 | `luaL_getmetatable`        | ☑️📢 `lua.getMetatableRegistry()` |
 | `luaL_gsub`                | ☑️ `lua.gsub()` |
-| `luaL_loadbuffer`          ||
-| `luaL_loadfile`            ||
-| `luaL_loadstring`          ||
+| `luaL_loadbuffer`          | ☑️ `lua.loadBuffer()` |
+| `luaL_loadfile`            | ☑️ `lua.loadFile()` |
+| `luaL_loadstring`          | ☑️ `lua.loadString()` |
 | `luaL_newmetatable`        | ☑️ `lua.newMetatable()` |
 | `luaL_newstate`            | 🆖 please use `Lua.init()` |
 | `luaL_openlibs`            | ☑️ `lua.openLibs()` |

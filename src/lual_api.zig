@@ -89,23 +89,6 @@ pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
 pub fn doFile(lua: *Lua, filename: [*:0]const u8) LuaError!void;
 
 
-
-/// Pushes onto the stack the field `e` from the metatable of the object at index `obj`.
-/// If the object does not have a metatable, or if the metatable does not have this field,
-/// returns 0 and pushes nothing.
-///
-/// From: `int luaL_getmetafield(lua_State *L, int obj, const char *e);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_getmetafield
-/// Stack Behavior: `[-0, +(0|1), m]`
-pub fn getMetaField(lua: *Lua, obj: i32, e: [:0]const u8) i32;
-
-/// Pushes onto the stack the metatable associated with name tname in the registry.
-///
-/// From: `void luaL_getmetatable(lua_State *L, const char *tname);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_getmetatable
-/// Stack Behavior: `[-0, +1, -]`
-pub fn getMetatable(lua: *Lua, name: [*:0]const u8) void;
-
 /// Loads a buffer as a Lua chunk using lua_load to load the chunk in the buffer pointed to by buff with size sz.
 /// Returns the same results as lua_load. The name parameter is used for debug information and error messages.
 ///
@@ -131,15 +114,6 @@ pub fn loadFile(lua: *Lua, filename: ?[:0]const u8) LuaError;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadstring
 /// Stack Behavior: `[-0, +1, m]`
 pub fn loadString(lua: *Lua, source: [*:0]const u8) LuaError;
-
-/// If the registry already has the key tname, returns 0. Otherwise, creates a new table to be used as a
-/// metatable for userdata, adds it to the registry with key tname, and returns 1. In both cases pushes
-/// onto the stack the final value associated with tname in the registry.
-///
-/// From: `int luaL_newmetatable(lua_State *L, const char *tname);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_newmetatable
-/// Stack Behavior: `[-0, +1, m]`
-pub fn newMetatable(lua: *Lua, tname: [*:0]const u8) i32;
 
 /// Creates a new Lua state using the standard C realloc function for memory allocation and sets a default
 /// panic function that prints an error message to the standard error output in case of fatal errors.

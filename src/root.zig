@@ -1115,19 +1115,6 @@ pub const Lua = opaque {
         return c.lua_rawseti(asState(lua), index, n);
     }
 
-    /// Pushes onto the stack the metatable of the value at the given acceptable index. If the index is not
-    /// valid, or if the value does not have a metatable, the function returns `false` and pushes nothing on
-    /// the stack.
-    ///
-    /// From: `int lua_getmetatable(lua_State *L, int index);`
-    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getmetatable
-    /// Stack Behavior: `[-0, +(0|1), -]`
-    pub fn getMetatable(lua: *Lua, index: i32) bool {
-        lua.validateStackIndex(index);
-
-        return 1 == c.lua_getmetatable(asState(lua), index);
-    }
-
     /// Pushes onto the stack the value `t[k]`, where `t` is the value at the given valid index. As in Lua, this function
     /// may trigger a metamethod for the "index" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
     ///
@@ -1142,7 +1129,7 @@ pub const Lua = opaque {
         return lua.getType(-1);
     }
 
-    /// Does the equivalent to `t[k] = v`, where `t` is the value at the given valid index and `v` is the value at the
+    /// Does the equivalent to `t[key] = v`, where `t` is the value at the given valid index and `v` is the value at the
     /// top of the stack. This function pops the value from the stack. As in Lua, this function may trigger a
     /// metamethod for the "newindex" event (see https://www.lua.org/manual/5.1/manual.html#2.8).
     ///
@@ -1176,6 +1163,19 @@ pub const Lua = opaque {
 
         return c.lua_setglobal(asState(lua), asCString(name));
     }
+
+    /// Creates a new table to be used as a metatable for userdata, adds it to the registry with key `tname`, and
+    /// returns `true`. If the registry already has the key `tname`, returns `false` instead.
+    ///
+    /// In both cases, pushes onto the stack the final value associated with `tname` in the registry.
+    ///
+    /// From: `int luaL_newmetatable(lua_State *L, const char *tname);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_newmetatable
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn newMetatable(lua: *Lua, tname: [:0]const u8) bool {
+        return 1 == c.luaL_newmetatable(asState(lua), tname.ptr);
+    }
+
     /// Pops a table from the top of the stack and sets it as the metatable for the value at the
     /// given acceptable index.
     ///
@@ -1188,6 +1188,43 @@ pub const Lua = opaque {
 
         const res = c.lua_setmetatable(asState(lua), index);
         assert(1 == res);
+    }
+
+    /// Pushes onto the stack the metatable of the value at the given acceptable index. If the index is not
+    /// valid, or if the value does not have a metatable, the function returns `false` and pushes nothing on
+    /// the stack.
+    ///
+    /// From: `int lua_getmetatable(lua_State *L, int index);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getmetatable
+    /// Stack Behavior: `[-0, +(0|1), -]`
+    pub fn getMetatable(lua: *Lua, index: i32) bool {
+        lua.validateStackIndex(index);
+
+        return 1 == c.lua_getmetatable(asState(lua), index);
+    }
+
+    /// Pushes onto the stack the metatable associated with name `name` in the registry.
+    ///
+    /// Useful in combination with `newMetatable()`.
+    ///
+    /// From: `void luaL_getmetatable(lua_State *L, const char *tname);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_getmetatable
+    /// Stack Behavior: `[-0, +1, -]`
+    pub fn getMetatableRegistry(lua: *Lua, name: [:0]const u8) void {
+        return c.luaL_getmetatable(asState(lua), name.ptr);
+    }
+
+    /// Pushes onto the stack the field `field_name` from the metatable of the object at index `index`. Returns `true`
+    /// when the metatable exists and the requested field has been pushed on the stack. Otherwise, if the object does
+    /// not have a metatable, or if the metatable does not have this field, returns `false` and pushes nothing.
+    ///
+    /// From: `int luaL_getmetafield(lua_State *L, int obj, const char *e);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_getmetafield
+    /// Stack Behavior: `[-0, +(0|1), m]`
+    pub fn getMetaField(lua: *Lua, index: i32, field_name: [:0]const u8) bool {
+        lua.validateStackIndex(index);
+
+        return 1 == c.luaL_getmetafield(asState(lua), index, field_name.ptr);
     }
 
     /// Creates a new execution context within the given Lua instance, pushes it on the stack, and returns a `*Lua` pointer
@@ -4268,4 +4305,31 @@ test "gsub" {
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expectEqualStrings(expected, try lua.toLString(-1));
     try std.testing.expectEqualStrings(expected, actual);
+}
+
+test "metatables in the registry" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    try std.testing.expect(lua.newMetatable("test"));
+    lua.pushInteger(42);
+    lua.setField(-2, "bar");
+    try std.testing.expect(!lua.newMetatable("test"));
+
+    try std.testing.expectEqual(2, lua.getTop());
+    try std.testing.expectEqual(lua.toPointer(-1), lua.toPointer(-2));
+    lua.pop(1);
+
+    lua.getMetatableRegistry("test");
+    try std.testing.expectEqual(2, lua.getTop());
+    try std.testing.expectEqual(lua.toPointer(-1), lua.toPointer(-2));
+    lua.pop(1);
+
+    lua.newTable();
+    lua.insert(-2);
+    lua.setMetatable(-2);
+    try std.testing.expectEqual(1, lua.getTop());
+
+    try std.testing.expect(lua.getMetaField(-1, "bar"));
+    try std.testing.expectEqual(42, try lua.toIntegerStrict(-1));
 }

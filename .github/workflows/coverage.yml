@@ -24,15 +24,15 @@ jobs:
 
     - name: Install kcov
       run: |
-        wget https://github.com/SimonKagstrom/kcov/releases/download/v42/kcov-amd64.tar.gz
-        sudo tar xf kcov-amd64.tar.gz -C /
-
-    - name: Run Tests with kcov
-      run: |
+        sudo apt update
+        sudo apt install -y kcov
         kcov --version
+
+    - name: ▶️ Run Tests with Code Coverage
+      run: |
         zig build test -Dcoverage --summary all
 
-    - name: Upload to Codecov
+    - name: ⏫ Upload Coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
         directory: zig-out/coverage/kcov-merged

@@ -25,6 +25,7 @@ jobs:
     - name: Install kcov
       run: |
         sudo apt update
+        sudo apt install -y binutils
         wget https://github.com/SimonKagstrom/kcov/releases/download/v42/kcov-amd64.tar.gz
         sudo tar xf kcov-amd64.tar.gz -C /
         kcov --version

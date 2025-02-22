@@ -106,14 +106,6 @@ pub fn getMetaField(lua: *Lua, obj: i32, e: [:0]const u8) i32;
 /// Stack Behavior: `[-0, +1, -]`
 pub fn getMetatable(lua: *Lua, name: [*:0]const u8) void;
 
-/// Creates a copy of string s by replacing any occurrence of the string p with the string r.
-/// Pushes the resulting string on the stack and returns it.
-///
-/// From: `const char *luaL_gsub(lua_State *L, const char *s, const char *p, const char *r);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_gsub
-/// Stack Behavior: `[-0, +1, m]`
-pub fn gSub(lua: *Lua, s: []const u8, p: []const u8, r: []const u8) []const u8;
-
 /// Loads a buffer as a Lua chunk using lua_load to load the chunk in the buffer pointed to by buff with size sz.
 /// Returns the same results as lua_load. The name parameter is used for debug information and error messages.
 ///

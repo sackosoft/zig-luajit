@@ -2253,6 +2253,34 @@ pub const Lua = opaque {
             @ptrCast(functions.ptr),
         );
     }
+
+    /// Performs a `[g]lobal [sub]stitution` of content in the given `string` replacing all occurrences of the substring
+    /// `pattern` with the content `replacement`.
+    ///
+    /// Pushes the resulting string on the stack and returns it.
+    ///
+    /// From: `const char *luaL_gsub(lua_State *L, const char *s, const char *p, const char *r);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_gsub
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn gsub(lua: *Lua, string: [:0]const u8, pattern: [:0]const u8, replacement: [:0]const u8) [:0]const u8 {
+        assert(pattern.len > 0); // gsub(string, "", replacement) causes an infinite loop -- avoid using the empty string as a pattern.
+
+        const str: ?[*:0]const u8 = c.luaL_gsub(asState(lua), @ptrCast(string.ptr), @ptrCast(pattern.ptr), @ptrCast(replacement.ptr));
+        if (str) |s| {
+            const len = std.mem.indexOfSentinel(u8, 0, s);
+            return s[0..len :0];
+        } else {
+            lua.raiseErrorFormat(
+                "gsub('%s', '%s', '%s') returned null instead of the replaced string.",
+                .{
+                    string.ptr,
+                    pattern.ptr,
+                    replacement.ptr,
+                },
+            );
+            unreachable;
+        }
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -4224,4 +4252,20 @@ test "suspend and resume coroutines" {
 
     // TODO: This does not return the expected behavior - I do not think yield and resume work as expected.
     // try std.testing.expectEqual(20, try thread.toIntegerStrict(-1));
+}
+
+test "gsub" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const string = "ABBA";
+    const pattern = "B";
+    const replacement = "C";
+    const expected = "ACCA";
+
+    const actual = lua.gsub(string, pattern, replacement);
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expectEqualStrings(expected, try lua.toLString(-1));
+    try std.testing.expectEqualStrings(expected, actual);
 }

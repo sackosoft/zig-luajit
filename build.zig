@@ -34,8 +34,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_lib_unit_tests.step);
 
     if (coverage) {
-        try addCoverageReporting();
-
         var run_test_steps: std.ArrayListUnmanaged(*std.Build.Step.Run) = .empty;
         run_test_steps.append(b.allocator, run_lib_unit_tests) catch @panic("OOM");
 
@@ -65,5 +63,3 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&install_coverage.step);
     }
 }
-
-fn addCoverageReporting() !void {}

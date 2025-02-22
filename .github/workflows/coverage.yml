@@ -9,7 +9,6 @@ on:
       - build.zig.zon
 jobs:
   coverage:
-    if: github.repository_owner == 'zigtools'
     runs-on: ubuntu-latest
 
     steps:

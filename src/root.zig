@@ -2714,7 +2714,7 @@ pub const Lua = opaque {
 
         pub fn prettyPrint(self: *Lua.DebugInfo, writer: std.io.AnyWriter) !void {
             const addr: u64 = @intFromPtr(self);
-            try writer.print("root.Lua.DebugInfo@0x{x} {{\n", .{addr});
+            try writer.print("root.Lua.DebugInfo@0x{x:016} {{\n", .{addr});
             if (HookEventKind.isHookEventKind(@intFromEnum(self.event))) {
                 try writer.print("  event: '{s}' ({d}),\n", .{ @tagName(self.event), @intFromEnum(self.event) });
             } else {
@@ -2841,7 +2841,7 @@ pub const Lua = opaque {
 
         pub fn prettyPrint(self: *Lua.DebugInfoFunction, writer: std.io.AnyWriter) !void {
             const addr: u64 = @intFromPtr(self);
-            try writer.print("root.Lua.DebugInfoFunction@0x{x} {{\n", .{addr});
+            try writer.print("root.Lua.DebugInfoFunction@0x{x:016} {{\n", .{addr});
             try writer.print("  what: '{s}',\n", .{@tagName(self.what)});
 
             if (std.mem.indexOf(u8, self.short_src[0..DebugShortSourceLen], &.{0})) |i| {
@@ -5377,7 +5377,7 @@ test "getInfo() can debug info can be pretty printed" {
     try info.prettyPrint(fbs.writer().any());
 
     const actual = fbs.getWritten();
-    try std.testing.expectEqual(281, actual.len);
+    try std.testing.expectEqual(285, actual.len);
 
     // The output contains a pointer address too, so we will match the two parts around that.
     try std.testing.expectEqualStrings(
@@ -5403,7 +5403,7 @@ test "getInfo() can debug info can be pretty printed" {
         \\```
         \\}
         \\
-    , actual[33..]);
+    , actual[37..]);
 }
 
 test "getInfoFunction() can be used to show debug information about a function" {
@@ -5450,7 +5450,7 @@ test "getInfoFunction() can pretty printed" {
     try info.prettyPrint(fbs.writer().any());
 
     const actual = fbs.getWritten();
-    try std.testing.expectEqual(211, actual.len);
+    try std.testing.expectEqual(215, actual.len);
 
     // The output contains a pointer address too, so we will match the two parts around that.
     try std.testing.expectEqualStrings(
@@ -5472,5 +5472,5 @@ test "getInfoFunction() can pretty printed" {
         \\```
         \\}
         \\
-    , actual[41..]);
+    , actual[45..]);
 }

@@ -2497,6 +2497,44 @@ pub const Lua = opaque {
             }
         }
 
+        /// Adds the zero-terminated string to the buffer.
+        /// The string may not contain embedded zeros.
+        ///
+        /// From: `void luaL_addstring(luaL_Buffer *B, const char *s);`
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addstring
+        /// Stack Behavior: `[-0, +0, m]`
+        pub fn addString(buffer: *Buffer, string: [*:0]const u8) void {
+            assert(buffer.p != null and buffer.L != null); // You must use `Lua.initBuffer(&Lua.Buffer)` before calling `Lua.Buffer.addString()`.
+
+            return c.luaL_addstring(@ptrCast(buffer), string);
+        }
+
+        /// Adds the string to the buffer.
+        /// The string may contain embedded zeros.
+        ///
+        /// From: `void luaL_addlstring(luaL_Buffer *B, const char *s, size_t l);`
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addlstring
+        /// Stack Behavior: `[-0, +0, m]`
+        pub fn addLString(buffer: *Buffer, string: [:0]const u8) void {
+            assert(buffer.p != null and buffer.L != null); // You must use `Lua.initBuffer(&Lua.Buffer)` before calling `Lua.Buffer.addLString()`.
+
+            return c.luaL_addlstring(@ptrCast(buffer), string.ptr, string.len);
+        }
+
+        /// Adds the value at the top of the stack to the buffer (see https://www.lua.org/manual/5.1/manual.html#luaL_Buffer).
+        /// Pops the value. This is the only function on string buffers that can (and must) be called with an extra
+        /// element on the stack, which is the value to be added to the buffer.
+        ///
+        /// From: `void luaL_addvalue(luaL_Buffer *B);`
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addvalue
+        /// Stack Behavior: `[-1, +0, m]`
+        pub fn addValue(buffer: *Buffer) void {
+            assert(buffer.p != null and buffer.L != null); // You must use `Lua.initBuffer(&Lua.Buffer)` before calling `Lua.Buffer.addLString()`.
+            assert(buffer.L.?.getTop() > 0);
+
+            return c.luaL_addvalue(@ptrCast(buffer));
+        }
+
         /// Prepares writable space in the buffer.
         ///
         /// Used to provide direct writing of data. The caller **MUST** call `buffer.addSize()` after writing content
@@ -4853,4 +4891,58 @@ test "Buffer can be created by direct writes to the buffer" {
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isString(-1));
     try std.testing.expectEqualStrings("Hello", try lua.toLString(-1));
+}
+
+test "Buffer can be created by adding strings to the buffer" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var b: Lua.Buffer = .{};
+    lua.initBuffer(&b);
+    b.addString("Hello, world!");
+    b.pushResult();
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isString(-1));
+    try std.testing.expectEqualStrings("Hello, world!", try lua.toLString(-1));
+}
+
+test "Buffer can be created by adding literal strings to the buffer" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var b: Lua.Buffer = .{};
+    lua.initBuffer(&b);
+    b.addLString("Hello, world!");
+    b.pushResult();
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isString(-1));
+    try std.testing.expectEqualStrings("Hello, world!", try lua.toLString(-1));
+}
+
+test "Buffer can be created by adding values on the stack to the buffer" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var b: Lua.Buffer = .{};
+    lua.initBuffer(&b);
+
+    lua.pushInteger(42);
+    b.addValue();
+    try std.testing.expectEqual(0, lua.getTop());
+
+    lua.pushLString("AAA");
+    b.addValue();
+    try std.testing.expectEqual(0, lua.getTop());
+
+    lua.pushNumber(99.2);
+    b.addValue();
+    try std.testing.expectEqual(0, lua.getTop());
+
+    b.pushResult();
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isString(-1));
+    try std.testing.expectEqualStrings("42AAA99.2", try lua.toLString(-1));
 }

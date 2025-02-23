@@ -86,7 +86,7 @@ you.
 | API                         | Support                               |
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 🤩 84% coverage (42/48)               |
+| Auxilary Library (`luaL_*`) | 🤩 96% coverage (46/48)               |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -224,10 +224,10 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | C API Symbol               | Available in `zig-luajit`           |
 |----------------------------|-------------------------------------|
 | `luaL_addchar`             | ☑️ `buffer.addChar()`|
-| `luaL_addlstring`          ||
 | `luaL_addsize`             | ☑️ `buffer.addSize()`|
-| `luaL_addstring`           ||
-| `luaL_addvalue`            ||
+| `luaL_addlstring`          | ☑️ `buffer.addLString()`|
+| `luaL_addstring`           | ☑️ `buffer.addString()`|
+| `luaL_addvalue`            | ☑️ `buffer.addValue()`|
 | `luaL_argcheck`            | ☑️📢 `lua.checkArgument()` |
 | `luaL_argerror`            | ☑️📢 `lua.raiseErrorArgument()` |
 | `luaL_buffinit`            | ☑️📢 `lua.initBuffer()`|

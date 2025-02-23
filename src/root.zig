@@ -937,18 +937,18 @@ pub const Lua = opaque {
     }
 
     fn typeIsNotString(t: Lua.Type) NotStringError {
-        return switch (t) {
+        switch (t) {
             .number, .string => unreachable,
 
-            .none => error.NoneIsNotString,
-            .nil => error.NilIsNotString,
-            .boolean => error.BooleanIsNotString,
-            .light_userdata => error.LightUserdataIsNotString,
-            .table => error.TableIsNotString,
-            .function => error.FunctionIsNotString,
-            .userdata => error.UserdataIsNotString,
-            .thread => error.ThreadIsNotString,
-        };
+            .none => return error.NoneIsNotString,
+            .nil => return error.NilIsNotString,
+            .boolean => return error.BooleanIsNotString,
+            .light_userdata => return error.LightUserdataIsNotString,
+            .table => return error.TableIsNotString,
+            .function => return error.FunctionIsNotString,
+            .userdata => return error.UserdataIsNotString,
+            .thread => return error.ThreadIsNotString,
+        }
     }
 
     /// Creates a new empty table and pushes it onto the stack. It is equivalent to calling `createTable` with
@@ -2362,6 +2362,32 @@ pub const Lua = opaque {
     pub fn raiseErrorArgument(lua: *Lua, arg_n: i32, extra_message: ?[:0]const u8) noreturn {
         _ = c.luaL_argerror(asState(lua), arg_n, if (extra_message) |m| m.ptr else null);
         unreachable;
+    }
+
+    /// Raises an error with a message like "<location>: bad argument #<arg_n> to '<func>' (<type_name> expected, got <actual_type>)",
+    /// where `location` is produced by `where()`, `func` is the name of the current chunk, and `actual_type` is the type
+    /// name of the actual argument.
+    ///
+    /// From: `int luaL_typerror(lua_State *L, int narg, const char *tname);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_typerror
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn raiseErrorType(lua: *Lua, arg_n: i32, type_name: ?[:0]const u8) noreturn {
+        _ = c.luaL_typerror(asState(lua), arg_n, if (type_name) |t| t.ptr else null);
+        unreachable;
+    }
+
+    /// Pushes onto the stack a string identifying the current position of the control at the given level in the call stack.
+    /// Typically this string has the format: `chunkname:currentline:`.
+    ///
+    /// Level 0 is the running function, level 1 is the function that called the running function, etc.
+    /// This function is used to build a prefix for error messages.
+    ///
+    /// From: `void luaL_where(lua_State *L, int lvl);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_where
+    /// Stack Behavior: `[-0, +1, m]`
+    pub fn where(lua: *Lua, level: i32) void {
+        assert(level >= 0);
+        return c.luaL_where(asState(lua), level);
     }
 
     /// Represents named functions that belong to a library that can be registered by a call to the `registerLibrary()`
@@ -4456,6 +4482,51 @@ test "raiseErrorArgument() should return correct error messages" {
     lua.pushInteger(1);
     try std.testing.expectError(error.Runtime, lua.callProtected(1, 1, 0));
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' ((null))", try lua.toLString(-1));
+}
+
+test "raiseErrorType() should return correct error messages" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn FullError(l: *Lua) callconv(.c) i32 {
+            return l.raiseErrorType(1, "FOO");
+        }
+        fn NullError(l: *Lua) callconv(.c) i32 {
+            return l.raiseErrorType(1, null);
+        }
+    };
+
+    lua.pushCFunction(T.FullError);
+    lua.pushInteger(1);
+    try std.testing.expectError(error.Runtime, lua.callProtected(1, 1, 0));
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (FOO expected, got number)", try lua.toLString(-1));
+
+    lua.pushCFunction(T.NullError);
+    lua.pushInteger(1);
+    try std.testing.expectError(error.Runtime, lua.callProtected(1, 1, 0));
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' ((null) expected, got number)", try lua.toLString(-1));
+}
+
+test "where() should report correct location" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn whereFn(l: *Lua) callconv(.c) i32 {
+            l.where(1);
+            return 1;
+        }
+    };
+    lua.registerFunction("whereFn", T.whereFn);
+    try lua.doString("actual = whereFn()");
+
+    try std.testing.expectEqual(Lua.Type.string, lua.getGlobal("actual"));
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expectEqualStrings(
+        "[string \"actual = whereFn()\"]:1: ",
+        try lua.toLString(-1),
+    );
 }
 
 test "ref and unref in user table" {

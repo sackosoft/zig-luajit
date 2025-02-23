@@ -83,11 +83,12 @@ you.
 
 ## Language Binding Coverage Progress
 
-| API                         | Support                               |
-|-----------------------------|---------------------------------------|
-| Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 🤩 96% coverage (46/48)               |
-| LuaJIT Extensions           | *No plans to implement.*              |
+| API                           | Support                               |
+|-------------------------------|---------------------------------------|
+| Lua C API (`lua_*`)           | 🎉 100% coverage<sup>†</sup> (92/92)  |
+| Auxilary Library (`luaL_*`)   | 🤩 100% coverage (48/48)              |
+| Debug Interface (`lua_Debug`) | 0% coverage (0/12)                    |
+| LuaJIT Extensions             | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
 
@@ -267,8 +268,8 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_unref`               | ☑️ `lua.unref()` |
 | `luaL_register`            | ☑️📢 `lua.registerLibrary()` |
 | `luaL_typename`            | ☑️ `lua.getTypeNameAt()` |
-| `luaL_typerror`            ||
-| `luaL_where`               ||
+| `luaL_typerror`            | ☑️📢 `lua.raiseErrorType()` |
+| `luaL_where`               | ☑️ `lua.where()` |
 
 ## Additions to the API in `zig-luajit`
 

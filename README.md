@@ -83,12 +83,12 @@ you.
 
 ## Language Binding Coverage Progress
 
-| API                           | Support                               |
-|-------------------------------|---------------------------------------|
-| Lua C API (`lua_*`)           | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`)   | 🤩 100% coverage (48/48)              |
-| Debug Interface (`lua_Debug`) | 0% coverage (0/12)                    |
-| LuaJIT Extensions             | *No plans to implement.*              |
+| API                         | Support                               |
+|-----------------------------|---------------------------------------|
+| Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
+| Auxilary Library (`luaL_*`) | 🤩 100% coverage (48/48)              |
+| Debug API (`lua_Debug`)     | 16% coverage (2/12)                   |
+| LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
 
@@ -269,6 +269,27 @@ This section describes the current status of Zig language bindings ("the Zig API
 | `luaL_typerror`            | ☑️📢 `lua.raiseErrorType()` |
 | `luaL_where`               | ☑️ `lua.where()` |
 
+### Debug API Coverage (`lua_Debug`)
+
+| C Type Definition          | Available in `zig-luajit`           |
+|----------------------------|-------------------------------------|
+| `lua_Debug`                | ☑️ `Lua.DebugInfo`                   |
+| `lua_Hook`                 |                                     |
+
+| C API Symbol               | Available in `zig-luajit`           |
+|----------------------------|-------------------------------------|
+| `lua_getinfo`              | ☑️ `lua.getInfo()`                   |
+| `lua_gethookcount`         ||
+| `lua_gethookmask`          ||
+| `lua_gethook`              ||
+| `lua_getlocal`             ||
+| `lua_getstack`             ||
+| `lua_getupvalue`           ||
+| `lua_sethook`              ||
+| `lua_setlocal`             ||
+| `lua_setupvalue`           ||
+
+
 ## Additions to the API in `zig-luajit`
 
 The following functions are added in `zig-luajit` and do not necessarily have a corresponding
@@ -276,21 +297,22 @@ function or macro in the C API.
 
 | `zig-luajit` Extension Function | Description |
 |---------------------------------|-------------|
-| `lua.toNumberStrict()`     | Gets the value of a number on the stack, without doing type coersion (e.g. from string values). |
-| `lua.toIntegerStrict()`    | Gets the value of an integer on the stack, without doing type coersion (e.g. from string values). |
-| `lua.toBooleanStrict()`    | Gets the value of a boolean on the stack, without doing type coersion based on "truthyness" of the value. |
-| `lua.openBaseLib()`        | Opens the `Base` Lua standard library. |
-| `lua.openMathLib()`        | Opens the `Math` Lua standard library. |
-| `lua.openStringLib()`      | Opens the `String` Lua standard library. |
-| `lua.openTableLib()`       | Opens the `Table` Lua standard library. |
-| `lua.openIOLib()`          | Opens the `IO` Lua standard library. |
-| `lua.openOSLib()`          | Opens the `OS` Lua standard library. |
-| `lua.openPackageLib()`     | Opens the `Package` Lua standard library. |
-| `lua.openDebugLib()`       | Opens the `Debug` Lua standard library. |
-| `lua.openBitLib()`         | Opens the `Bit` LuaJIT standard library. |
-| `lua.openJITLib()`         | Opens the `JIT` LuaJIT standard library. |
-| `lua.openFFILib()`         | Opens the `FFI` LuaJIT standard library. |
-| `lua.openStringBufferLib()`| Opens the `StringBuffer` LuaJIT standard library. |
+| `lua.getInfoFunction()`         | A simplified version of `lua.getInfo()` for inspecting functions, that has a more idiomatic Zig result type. |
+| `lua.toNumberStrict()`          | Gets the value of a number on the stack, without doing type coersion (e.g. from string values). |
+| `lua.toIntegerStrict()`         | Gets the value of an integer on the stack, without doing type coersion (e.g. from string values). |
+| `lua.toBooleanStrict()`         | Gets the value of a boolean on the stack, without doing type coersion based on "truthyness" of the value. |
+| `lua.openBaseLib()`             | Opens the `Base` Lua standard library. |
+| `lua.openMathLib()`             | Opens the `Math` Lua standard library. |
+| `lua.openStringLib()`           | Opens the `String` Lua standard library. |
+| `lua.openTableLib()`            | Opens the `Table` Lua standard library. |
+| `lua.openIOLib()`               | Opens the `IO` Lua standard library. |
+| `lua.openOSLib()`               | Opens the `OS` Lua standard library. |
+| `lua.openPackageLib()`          | Opens the `Package` Lua standard library. |
+| `lua.openDebugLib()`            | Opens the `Debug` Lua standard library. |
+| `lua.openBitLib()`              | Opens the `Bit` LuaJIT standard library. |
+| `lua.openJITLib()`              | Opens the `JIT` LuaJIT standard library. |
+| `lua.openFFILib()`              | Opens the `FFI` LuaJIT standard library. |
+| `lua.openStringBufferLib()`     | Opens the `StringBuffer` LuaJIT standard library. |
 
 
 ## Licensing

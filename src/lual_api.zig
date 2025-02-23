@@ -10,13 +10,6 @@
 /// Stack Behavior: `[-0, +0, m]`
 pub fn addLString(buffer: *Buffer, s: [*]const u8, l: usize) void;
 
-/// Adds to the buffer B a string of length n previously copied to the buffer area.
-///
-/// From: `void luaL_addsize(luaL_Buffer *B, size_t n);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addsize
-/// Stack Behavior: `[-0, +0, m]`
-pub fn addSize(buffer: *Buffer, n: usize) void;
-
 /// Adds the zero-terminated string pointed to by s to the buffer B.
 /// The string may not contain embedded zeros.
 ///
@@ -41,15 +34,6 @@ pub fn addValue(buffer: *Buffer) void;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_newstate
 /// Stack Behavior: `[-0, +0, -]`
 pub fn newState() ?*Lua;
-
-/// Returns an address to a space of size LUAL_BUFFERSIZE where you can copy a string to be added to buffer B.
-/// After copying the string into this space you must call luaL_addsize with the size of the string to actually
-/// add it to the buffer.
-///
-/// From: `char *luaL_prepbuffer(luaL_Buffer *B);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_prepbuffer
-/// Stack Behavior: `[-0, +0, -]`
-pub fn prepBuffer(buffer: *Buffer) [*]u8;
 
 /// Generates an error with a message like "location: bad argument narg to 'func' (tname expected, got rt)",
 /// where location is produced by luaL_where, func is the name of the current function,

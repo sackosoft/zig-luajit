@@ -2483,9 +2483,7 @@ pub const Lua = opaque {
                 var ptr_copy = ptr;
 
                 if (@intFromPtr(ptr) >= @intFromPtr(&buffer.buffer) + c.LUAL_BUFFERSIZE) {
-                    const extra = c.luaL_prepbuffer(@ptrCast(buffer));
-                    assert(extra != null);
-                    ptr_copy = extra;
+                    ptr_copy = buffer.prepBuffer();
                 }
 
                 // We can assert buffer.p is non-null here since prepbuffer guarantees it
@@ -2495,6 +2493,48 @@ pub const Lua = opaque {
                 std.debug.panic(
                     "Failed to add character '{c}' to a buffer: the buffer is not initialized, `buffer.p` is null.\n",
                     .{char},
+                );
+            }
+        }
+
+        /// Prepares writable space in the buffer.
+        ///
+        /// Used to provide direct writing of data. The caller **MUST** call `buffer.addSize()` after writing content
+        /// to the returned address of memory. If you do not call `buffer.addSize()` then the content will not be added
+        /// to the result of the Buffer.
+        /// ```
+        /// var space = buffer.prepBuffer();
+        /// @memcpy(space, "Hello", 5);
+        /// buffer.addSize(5);  // Required when directly writing
+        ///
+        /// Returns a pointer to space of size `BufferSize` bytes.
+        ///
+        /// From: `char *luaL_prepbuffer(luaL_Buffer *B);`
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_prepbuffer
+        /// Stack Behavior: `[-0, +0, -]`
+        pub fn prepBuffer(buffer: *Buffer) [*]u8 {
+            assert(buffer.p != null and buffer.L != null); // You must use `Lua.initBuffer(&Lua.Buffer)` before calling `Lua.Buffer.prepBuffer()`.
+
+            const ptr: ?[*]u8 = @ptrCast(c.luaL_prepbuffer(@ptrCast(buffer)));
+            assert(ptr != null);
+            return ptr.?;
+        }
+
+        /// Adds to the buffer a string of length `n` previously copied to the buffer area. Callers should write to the
+        /// buffer area returned from `prepBuffer()`.
+        ///
+        /// From: `void luaL_addsize(luaL_Buffer *B, size_t n);`
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addsize
+        /// Stack Behavior: `[-0, +0, m]`
+        pub fn addSize(buffer: *Buffer, n: usize) void {
+            assert(buffer.p != null and buffer.L != null); // You must use `Lua.initBuffer(&Lua.Buffer)` before calling `Lua.Buffer.addSize()`.
+
+            if (buffer.p) |ptr| {
+                buffer.p = ptr + n;
+            } else {
+                std.debug.panic(
+                    "Failed to buffer.addSize('{d}'): the buffer is not initialized, `buffer.p` is null.\n",
+                    .{n},
                 );
             }
         }
@@ -4788,4 +4828,29 @@ test "Buffer should handle very long string" {
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isString(-1));
     try std.testing.expectEqualStrings("0123456789" ** 25_600, try lua.toLString(-1));
+}
+
+test "Buffer can be created by direct writes to the buffer" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var b: Lua.Buffer = .{};
+    lua.initBuffer(&b);
+    var p = b.prepBuffer();
+    p[0] = 'H';
+    p += 1;
+    p[0] = 'e';
+    p += 1;
+    p[0] = 'l';
+    p += 1;
+    p[0] = 'l';
+    p += 1;
+    p[0] = 'o';
+    p += 1;
+    b.addSize(5);
+    b.pushResult();
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isString(-1));
+    try std.testing.expectEqualStrings("Hello", try lua.toLString(-1));
 }

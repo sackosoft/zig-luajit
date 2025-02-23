@@ -86,7 +86,7 @@ you.
 | API                         | Support                               |
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 80% coverage (40/48)                  |
+| Auxilary Library (`luaL_*`) | 🤩 84% coverage (42/48)               |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -225,7 +225,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 |----------------------------|-------------------------------------|
 | `luaL_addchar`             | ☑️ `buffer.addChar()`|
 | `luaL_addlstring`          ||
-| `luaL_addsize`             ||
+| `luaL_addsize`             | ☑️ `buffer.addSize()`|
 | `luaL_addstring`           ||
 | `luaL_addvalue`            ||
 | `luaL_argcheck`            | ☑️📢 `lua.checkArgument()` |
@@ -261,7 +261,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_optlstring`          | ☑️📢 `lua.checkLStringOptional()` |
 | `luaL_optnumber`           | ☑️📢 `lua.checkNumberOptional()` |
 | `luaL_optstring`           | ☑️📢 `lua.checkStringOptional()` |
-| `luaL_prepbuffer`          ||
+| `luaL_prepbuffer`          | ☑️ `buffer.prepBuffer()` |
 | `luaL_pushresult`          | ☑️ `buffer.pushResult()` |
 | `luaL_ref`                 | ☑️ `lua.ref()` |
 | `luaL_unref`               | ☑️ `lua.unref()` |

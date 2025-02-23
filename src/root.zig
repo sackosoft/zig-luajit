@@ -1184,7 +1184,7 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-1, +0, -]`
     pub fn setMetatable(lua: *Lua, index: i32) void {
         lua.validateStackIndex(index);
-        assert(lua.isTable(index));
+        assert(lua.isTable(-1));
 
         const res = c.lua_setmetatable(asState(lua), index);
         assert(1 == res);
@@ -2289,7 +2289,7 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_checkudata
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkUserdata(lua: *Lua, arg_n: i32, type_name: [:0]const u8) ?*anyopaque {
-        return c.luaL_checkudata(asState(lua), arg_n, @ptrCast(type_name.ptr));
+        return c.luaL_checkudata(asState(lua), arg_n, type_name.ptr);
     }
 
     /// Used by C functions to validate received arguments.
@@ -4436,6 +4436,57 @@ test "checkArgument() should return error when argument is invalid and succeed w
 
     const message = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (FOOBAR)", message);
+}
+
+test "checkUserdata() will accept user data with the correct metatable type" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn EchoUserdata(l: *Lua) callconv(.c) i32 {
+            const val = l.checkUserdata(1, "MyUserdataType");
+            l.pushLightUserdata(val);
+            return 1;
+        }
+    };
+
+    lua.pushCFunction(T.EchoUserdata);
+
+    const expected = lua.newUserdata(32);
+    try std.testing.expect(lua.newMetatable("MyUserdataType"));
+    lua.setMetatable(-2);
+    try std.testing.expectEqual(2, lua.getTop());
+    try std.testing.expect(lua.isFunction(1));
+    try std.testing.expect(lua.isUserdata(2));
+
+    try lua.callProtected(1, 1, 0);
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isUserdata(-1));
+    try std.testing.expectEqual(expected, lua.toUserdata(-1));
+}
+
+test "checkUserdata() will reject user data with the wrong metatable type" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn EchoUserdata(l: *Lua) callconv(.c) i32 {
+            const val = l.checkUserdata(1, "MyUserdataType");
+            l.pushLightUserdata(val);
+            return 1;
+        }
+    };
+
+    lua.pushCFunction(T.EchoUserdata);
+
+    _ = lua.newUserdata(32);
+    try std.testing.expectEqual(2, lua.getTop());
+    try std.testing.expect(lua.isFunction(1));
+    try std.testing.expect(lua.isUserdata(2));
+
+    try std.testing.expectError(error.Runtime, lua.callProtected(1, 1, 0));
+    try std.testing.expectEqualStrings("bad argument #1 to '?' (MyUserdataType expected, got userdata)", try lua.toLString(-1));
 }
 
 test "checkArgument() should return handle null message" {

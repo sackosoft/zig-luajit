@@ -41,15 +41,6 @@ pub fn addString(buffer: *Buffer, s: [*:0]const u8) void;
 /// Stack Behavior: `[-1, +0, m]`
 pub fn addValue(buffer: *Buffer) void;
 
-/// Raises an error with the message "bad argument #narg to func (extramsg)". The function
-/// func is retrieved from the call stack. This function never returns, but it is an idiom
-/// to use it as a return statement.
-///
-/// From: `int luaL_argerror(lua_State *L, int narg, const char *extramsg);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argerror
-/// Stack Behavior: `[-0, +0, v]`
-pub fn argError(lua: *Lua, narg: i32, extramsg: []const u8) noreturn;
-
 /// Type for a string buffer. A string buffer allows building Lua strings piecemeal.
 ///
 /// Pattern of use:

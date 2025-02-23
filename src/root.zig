@@ -2348,9 +2348,20 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkArgument(lua: *Lua, condition: bool, arg_n: i32, extra_message: ?[:0]const u8) void {
         if (condition) {
-            const ptr: [*c]const u8 = @ptrCast(if (extra_message) |m| m else null);
-            _ = c.luaL_argerror(asState(lua), arg_n, ptr);
+            _ = c.luaL_argerror(asState(lua), arg_n, if (extra_message) |m| m else null);
         }
+    }
+
+    /// Raises an error with the message "bad argument #<arg_n> to <func> (<extra_message>)". The function
+    /// func is retrieved from the call stack. This function never returns, but it is an idiom
+    /// to use it as a return statement.
+    ///
+    /// From: `int luaL_argerror(lua_State *L, int narg, const char *extramsg);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argerror
+    /// Stack Behavior: `[-0, +0, v]`
+    pub fn raiseErrorArgument(lua: *Lua, arg_n: i32, extra_message: ?[:0]const u8) noreturn {
+        _ = c.luaL_argerror(asState(lua), arg_n, if (extra_message) |m| m.ptr else null);
+        unreachable;
     }
 
     /// Represents named functions that belong to a library that can be registered by a call to the `registerLibrary()`
@@ -4227,7 +4238,7 @@ test "checkType should validate argument type" {
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (string expected, got number)", try lua.toLString(-1));
 }
 
-test "checkArgument should return error when argument is invalid and succeed when argument is OK" {
+test "checkArgument() should return error when argument is invalid and succeed when argument is OK" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
@@ -4253,6 +4264,52 @@ test "checkArgument should return error when argument is invalid and succeed whe
 
     const message = try lua.toLString(-1);
     try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (FOOBAR)", message);
+}
+
+test "checkArgument() should return handle null message" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn EchoInteger(l: *Lua) callconv(.c) i32 {
+            const val = l.toInteger(1);
+            l.checkArgument(val != 42, 1, null);
+            l.pushInteger(val);
+            return 1;
+        }
+    };
+
+    lua.pushCFunction(T.EchoInteger);
+    lua.pushInteger(1);
+    const actual = lua.callProtected(1, 1, 0);
+    try std.testing.expectError(error.Runtime, actual);
+
+    const message = try lua.toLString(-1);
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' ((null))", message);
+}
+
+test "raiseErrorArgument() should return correct error messages" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn FullError(l: *Lua) callconv(.c) i32 {
+            return l.raiseErrorArgument(1, "FOO");
+        }
+        fn NullError(l: *Lua) callconv(.c) i32 {
+            return l.raiseErrorArgument(1, null);
+        }
+    };
+
+    lua.pushCFunction(T.FullError);
+    lua.pushInteger(1);
+    try std.testing.expectError(error.Runtime, lua.callProtected(1, 1, 0));
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' (FOO)", try lua.toLString(-1));
+
+    lua.pushCFunction(T.NullError);
+    lua.pushInteger(1);
+    try std.testing.expectError(error.Runtime, lua.callProtected(1, 1, 0));
+    try std.testing.expectEqualSlices(u8, "bad argument #1 to '?' ((null))", try lua.toLString(-1));
 }
 
 test "ref and unref in user table" {

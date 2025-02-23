@@ -229,7 +229,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_addstring`           ||
 | `luaL_addvalue`            ||
 | `luaL_argcheck`            | ☑️📢 `lua.checkArgument()` |
-| `luaL_argerror`            ||
+| `luaL_argerror`            | ☑️📢 `lua.raiseErrorArgument()` |
 | `luaL_buffinit`            ||
 | `luaL_callmeta`            | ☑️ `lua.callMeta()`|
 | `luaL_checkany`            | ☑️ `lua.checkAny()`|

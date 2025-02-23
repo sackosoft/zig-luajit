@@ -2624,6 +2624,265 @@ pub const Lua = opaque {
     pub fn initBuffer(lua: *Lua, buffer: *Lua.Buffer) void {
         return c.luaL_buffinit(asState(lua), @ptrCast(buffer));
     }
+
+    /// Represents different types of events that can be triggered during Lua execution. These events are received by
+    /// hooks to inspect or modify the execution of code in the Lua instance.
+    pub const HookEventKind = enum(i32) {
+        /// Function call event
+        call = c.LUA_HOOKCALL,
+        /// Normal function return event
+        ret = c.LUA_HOOKRET,
+        /// Line execution event
+        line = c.LUA_HOOKLINE,
+        /// Instruction count event
+        count = c.LUA_HOOKCOUNT,
+        /// Tail call return event - occurs when Lua is simulating a return from a function that performed a tail call
+        tailret = c.LUA_HOOKTAILRET,
+
+        /// This value is NOT part of the Lua ABI, but provided so we can set a safe default value and detect an
+        /// uninitialized instance of this struct.
+        none = -1,
+
+        pub fn isHookEventKind(v: i32) bool {
+            return v == @intFromEnum(HookEventKind.call) //
+            or v == @intFromEnum(HookEventKind.ret) //
+            or v == @intFromEnum(HookEventKind.line) //
+            or v == @intFromEnum(HookEventKind.count) //
+            or v == @intFromEnum(HookEventKind.tailret);
+        }
+    };
+
+    pub const DebugShortSourceLen = @as(usize, @intCast(c.LUA_IDSIZE));
+
+    /// A structure used to carry different pieces of information about an active function.
+    /// lua_getstack fills only the private part of this structure, for later use.
+    /// To fill the other fields with useful information, call lua_getinfo.
+    ///
+    /// Note: While Lua is running a hook, it disables other calls to hooks. If a hook calls back
+    /// Lua to execute a function or a chunk, this execution occurs without any calls to hooks.
+    pub const DebugInfo = extern struct {
+        /// The event that triggered the hook. When hooks are called, this field indicates
+        /// the specific event type that triggered it
+        event: Lua.HookEventKind = .none,
+
+        /// A reasonable name for the active function. Because functions in Lua are first-class values, they do not
+        /// have a fixed name: some functions can be the value of multiple global variables, while others can be stored
+        /// only in a table field.
+        ///
+        /// The `getInfo()` function checks how the function was called to find a suitable name.
+        /// If it cannot find a name, then name is set to NULL.
+        name: ?[*:0]const u8 = null,
+
+        /// Explains the context of the `name` field. Contains one of the following values:
+        /// * `"global"` - function is in a global variable
+        /// * `"local"` - function is in a local variable
+        /// * `"method"` - function is a method
+        /// * `"field"` - function is in a table field
+        /// * `"upvalue"` - function is in an upvalue
+        /// * `""` (empty string) - when no other option applies
+        namewhat: ?[*:0]const u8 = null,
+
+        /// Indicates the type of function being executed. Contains one of the following values:
+        /// * `"Lua"` - the active function is a Lua function
+        /// * `"C"` - the active function is a C function
+        /// * `"main"` - the active function is the main part of a chunk
+        /// * `"tail"` - the active function did a tail call. In this case, Lua has no other information about the function
+        what: ?[*:0]const u8 = null,
+
+        /// The source code that the language element originates from.
+        ///
+        /// * If the function was defined in a string, then `source` is that string
+        /// * If the function was defined in a file, then `source` starts with '@' followed by the file name
+        source: ?[*:0]const u8 = null,
+
+        /// Current line where the given function is executing.
+        /// Set to -1 when no line information is available
+        currentline: i32 = -1,
+
+        /// Number of upvalues in the function
+        nups: i32 = undefined,
+
+        /// Line number where the definition of the function starts
+        linedefined: i32 = undefined,
+
+        /// Line number where the definition of the function ends
+        lastlinedefined: i32 = undefined,
+
+        /// A printable version of `source`, optimized for error messages.
+        /// Contains a shortened version of the source location
+        short_src: [DebugShortSourceLen]u8 = undefined,
+
+        pub fn prettyPrint(self: *Lua.DebugInfo, writer: std.io.AnyWriter) !void {
+            try writer.print("{*} {{\n", .{self});
+            if (HookEventKind.isHookEventKind(@intFromEnum(self.event))) {
+                try writer.print("  event: '{s}' ({d}),\n", .{ @tagName(self.event), @intFromEnum(self.event) });
+            } else {
+                try writer.print("  event: '?' ({d}),\n", .{@intFromEnum(self.event)});
+            }
+
+            if (self.name) |name| {
+                try writer.print("  name: '{s}',\n", .{name});
+            } else {
+                try writer.writeAll("  name: '<null>',\n");
+            }
+
+            if (self.namewhat) |namewhat| {
+                try writer.print("  namewhat: '{s}',\n", .{namewhat});
+            } else {
+                try writer.writeAll("  namewhat: '<null>',\n");
+            }
+
+            if (self.what) |what| {
+                try writer.print("  what: '{s}',\n", .{what});
+            } else {
+                try writer.writeAll("  what: '<null>',\n");
+            }
+
+            if (std.mem.indexOf(u8, self.short_src[0..DebugShortSourceLen], &.{0})) |i| {
+                try writer.print("  short_src: `{s}`,\n", .{self.short_src[0..i]});
+            }
+
+            try writer.print("  currentline: {d},\n", .{self.currentline});
+            try writer.print("  nups: {d},\n", .{self.nups});
+            try writer.print("  linedefined: {d},\n", .{self.linedefined});
+            try writer.print("  lastlinedefined: {d},\n", .{self.lastlinedefined});
+
+            if (self.source) |source| {
+                try writer.print("  source:\n```\n{s}\n```\n", .{source[0..@min(256, std.mem.indexOfSentinel(u8, 0, source))]});
+            } else {
+                try writer.writeAll("  source: '<null>'\n");
+            }
+
+            try writer.writeAll("}\n");
+        }
+    };
+
+    /// Returns information about a specific function or function invocation.
+    ///
+    /// To get information about a function invocation, the parameter `info` must be a valid activation record that was
+    /// filled by a previous call to `getStack()` or provided as an argument to a hook.
+    ///
+    /// To get information about a function, push it onto the stack and start the `what` string with the character '>'.
+    /// In that case, `getInfo()` pops the function from the top of the stack.
+    ///
+    /// Each character in the `what` string selects some fields of the `DebugInfo` structure to be filled or a value
+    /// to be pushed on the stack:
+    /// - 'n': fills in the `name` and `namewhat` fields
+    /// - 'S': fills in the `source`, `short_src`, `line_defined`, `lastlinedefined`, and `what` fields
+    /// - 'l': fills in the `currentline` field
+    /// - 'u': fills in the `nups` field
+    /// - 'f': pushes onto the stack the function running at the given level
+    /// - 'L': pushes onto the stack a table with indices of valid lines for the function
+    ///
+    /// Returns `true` when the operation was performed succesfully and `false` otherwise (e.g. when given an invalid `what`).
+    ///
+    /// From: `int lua_getinfo(lua_State *L, const char *what, lua_Debug *ar);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getinfo
+    /// Stack Behavior: `[-(0|1), +(0|1|2), m]`
+    pub fn getInfo(lua: *Lua, what: [:0]const u8, info: *Lua.DebugInfo) bool {
+        return 0 != c.lua_getinfo(asState(lua), what.ptr, @ptrCast(info));
+    }
+
+    /// Represents the different kinds of functions that can be inspected by `getInfo()`. This enumerates the possible
+    /// values that `getInfo()` will set in the `what` field when inspecting a function.
+    pub const FunctionKind = enum {
+        lua,
+        c,
+        main,
+        tail,
+        unknown,
+
+        pub fn parse(what: ?[*:0]const u8) FunctionKind {
+            if (what) |w| {
+                const slice = w[0..std.mem.indexOfSentinel(u8, 0, w)];
+                if (std.mem.eql(u8, "Lua", slice)) {
+                    return .lua;
+                } else if (std.mem.eql(u8, "C", slice)) {
+                    return .lua;
+                } else if (std.mem.eql(u8, "main", slice)) {
+                    return .lua;
+                } else if (std.mem.eql(u8, "tail", slice)) {
+                    return .lua;
+                } else {
+                    return .unknown;
+                }
+            } else {
+                return .unknown;
+            }
+        }
+    };
+
+    /// A friendly form of the `DebugInfo` struct containing information returned by `getInfoFunction()`. The alternative
+    /// is to use `getInfo()` with the function inspection prefix `'>'` and `'S'` or `'u'` for source information and
+    /// upvalues information, respectively.
+    pub const DebugInfoFunction = struct {
+        /// Indicates the type of the function.
+        what: Lua.FunctionKind = .unknown,
+
+        /// The source code that the language element originates from.
+        ///
+        /// * If the function was defined in a string, then `source` is that string
+        /// * If the function was defined in a file, then `source` starts with '@' followed by the file name
+        source: ?[:0]const u8 = null,
+
+        /// Number of upvalues in the function
+        nups: i32 = undefined,
+
+        /// Line number where the definition of the function starts
+        linedefined: i32 = undefined,
+
+        /// Line number where the definition of the function ends
+        lastlinedefined: i32 = undefined,
+
+        /// A printable version of `source`, optimized for error messages.
+        /// Contains a shortened version of the source location
+        short_src: [DebugShortSourceLen]u8 = undefined,
+
+        pub fn prettyPrint(self: *Lua.DebugInfoFunction, writer: std.io.AnyWriter) !void {
+            try writer.print("{*} {{\n", .{self});
+            try writer.print("  what: '{s}',\n", .{@tagName(self.what)});
+
+            if (std.mem.indexOf(u8, self.short_src[0..DebugShortSourceLen], &.{0})) |i| {
+                try writer.print("  short_src: `{s}`,\n", .{self.short_src[0..i]});
+            }
+
+            try writer.print("  nups: {d},\n", .{self.nups});
+            try writer.print("  linedefined: {d},\n", .{self.linedefined});
+            try writer.print("  lastlinedefined: {d},\n", .{self.lastlinedefined});
+
+            if (self.source) |source| {
+                try writer.print("  source:\n```\n{s}\n```\n", .{source});
+            } else {
+                try writer.writeAll("  source: '<null>'\n");
+            }
+
+            try writer.writeAll("}\n");
+        }
+    };
+
+    /// A less efficient but simpler version of `getInfo()` for discovering debug information about the function on the
+    /// top of the stack.
+    ///
+    /// Asserts that the top of the stack contains a function and returns an error when the underlying call to `getInfo()`
+    /// returns `false`.
+    ///
+    /// Stack Behavior: `[-1, +0, m]`
+    pub fn getInfoFunction(lua: *Lua) error{NoDebugInfo}!Lua.DebugInfoFunction {
+        assert(lua.isFunction(-1));
+        var info: Lua.DebugInfo = undefined;
+        if (!lua.getInfo(">Su", &info)) {
+            return error.NoDebugInfo;
+        }
+        var simplifiedInterface = Lua.DebugInfoFunction{
+            .what = FunctionKind.parse(info.what),
+            .source = if (info.source) |s| s[0..std.mem.indexOfSentinel(u8, 0, s) :0] else null,
+            .nups = info.nups,
+            .linedefined = info.linedefined,
+            .lastlinedefined = info.lastlinedefined,
+        };
+        @memcpy(simplifiedInterface.short_src[0..DebugShortSourceLen], info.short_src[0..DebugShortSourceLen]);
+        return simplifiedInterface;
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -5067,4 +5326,149 @@ test "Buffer can be created by adding values on the stack to the buffer" {
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isString(-1));
     try std.testing.expectEqualStrings("42AAA99.2", try lua.toLString(-1));
+}
+
+test "getInfo() can be used to show debug information about a function" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected_source =
+        \\function foo(x)
+        \\  return x * 2
+        \\end
+    ;
+    try lua.doString(expected_source);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("foo"));
+
+    var info: Lua.DebugInfo = .{};
+    try std.testing.expect(lua.getInfo(">Su", &info));
+    try std.testing.expectEqual(0, lua.getTop());
+
+    try std.testing.expect(info.source != null);
+    try std.testing.expectEqualSentinel(u8, 0, expected_source, info.source.?[0..std.mem.indexOfSentinel(u8, 0, info.source.?) :0]);
+    try std.testing.expect(info.what != null);
+    try std.testing.expectEqualStrings("Lua\x00", info.what.?[0..4]);
+    try std.testing.expectEqual(0, info.short_src[29]);
+    try std.testing.expectEqualStrings("[string \"function foo(x)...\"]\x00", info.short_src[0..30]);
+    try std.testing.expectEqual(1, info.linedefined);
+    try std.testing.expectEqual(3, info.lastlinedefined);
+}
+
+test "getInfo() can debug info can be pretty printed" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected_source =
+        \\function foo(x)
+        \\  return x * 2
+        \\end
+    ;
+    try lua.doString(expected_source);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("foo"));
+
+    var info: Lua.DebugInfo = .{};
+    try std.testing.expect(lua.getInfo(">Su", &info));
+    try std.testing.expectEqual(0, lua.getTop());
+
+    var buf: [512]u8 = undefined;
+    var fbs = std.io.fixedBufferStream(&buf);
+    try info.prettyPrint(fbs.writer().any());
+
+    const actual = fbs.getWritten();
+    try std.testing.expectEqual(279, actual.len);
+
+    // The output contains a pointer address too, so we will match the two parts around that.
+    try std.testing.expectEqualStrings(
+        \\root.Lua.DebugInfo@
+    , actual[0..19]);
+
+    try std.testing.expectEqualStrings(
+        \\ {
+        \\  event: '?' (-1),
+        \\  name: '<null>',
+        \\  namewhat: '<null>',
+        \\  what: 'Lua',
+        \\  short_src: `[string "function foo(x)..."]`,
+        \\  currentline: -1,
+        \\  nups: 0,
+        \\  linedefined: 1,
+        \\  lastlinedefined: 3,
+        \\  source:
+        \\```
+        \\function foo(x)
+        \\  return x * 2
+        \\end
+        \\```
+        \\}
+        \\
+    , actual[31..]);
+}
+
+test "getInfoFunction() can be used to show debug information about a function" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected_source =
+        \\function foo(x)
+        \\  return x * 2
+        \\end
+    ;
+    try lua.doString(expected_source);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("foo"));
+
+    const info = try lua.getInfoFunction();
+    try std.testing.expectEqual(0, lua.getTop());
+
+    try std.testing.expect(info.source != null);
+    try std.testing.expectEqualSentinel(u8, 0, expected_source, info.source.?);
+    try std.testing.expectEqual(.lua, info.what);
+    try std.testing.expectEqual(0, info.short_src[29]);
+    try std.testing.expectEqualStrings("[string \"function foo(x)...\"]\x00", info.short_src[0..30]);
+    try std.testing.expectEqual(1, info.linedefined);
+    try std.testing.expectEqual(3, info.lastlinedefined);
+}
+
+test "getInfoFunction() can pretty printed" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const expected_source =
+        \\function foo(x)
+        \\  return x * 2
+        \\end
+    ;
+    try lua.doString(expected_source);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("foo"));
+
+    var info = try lua.getInfoFunction();
+    try std.testing.expectEqual(0, lua.getTop());
+
+    var buf: [512]u8 = undefined;
+    var fbs = std.io.fixedBufferStream(&buf);
+    try info.prettyPrint(fbs.writer().any());
+
+    const actual = fbs.getWritten();
+    try std.testing.expectEqual(209, actual.len);
+
+    // The output contains a pointer address too, so we will match the two parts around that.
+    try std.testing.expectEqualStrings(
+        \\root.Lua.DebugInfoFunction@
+    , actual[0..27]);
+
+    try std.testing.expectEqualStrings(
+        \\ {
+        \\  what: 'lua',
+        \\  short_src: `[string "function foo(x)..."]`,
+        \\  nups: 0,
+        \\  linedefined: 1,
+        \\  lastlinedefined: 3,
+        \\  source:
+        \\```
+        \\function foo(x)
+        \\  return x * 2
+        \\end
+        \\```
+        \\}
+        \\
+    , actual[39..]);
 }

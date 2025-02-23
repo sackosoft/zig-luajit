@@ -1227,6 +1227,20 @@ pub const Lua = opaque {
         return 1 == c.luaL_getmetafield(asState(lua), index, field_name.ptr);
     }
 
+    /// Calls a metamethod. If the object at the given index, `index` has a metatable and this metatable has a
+    /// field `e`, this function calls this field and passes the object as its only argument. If the
+    /// metamethod exists, it returns true and pushes the returned value onto the stack. If no
+    /// metatable or metamethod exists, it returns false without pushing any value.
+    ///
+    /// From: `int luaL_callmeta(lua_State *L, int obj, const char *e);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_callmeta
+    /// Stack Behavior: `[-0, +(0|1), e]`
+    pub fn callMeta(lua: *Lua, index: i32, e: [:0]const u8) bool {
+        lua.validateStackIndex(index);
+
+        return 1 == c.luaL_callmeta(asState(lua), index, e.ptr);
+    }
+
     /// Creates a new execution context within the given Lua instance, pushes it on the stack, and returns a `*Lua` pointer
     /// that represents this new thread. Do not confuse Lua threads with operating-system threads. Lua supports coroutines
     /// on all systems, even those that do not support threads.
@@ -4571,4 +4585,40 @@ test "metatables in the registry" {
 
     try std.testing.expect(lua.getMetaField(-1, "bar"));
     try std.testing.expectEqual(42, try lua.toIntegerStrict(-1));
+}
+
+test "callMeta() should invoke metamethod when it is defined" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openBaseLib();
+
+    try lua.doString(
+        \\f = {}
+        \\return setmetatable(f, {
+        \\    __len = function (op)
+        \\        return -1
+        \\    end
+        \\})
+    );
+    try std.testing.expect(lua.isTable(-1));
+    try std.testing.expect(lua.callMeta(-1, "__len"));
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(-1, try lua.toIntegerStrict(-1));
+}
+
+test "callMeta() should do nothing when it is not defined" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    lua.openBaseLib();
+
+    try lua.doString(
+        \\f = {}
+        \\return f
+    );
+    try std.testing.expect(lua.isTable(-1));
+    try std.testing.expect(!lua.callMeta(-1, "__len"));
+    try std.testing.expect(lua.isTable(-1));
+    try std.testing.expectEqual(1, lua.getTop());
 }

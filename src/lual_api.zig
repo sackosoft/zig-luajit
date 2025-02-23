@@ -70,16 +70,6 @@ pub const Buffer = opaque {};
 /// Stack Behavior: `[-0, +0, -]`
 pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
 
-/// Calls a metamethod. If the object at the given index has a metatable and this metatable has a
-/// field `e`, this function calls this field and passes the object as its only argument. If the
-/// metamethod exists, it returns true and pushes the returned value onto the stack. If no
-/// metatable or metamethod exists, it returns false without pushing any value.
-///
-/// From: `int luaL_callmeta(lua_State *L, int obj, const char *e);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_callmeta
-/// Stack Behavior: `[-0, +(0|1), e]`
-pub fn callMeta(lua: *Lua, obj: i32, e: [*:0]const u8) bool;
-
 /// Creates a new Lua state using the standard C realloc function for memory allocation and sets a default
 /// panic function that prints an error message to the standard error output in case of fatal errors.
 ///

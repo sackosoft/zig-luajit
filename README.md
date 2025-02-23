@@ -86,7 +86,7 @@ you.
 | API                         | Support                               |
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 68% coverage (34/48)                  |
+| Auxilary Library (`luaL_*`) | 70% coverage (35/48)                  |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -231,7 +231,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_argcheck`            | ☑️📢 `lua.checkArgument()` |
 | `luaL_argerror`            ||
 | `luaL_buffinit`            ||
-| `luaL_callmeta`            ||
+| `luaL_callmeta`            | ☑️ `lua.callMeta()`|
 | `luaL_checkany`            | ☑️ `lua.checkAny()`|
 | `luaL_checkinteger`        | ☑️ `lua.checkInteger()` |
 | `luaL_checkint`            | 🆖 please use `lua.checkInteger()` |

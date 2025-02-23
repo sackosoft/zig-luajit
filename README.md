@@ -27,7 +27,7 @@ The `main` branch targets recent builds of Zig's `master` branch (last tested wi
 
 ## Installation & Usage
 
-It is recommended that you install `zig-luajit` using `zig fetch`. This will add a `ziglua` dependency to your `build.zig.zon` file.
+It is recommended that you install `zig-luajit` using `zig fetch`. This will add a `luajit` dependency to your `build.zig.zon` file.
 
 ```bash
 zig fetch --save=luajit git+https://github.com/sackosoft/zig-luajit
@@ -302,3 +302,8 @@ This project depends on source code and other artifacts from third parties. Info
 can be found in the [COPYRIGHT](./COPYRIGHT.md) file.
 * [The LuaJIT Project](https://luajit.org/)
 * [Lua](https://www.lua.org/)
+
+## Credits
+
+This project was inspired by [natecraddock/ziglua](https://github.com/natecraddock/ziglua) which provides great
+functionality if you're looking to use Lua runtimes other than LuaJIT!

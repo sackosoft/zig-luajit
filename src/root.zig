@@ -2713,7 +2713,8 @@ pub const Lua = opaque {
         short_src: [DebugShortSourceLen]u8 = undefined,
 
         pub fn prettyPrint(self: *Lua.DebugInfo, writer: std.io.AnyWriter) !void {
-            try writer.print("{*} {{\n", .{self});
+            const addr: u64 = @intFromPtr(self);
+            try writer.print("root.Lua.DebugInfo@0x{x} {{\n", .{addr});
             if (HookEventKind.isHookEventKind(@intFromEnum(self.event))) {
                 try writer.print("  event: '{s}' ({d}),\n", .{ @tagName(self.event), @intFromEnum(self.event) });
             } else {
@@ -2839,7 +2840,8 @@ pub const Lua = opaque {
         short_src: [DebugShortSourceLen]u8 = undefined,
 
         pub fn prettyPrint(self: *Lua.DebugInfoFunction, writer: std.io.AnyWriter) !void {
-            try writer.print("{*} {{\n", .{self});
+            const addr: u64 = @intFromPtr(self);
+            try writer.print("root.Lua.DebugInfoFunction@0x{x} {{\n", .{addr});
             try writer.print("  what: '{s}',\n", .{@tagName(self.what)});
 
             if (std.mem.indexOf(u8, self.short_src[0..DebugShortSourceLen], &.{0})) |i| {
@@ -5375,12 +5377,12 @@ test "getInfo() can debug info can be pretty printed" {
     try info.prettyPrint(fbs.writer().any());
 
     const actual = fbs.getWritten();
-    try std.testing.expectEqual(279, actual.len);
+    try std.testing.expectEqual(281, actual.len);
 
     // The output contains a pointer address too, so we will match the two parts around that.
     try std.testing.expectEqualStrings(
-        \\root.Lua.DebugInfo@
-    , actual[0..19]);
+        \\root.Lua.DebugInfo@0x
+    , actual[0..21]);
 
     try std.testing.expectEqualStrings(
         \\ {
@@ -5401,7 +5403,7 @@ test "getInfo() can debug info can be pretty printed" {
         \\```
         \\}
         \\
-    , actual[31..]);
+    , actual[33..]);
 }
 
 test "getInfoFunction() can be used to show debug information about a function" {
@@ -5448,12 +5450,12 @@ test "getInfoFunction() can pretty printed" {
     try info.prettyPrint(fbs.writer().any());
 
     const actual = fbs.getWritten();
-    try std.testing.expectEqual(209, actual.len);
+    try std.testing.expectEqual(211, actual.len);
 
     // The output contains a pointer address too, so we will match the two parts around that.
     try std.testing.expectEqualStrings(
-        \\root.Lua.DebugInfoFunction@
-    , actual[0..27]);
+        \\root.Lua.DebugInfoFunction@0x
+    , actual[0..29]);
 
     try std.testing.expectEqualStrings(
         \\ {
@@ -5470,5 +5472,5 @@ test "getInfoFunction() can pretty printed" {
         \\```
         \\}
         \\
-    , actual[39..]);
+    , actual[41..]);
 }

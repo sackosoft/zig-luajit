@@ -212,8 +212,6 @@ This section describes the current status of Zig language bindings ("the Zig API
 
 [ISSUE-6]: https://github.com/sackosoft/zig-luajit/issues/6
 
-The `zig-luajit` project has not yet reached the 1.0 release, the API is subject to change without notice.
-
 
 ### Auxilary Library Coverage (`luaL_`)
 

@@ -2452,6 +2452,74 @@ pub const Lua = opaque {
             unreachable;
         }
     }
+
+    /// Type for a string buffer. A string buffer allows building Lua strings piecemeal.
+    ///
+    /// Pattern of use:
+    /// 1. Declare a variable of type Buffer
+    /// 2. Initialize with bufferInit()
+    /// 3. Add string pieces using addX() functions
+    /// 4. Finish by calling pushResult()
+    ///
+    /// From: `typedef struct luaL_Buffer luaL_Buffer;`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_Buffer
+    pub const Buffer = extern struct {
+        const BufferSize: usize = @intCast(c.LUAL_BUFFERSIZE);
+        p: ?[*]u8 = null,
+        lvl: c_int = 0,
+        L: ?*Lua = null,
+        buffer: [BufferSize]u8 = undefined,
+
+        /// Adds the character c to the given buffer.
+        ///
+        /// From: `void luaL_addchar(luaL_Buffer *B, char c);`
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addchar
+        /// Stack Behavior: `[-0, +0, m]`
+        pub fn addChar(buffer: *Buffer, char: u8) void {
+            assert(buffer.p != null and buffer.L != null); // You must use `Lua.initBuffer(&Lua.Buffer)` before calling `Lua.Buffer.addChar()`.
+
+            if (buffer.p) |ptr| {
+                // if the buffer is out of capacity, we will want to call `prepbuffer` to get more space and change the pointer.
+                var ptr_copy = ptr;
+
+                if (@intFromPtr(ptr) >= @intFromPtr(&buffer.buffer) + c.LUAL_BUFFERSIZE) {
+                    const extra = c.luaL_prepbuffer(@ptrCast(buffer));
+                    assert(extra != null);
+                    ptr_copy = extra;
+                }
+
+                // We can assert buffer.p is non-null here since prepbuffer guarantees it
+                ptr_copy[0] = char;
+                buffer.p = ptr_copy + 1;
+            } else {
+                std.debug.panic(
+                    "Failed to add character '{c}' to a buffer: the buffer is not initialized, `buffer.p` is null.\n",
+                    .{char},
+                );
+            }
+        }
+
+        /// Finishes the use of the buffer leaving the final string on the top of the stack.
+        ///
+        /// From: `void luaL_pushresult(luaL_Buffer *B);`
+        /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_pushresult
+        /// Stack Behavior: `[-?, +1, m]`
+        pub fn pushResult(buffer: *Lua.Buffer) void {
+            assert(buffer.p != null and buffer.L != null); // You must use `Lua.initBuffer(&Lua.Buffer)` before calling `Lua.Buffer.pushResult()`.
+
+            return c.luaL_pushresult(@ptrCast(buffer));
+        }
+    };
+
+    /// Initializes a Lua buffer. This function does not allocate any space;
+    /// the buffer must be declared as a variable.
+    ///
+    /// From: `void luaL_buffinit(lua_State *L, luaL_Buffer *B);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_buffinit
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn initBuffer(lua: *Lua, buffer: *Lua.Buffer) void {
+        return c.luaL_buffinit(asState(lua), @ptrCast(buffer));
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -4678,4 +4746,46 @@ test "callMeta() should do nothing when it is not defined" {
     try std.testing.expect(!lua.callMeta(-1, "__len"));
     try std.testing.expect(lua.isTable(-1));
     try std.testing.expectEqual(1, lua.getTop());
+}
+
+test "Buffer should be able to build character by character" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var b: Lua.Buffer = .{};
+    lua.initBuffer(&b);
+    b.addChar('H');
+    b.addChar('e');
+    b.addChar('l');
+    b.addChar('l');
+    b.addChar('o');
+    b.addChar(',');
+    b.addChar(' ');
+    b.addChar('w');
+    b.addChar('o');
+    b.addChar('r');
+    b.addChar('l');
+    b.addChar('d');
+    b.addChar('!');
+    b.pushResult();
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isString(-1));
+    try std.testing.expectEqualStrings("Hello, world!", try lua.toLString(-1));
+}
+
+test "Buffer should handle very long string" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    var b: Lua.Buffer = .{};
+    lua.initBuffer(&b);
+    for (0..256_000) |i| {
+        b.addChar('0' + @as(u8, @intCast((i % 10))));
+    }
+    b.pushResult();
+
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isString(-1));
+    try std.testing.expectEqualStrings("0123456789" ** 25_600, try lua.toLString(-1));
 }

@@ -86,7 +86,7 @@ you.
 | API                         | Support                               |
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
-| Auxilary Library (`luaL_*`) | 70% coverage (35/48)                  |
+| Auxilary Library (`luaL_*`) | 80% coverage (40/48)                  |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -218,19 +218,19 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 
 | C Type Definition          | Available in `zig-luajit`           |
 |----------------------------|-------------------------------------|
-| `luaL_Buffer`              ||
+| `luaL_Buffer`              | ☑️ `Lua.Buffer`                      |
 | `luaL_Reg`                 | ☑️ `Lua.Reg` and `Lua.RegEnd`        |
 
 | C API Symbol               | Available in `zig-luajit`           |
 |----------------------------|-------------------------------------|
-| `luaL_addchar`             ||
+| `luaL_addchar`             | ☑️ `buffer.addChar()`|
 | `luaL_addlstring`          ||
 | `luaL_addsize`             ||
 | `luaL_addstring`           ||
 | `luaL_addvalue`            ||
 | `luaL_argcheck`            | ☑️📢 `lua.checkArgument()` |
 | `luaL_argerror`            | ☑️📢 `lua.raiseErrorArgument()` |
-| `luaL_buffinit`            ||
+| `luaL_buffinit`            | ☑️📢 `lua.initBuffer()`|
 | `luaL_callmeta`            | ☑️ `lua.callMeta()`|
 | `luaL_checkany`            | ☑️ `lua.checkAny()`|
 | `luaL_checkinteger`        | ☑️ `lua.checkInteger()` |
@@ -262,7 +262,7 @@ The `zig-luajit` project has not yet reached the 1.0 release, the API is subject
 | `luaL_optnumber`           | ☑️📢 `lua.checkNumberOptional()` |
 | `luaL_optstring`           | ☑️📢 `lua.checkStringOptional()` |
 | `luaL_prepbuffer`          ||
-| `luaL_pushresult`          ||
+| `luaL_pushresult`          | ☑️ `buffer.pushResult()` |
 | `luaL_ref`                 | ☑️ `lua.ref()` |
 | `luaL_unref`               | ☑️ `lua.unref()` |
 | `luaL_register`            | ☑️📢 `lua.registerLibrary()` |

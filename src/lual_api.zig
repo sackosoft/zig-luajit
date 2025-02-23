@@ -3,13 +3,6 @@
 
 // This file contains brainstorming and draft translations of the C API to Lua.
 
-/// Adds the character c to the given buffer.
-///
-/// From: `void luaL_addchar(luaL_Buffer *B, char c);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_addchar
-/// Stack Behavior: `[-0, +0, m]`
-pub fn addChar(buffer: *LuaBuffer, char: u8) void;
-
 /// Adds the string pointed to by `s` with length `l` to the buffer `B`. The string may contain embedded zeros.
 ///
 /// From: `void luaL_addlstring(luaL_Buffer *B, const char *s, size_t l);`
@@ -41,26 +34,6 @@ pub fn addString(buffer: *Buffer, s: [*:0]const u8) void;
 /// Stack Behavior: `[-1, +0, m]`
 pub fn addValue(buffer: *Buffer) void;
 
-/// Type for a string buffer. A string buffer allows building Lua strings piecemeal.
-///
-/// Pattern of use:
-/// 1. Declare a variable of type Buffer
-/// 2. Initialize with bufferInit()
-/// 3. Add string pieces using addX() functions 
-/// 4. Finish by calling pushResult()
-///
-/// From: `typedef struct luaL_Buffer luaL_Buffer;`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_Buffer
-pub const Buffer = opaque {};
-
-/// Initializes a Lua buffer. This function does not allocate any space;
-/// the buffer must be declared as a variable.
-///
-/// From: `void luaL_buffinit(lua_State *L, luaL_Buffer *B);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_buffinit
-/// Stack Behavior: `[-0, +0, -]`
-pub fn bufInit(lua: *Lua, buffer: *Buffer) void;
-
 /// Creates a new Lua state using the standard C realloc function for memory allocation and sets a default
 /// panic function that prints an error message to the standard error output in case of fatal errors.
 ///
@@ -77,13 +50,6 @@ pub fn newState() ?*Lua;
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_prepbuffer
 /// Stack Behavior: `[-0, +0, -]`
 pub fn prepBuffer(buffer: *Buffer) [*]u8;
-
-/// Finishes the use of buffer B leaving the final string on the top of the stack.
-///
-/// From: `void luaL_pushresult(luaL_Buffer *B);`
-/// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_pushresult
-/// Stack Behavior: `[-?, +1, m]`
-pub fn pushResult(buffer: *LuaBuffer) void;
 
 /// Generates an error with a message like "location: bad argument narg to 'func' (tname expected, got rt)",
 /// where location is produced by luaL_where, func is the name of the current function,

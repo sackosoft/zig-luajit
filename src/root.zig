@@ -2784,6 +2784,23 @@ pub const Lua = opaque {
         return 0 != c.lua_getinfo(asState(lua), what.ptr, @ptrCast(info));
     }
 
+    /// Get information about the interpreter runtime stack. This function fills parts of a `DebugInfo` structure
+    /// with an identification of the activation record of the function executing at a given level. This function should
+    /// be called before calls to `getInfo()` when inspecting the call stack.
+    ///
+    /// Level 0 is the current running function, whereas level 1 is the function that has called the current running
+    /// function, and so on.
+    ///
+    /// Returns true when there are no errors, returns false otherwise. This function will return false when called
+    /// with a level greater than the stack depth, returns false.
+    ///
+    /// From: `int lua_getstack(lua_State *L, int level, lua_Debug *ar);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getstack
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn getStack(lua: *Lua, level: i32, info: *Lua.DebugInfo) bool {
+        return 0 != c.lua_getstack(asState(lua), level, @ptrCast(info));
+    }
+
     /// Represents the different kinds of functions that can be inspected by `getInfo()`. This enumerates the possible
     /// values that `getInfo()` will set in the `what` field when inspecting a function.
     pub const FunctionKind = enum {
@@ -5473,4 +5490,49 @@ test "getInfoFunction() can pretty printed" {
         \\}
         \\
     , actual[45..]);
+}
+
+test "getStack() can be used to inspect the call stack" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn errorCallback(l: *Lua) callconv(.c) i32 {
+            var info: Lua.DebugInfo = .{};
+            if (!l.getStack(1, &info) or !l.getInfo("nSlufL", &info)) {
+                return l.raiseErrorFormat("unreachable", .{});
+            }
+
+            std.testing.expectEqualStrings("bar\x00", info.name.?[0..4]) catch unreachable;
+            std.testing.expectEqualStrings("global\x00", info.namewhat.?[0..7]) catch unreachable;
+            std.testing.expectEqualStrings("Lua\x00", info.what.?[0..4]) catch unreachable;
+            std.testing.expectEqualStrings("[string \"function bar()...\"]\x00", info.short_src[0..29]) catch unreachable;
+            std.testing.expectEqual(2, info.currentline) catch unreachable;
+            std.testing.expectEqual(0, info.nups) catch unreachable;
+            std.testing.expectEqual(1, info.linedefined) catch unreachable;
+            std.testing.expectEqual(3, info.lastlinedefined) catch unreachable;
+
+            l.pushString(info.name.?);
+            return 1;
+        }
+    };
+
+    lua.pushCFunction(T.errorCallback);
+    const expected_source =
+        \\function bar()
+        \\  return error("this error invokes the errorCallback above")
+        \\end
+        \\function foo()
+        \\    bar()
+        \\end
+    ;
+    try lua.doString(expected_source);
+
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("foo"));
+    try std.testing.expectError(Lua.ProtectedCallError.Runtime, lua.callProtected(0, Lua.MultipleReturn, 1));
+
+    try std.testing.expectEqual(2, lua.getTop());
+    try std.testing.expect(lua.isFunction(1));
+    try std.testing.expect(lua.isString(2));
+    try std.testing.expectEqualStrings("bar", try lua.toLString(-1));
 }

@@ -61,6 +61,14 @@ pub const Lua = opaque {
         return @ptrCast(str.ptr);
     }
 
+    fn asSlice(str: ?[*:0]const u8) ?[:0]const u8 {
+        if (str) |s| {
+            return std.mem.sliceTo(s, 0);
+        } else {
+            return null;
+        }
+    }
+
     fn asCFn(f: CFunction) ?*const fn (?*c.lua_State) callconv(.c) c_int {
         return @ptrCast(f);
     }
@@ -926,11 +934,8 @@ pub const Lua = opaque {
     /// Stack Behavior: `[-0, +1, m]`
     pub fn pushFString(lua: *Lua, comptime format: [:0]const u8, args: anytype) [:0]const u8 {
         const string: ?[*:0]const u8 = @call(.auto, c.lua_pushfstring, .{ asState(lua), format.ptr } ++ args);
-        if (string) |s| {
-            // NOTE: This seems dangerous. I don't really like this solution, but it doesn't look like there is any other option.
-            // We are making a strong assumption that Lua returns a well-behaved zero-terminated string.
-            const len = std.mem.indexOfSentinel(u8, 0, s);
-            return s[0..len :0];
+        if (asSlice(string)) |str| {
+            return str;
         } else {
             std.debug.panic("Received unexpected NULL response from lua.pushFString(\"{s}, ...\")", .{format});
         }
@@ -2463,9 +2468,8 @@ pub const Lua = opaque {
         assert(pattern.len > 0); // gsub(string, "", replacement) causes an infinite loop -- avoid using the empty string as a pattern.
 
         const str: ?[*:0]const u8 = c.luaL_gsub(asState(lua), @ptrCast(string.ptr), @ptrCast(pattern.ptr), @ptrCast(replacement.ptr));
-        if (str) |s| {
-            const len = std.mem.indexOfSentinel(u8, 0, s);
-            return s[0..len :0];
+        if (asSlice(str)) |s| {
+            return s;
         } else {
             lua.raiseErrorFormat(
                 "gsub('%s', '%s', '%s') returned null instead of the replaced string.",
@@ -3040,12 +3044,8 @@ pub const Lua = opaque {
             "getLocal() is well-behaved and defined to return null when the index is not valid.",
         );
 
-        const string: ?[*:0]const u8 = @ptrCast(c.lua_getlocal(asState(lua), @ptrCast(info), index));
-        if (string) |s| {
-            return std.mem.sliceTo(s, 0);
-        } else {
-            return null;
-        }
+        const str: ?[*:0]const u8 = @ptrCast(c.lua_getlocal(asState(lua), @ptrCast(info), index));
+        return asSlice(str);
     }
 
     /// Sets the value of a local variable during hook execution. The parameter `info` must have been filled by a
@@ -3061,15 +3061,11 @@ pub const Lua = opaque {
     pub fn setLocal(lua: *Lua, info: *Lua.DebugInfo, index: i32) ?[:0]const u8 {
         lua.skipIndexValidation(
             index,
-            "getLocal() is well-behaved and defined to return null when the index is not valid.",
+            "setLocal() is well-behaved and defined to return null when the index is not valid.",
         );
 
-        const string: ?[*:0]const u8 = @ptrCast(c.lua_setlocal(asState(lua), @ptrCast(info), index));
-        if (string) |s| {
-            return std.mem.sliceTo(s, 0);
-        } else {
-            return null;
-        }
+        const str: ?[*:0]const u8 = @ptrCast(c.lua_setlocal(asState(lua), @ptrCast(info), index));
+        return asSlice(str);
     }
 };
 

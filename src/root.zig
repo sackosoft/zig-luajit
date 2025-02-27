@@ -2939,6 +2939,8 @@ pub const Lua = opaque {
     pub const HookMask = packed struct(u32) {
         /// Used as the `mask` parameter to `setHook()` in order to disable a hook.
         pub const disabled: HookMask = .{};
+        pub const call_only: HookMask = .{ .on_call = true };
+        pub const call_and_return: HookMask = .{ .on_call = true, .on_return = true };
 
         /// Indicates that the hook function should be invoked when the Lua runtime calls a function.
         on_call: bool = false,
@@ -2984,8 +2986,36 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_sethook
     /// Stack Behavior: `[-0, +0, -]`
     pub fn setHook(lua: *Lua, f: HookFunction, mask: HookMask, count: i32) void {
+        assert(count >= 0);
         const res = c.lua_sethook(asState(lua), @ptrCast(f), @bitCast(mask), count);
         assert(1 == res);
+    }
+
+    /// Returns the current hook function.
+    ///
+    /// From: `lua_Hook lua_gethook(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gethook
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn getHook(lua: *Lua) ?HookFunction {
+        return @ptrCast(c.lua_gethook(asState(lua)));
+    }
+
+    /// Returns the current hook count.
+    ///
+    /// From: `int lua_gethookcount(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gethookcount
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn getHookCount(lua: *Lua) i32 {
+        return c.lua_gethookcount(asState(lua));
+    }
+
+    /// Returns the current hook mask.
+    ///
+    /// From: `int lua_gethookmask(lua_State *L);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_gethookmask
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn getHookMask(lua: *Lua) HookMask {
+        return @bitCast(c.lua_gethookmask(asState(lua)));
     }
 };
 
@@ -5657,4 +5687,71 @@ test "setHook() can be used register a callback to intercept function calls" {
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isInteger(-1));
     try std.testing.expectEqual(1, try lua.toIntegerStrict(-1));
+}
+
+test "getHook() can be used check the current hook function" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn hook(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
+            _ = l;
+            _ = info;
+        }
+    };
+
+    lua.setHook(T.hook, .{ .on_call = true }, 0);
+    try std.testing.expectEqual(T.hook, lua.getHook());
+}
+
+test "getHookMask() can be used check the current hook function subscription" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn hook(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
+            _ = l;
+            _ = info;
+        }
+    };
+
+    const e1 = Lua.HookMask{};
+    lua.setHook(T.hook, e1, 0);
+    try std.testing.expectEqual(e1, lua.getHookMask());
+
+    const e2 = Lua.HookMask{ .on_call = true };
+    lua.setHook(T.hook, e2, 0);
+    try std.testing.expectEqual(e2, lua.getHookMask());
+
+    const e3 = Lua.HookMask{ .on_call = true, .on_return = true };
+    lua.setHook(T.hook, e3, 0);
+    try std.testing.expectEqual(e3, lua.getHookMask());
+
+    const e4 = Lua.HookMask{ .on_line = true };
+    lua.setHook(T.hook, e4, 0);
+    try std.testing.expectEqual(e4, lua.getHookMask());
+
+    const e5 = Lua.HookMask{ .on_call = true, .on_return = true, .on_line = true, .on_count = true };
+    lua.setHook(T.hook, e5, 0);
+    try std.testing.expectEqual(e5, lua.getHookMask());
+}
+
+test "getHookCount() can be used check the current hook function count" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn hook(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
+            _ = l;
+            _ = info;
+        }
+    };
+
+    const e1 = 0;
+    lua.setHook(T.hook, Lua.HookMask.call_and_return, 0);
+    try std.testing.expectEqual(e1, lua.getHookCount());
+
+    const e2 = 42;
+    lua.setHook(T.hook, Lua.HookMask.call_and_return, 42);
+    try std.testing.expectEqual(e2, lua.getHookCount());
 }

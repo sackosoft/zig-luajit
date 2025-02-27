@@ -17,17 +17,21 @@ pub fn main() !void {
     const stdin = std.io.getStdIn();
     const stdout = std.io.getStdOut();
 
-    var buf: [1024]u8 = undefined;
+    var buf: [1025]u8 = undefined;
+    const read_slice = buf[0..1024];
 
     while (true) {
         try stdout.writeAll("> ");
 
-        const input = try stdin.reader().readUntilDelimiter(&buf, '\n');
+        const input = try stdin.reader().readUntilDelimiter(read_slice, '\n');
         if (input.len == 0) continue;
 
         if (std.mem.eql(u8, input, "exit")) break;
 
-        lua.doString(input) catch |err| {
+        buf[input.len] = 0;
+        const actual = buf[0..input.len :0];
+
+        lua.doString(actual) catch |err| {
             std.debug.print("Error: {}\n", .{err});
             continue;
         };

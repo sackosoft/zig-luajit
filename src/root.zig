@@ -2628,14 +2628,22 @@ pub const Lua = opaque {
     /// Represents different types of events that can be triggered during Lua execution. These events are received by
     /// hooks to inspect or modify the execution of code in the Lua instance.
     pub const HookEventKind = enum(i32) {
-        /// Function call event
+        /// The hook is called when the interpreter calls a function.
+        /// The hook is called just after Lua enters the new function, before the function gets its arguments.
         call = c.LUA_HOOKCALL,
-        /// Normal function return event
+
+        /// The hook is called when the interpreter returns from a function. The hook is called just before Lua leaves
+        /// the function. You have no access to the values to be returned by the function.
         ret = c.LUA_HOOKRET,
-        /// Line execution event
+
+        /// The hook is called when the interpreter is about to start the execution of a new line of code, or when it
+        /// jumps back in the code (even to the same line). This event only happens while Lua is executing a Lua function.
         line = c.LUA_HOOKLINE,
-        /// Instruction count event
+
+        /// The hook is called after the interpreter executes every count instructions. This event only happens while
+        /// Lua is executing a Lua function.
         count = c.LUA_HOOKCOUNT,
+
         /// Tail call return event - occurs when Lua is simulating a return from a function that performed a tail call
         tailret = c.LUA_HOOKTAILRET,
 
@@ -2660,6 +2668,9 @@ pub const Lua = opaque {
     ///
     /// Note: While Lua is running a hook, it disables other calls to hooks. If a hook calls back
     /// Lua to execute a function or a chunk, this execution occurs without any calls to hooks.
+    ///
+    /// Note: throughout the Lua documentation, this debug info is often referred to as an "activation record" and passed as
+    /// a parameter named `ar`.
     pub const DebugInfo = extern struct {
         /// The event that triggered the hook. When hooks are called, this field indicates
         /// the specific event type that triggered it
@@ -2901,6 +2912,80 @@ pub const Lua = opaque {
         };
         @memcpy(simplifiedInterface.short_src[0..DebugShortSourceLen], info.short_src[0..DebugShortSourceLen]);
         return simplifiedInterface;
+    }
+
+    /// Hooks allow for Zig code to be invoked as part of the lifecycle of executing Lua code. Hooks may be registered
+    /// with the Lua runtime and will be invoked at requested points in time, such as when entering a function.
+    ///
+    /// Whenever a hook is called by the runtime, the `info.event` argument is set to the specific set to the specific
+    /// `HookEventKind` that triggered the hook. For certain kinds of hooks, additional information will be set in the
+    /// debug info struct:
+    ///
+    /// * For `line` events: the field `currentline` is also set. For other information the hook function should
+    ///   call `getInfo()`.
+    /// * For return events the `info.event` may either be `ret`, indicating a normal function return, or `tailret` which
+    ///   indicates that Lua is simulating a return from a function that did a tail call. For `tailret` events it is
+    ///   useless to call `getInfo()`.
+    ///
+    /// While Lua is running a hook, it disables other calls to hooks. Therefore, if a hook calls back Lua to execute a
+    /// function or a chunk, this execution occurs **without** any calls to hooks.
+    ///
+    /// From: `typedef void (*lua_Hook) (lua_State *L, lua_Debug *ar);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Hook
+    pub const HookFunction = *const fn (lua: *Lua, info: *Lua.DebugInfo) callconv(.c) void;
+
+    /// A flag enumeration ("mask" or "bitmask") used to register a callback function ("hook") on certain points in the
+    /// execution lifecycle.
+    pub const HookMask = packed struct(u32) {
+        /// Used as the `mask` parameter to `setHook()` in order to disable a hook.
+        pub const disabled: HookMask = .{};
+
+        /// Indicates that the hook function should be invoked when the Lua runtime calls a function.
+        on_call: bool = false,
+
+        /// Indicates that the hook function should be invoked when the Lua runtime returns from a function (or performs
+        /// tail call recursion).
+        on_return: bool = false,
+
+        /// Indicates that the hook function should be invoked when the Lua runtime moves to execute the next line of
+        /// a function.
+        on_line: bool = false,
+
+        /// Indicates that the hook function should be invoked after executing `count` instructions.
+        on_count: bool = false,
+
+        /// Unused and ignored.
+        __padding: u28 = undefined,
+    };
+
+    /// Sets the debugging hook function. Argument `f` is the hook function. `mask` specifies on which events the hook
+    /// will be called.
+    ///
+    /// Events include:
+    /// - Call hook: Called when the interpreter calls a function, just after Lua enters the new function
+    /// - Return hook: Called when the interpreter returns from a function, just before Lua leaves the function
+    /// - Line hook: Called when starting execution of a new line of code or jumping back in code
+    /// - Count hook: Called after executing every `count` instructions
+    ///
+    /// Example:
+    /// ```zig
+    /// const lua: *Lua = ...;
+    /// const Example = struct {
+    ///     fn exHook(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
+    ///         ...
+    ///     }
+    /// };
+    /// lua.setHook(Example.exHook, .{ .on_call = true, .on_return = true }, 0);
+    /// ```
+    ///
+    /// A hook is disabled by setting `mask` to `HookMask.disabled` (the empty mask `.{}`).
+    ///
+    /// From: `int lua_sethook(lua_State *L, lua_Hook f, int mask, int count);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_sethook
+    /// Stack Behavior: `[-0, +0, -]`
+    pub fn setHook(lua: *Lua, f: HookFunction, mask: HookMask, count: i32) void {
+        const res = c.lua_sethook(asState(lua), @ptrCast(f), @bitCast(mask), count);
+        assert(1 == res);
     }
 };
 
@@ -5535,4 +5620,41 @@ test "getStack() can be used to inspect the call stack" {
     try std.testing.expect(lua.isFunction(1));
     try std.testing.expect(lua.isString(2));
     try std.testing.expectEqualStrings("bar", try lua.toLString(-1));
+}
+
+test "setHook() can be used register a callback to intercept function calls" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        fn hook(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
+            std.testing.expectEqual(Lua.HookEventKind.call, info.event) catch unreachable;
+
+            if (!l.getInfo("nSLufl", info)) {
+                return l.raiseErrorFormat("Could not get info.", .{});
+            }
+
+            std.testing.expect(info.name == null) catch unreachable;
+            std.testing.expectEqualStrings("Lua\x00", info.what.?[0..4]) catch unreachable;
+            std.testing.expectEqualStrings("[string \"function bar()...\"]\x00", info.short_src[0..29]) catch unreachable;
+            std.testing.expectEqual(1, info.currentline) catch unreachable;
+            std.testing.expectEqual(0, info.nups) catch unreachable;
+            std.testing.expectEqual(1, info.linedefined) catch unreachable;
+            std.testing.expectEqual(3, info.lastlinedefined) catch unreachable;
+        }
+    };
+
+    const expected_source =
+        \\function bar()
+        \\  return 1
+        \\end
+    ;
+    try lua.doString(expected_source);
+
+    lua.setHook(T.hook, .{ .on_call = true }, 0);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("bar"));
+    try lua.callProtected(0, Lua.MultipleReturn, 1);
+    try std.testing.expectEqual(1, lua.getTop());
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(1, try lua.toIntegerStrict(-1));
 }

@@ -87,7 +87,7 @@ you.
 |-----------------------------|---------------------------------------|
 | Lua C API (`lua_*`)         | 🎉 100% coverage<sup>†</sup> (92/92)  |
 | Auxilary Library (`luaL_*`) | 🤩 100% coverage (48/48)              |
-| Debug API (`lua_Debug`)     | 32% coverage (4/12)                   |
+| Debug API (`lua_Debug`)     | 56% coverage (7/12)                   |
 | LuaJIT Extensions           | *No plans to implement.*              |
 
 *†: Coroutine yield/resume is not yet part of the public `zig-luajit` Zig API, see [#6][ISSUE-6].*
@@ -279,9 +279,9 @@ This section describes the current status of Zig language bindings ("the Zig API
 | C API Symbol               | Available in `zig-luajit`           |
 |----------------------------|-------------------------------------|
 | `lua_getinfo`              | ☑️ `lua.getInfo()`                   |
-| `lua_gethookcount`         ||
-| `lua_gethookmask`          ||
-| `lua_gethook`              ||
+| `lua_gethookcount`         | ☑️ `lua.getHookCount()`              |
+| `lua_gethookmask`          | ☑️ `lua.getHookMask()`               |
+| `lua_gethook`              | ☑️ `lua.getHook()`                   |
 | `lua_getlocal`             ||
 | `lua_getstack`             | ☑️ `lua.getStack()`                  |
 | `lua_getupvalue`           ||

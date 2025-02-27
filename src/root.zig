@@ -3067,6 +3067,33 @@ pub const Lua = opaque {
         const str: ?[*:0]const u8 = @ptrCast(c.lua_setlocal(asState(lua), @ptrCast(info), index));
         return asSlice(str);
     }
+
+    /// Gets information about a closure's upvalue. For Lua functions, upvalues are the external local variables
+    /// that the function uses, and that are consequently included in its closure. This function gets the index
+    /// `index` of an upvalue, pushes the upvalue's value onto the stack, and returns its name. The `funcindex`
+    /// points to the closure in the stack. Returns `null` (and pushes nothing) when the index is greater
+    /// than the number of upvalues.
+    ///
+    /// For C functions, this function uses the empty string `""` as a name for all upvalues.
+    ///
+    /// From: `const char *lua_getupvalue(lua_State *L, int funcindex, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getupvalue
+    /// Stack Behavior: `[-0, +(0|1), -]`
+    pub fn getUpvalue(lua: *Lua, funcindex: i32, index: i32) ?[:0]const u8 {
+        const string: ?[*:0]const u8 = @ptrCast(c.lua_getupvalue(asState(lua), funcindex, index));
+        return asSlice(string);
+    }
+
+    /// Sets the value of a closure's upvalue. It assigns the value at the top of the stack to the upvalue and returns
+    /// its name. Only pops the value from the stack when it can be assigned to the upvalue at the given index.
+    ///
+    /// From: `const char *lua_setupvalue(lua_State *L, int funcindex, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setupvalue
+    /// Stack Behavior: `[-(0|1), +0, -]`
+    pub fn setUpvalue(lua: *Lua, funcindex: i32, index: i32) ?[:0]const u8 {
+        const string: ?[*:0]const u8 = @ptrCast(c.lua_setupvalue(asState(lua), funcindex, index));
+        return asSlice(string);
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -5937,4 +5964,47 @@ test "getLocal() and setLocal() should return null for invalid indices" {
     try lua.callProtected(0, 1, 0);
 
     try std.testing.expect(T.hook_executed);
+}
+
+test "getUpvalue() and setUpvalue() can inspect and modify closure upvalues" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const test_code =
+        \\local counter = 0
+        \\function increment(amount)
+        \\  counter = counter + amount
+        \\  return counter
+        \\end
+    ;
+    try lua.doString(test_code);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("increment"));
+
+    const upvalue_name = lua.getUpvalue(-1, 1);
+    try std.testing.expect(upvalue_name != null);
+    try std.testing.expectEqualStrings("counter", std.mem.sliceTo(upvalue_name.?, 0));
+
+    try std.testing.expect(lua.isNumber(-1));
+    try std.testing.expectEqual(0, try lua.toIntegerStrict(-1));
+    lua.pop(1);
+
+    lua.pushInteger(10);
+    const modified_name = lua.setUpvalue(-2, 1);
+    try std.testing.expect(modified_name != null);
+    try std.testing.expectEqualStrings("counter", std.mem.sliceTo(modified_name.?, 0));
+
+    lua.pushInteger(5);
+    try lua.callProtected(1, 1, 0);
+    try std.testing.expect(lua.isNumber(-1));
+    try std.testing.expectEqual(15, try lua.toIntegerStrict(-1)); // 10 + 5 = 15
+    lua.pop(1);
+
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("increment"));
+    try std.testing.expect(lua.getUpvalue(-1, 999) == null);
+    try std.testing.expectEqual(1, lua.getTop()); // Stack unchanged
+
+    lua.pushInteger(50);
+    try std.testing.expect(lua.setUpvalue(-2, 999) == null);
+    try std.testing.expectEqual(2, lua.getTop()); // Stack unchanged
+    lua.pop(2);
 }

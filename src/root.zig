@@ -3017,6 +3017,60 @@ pub const Lua = opaque {
     pub fn getHookMask(lua: *Lua) HookMask {
         return @bitCast(c.lua_gethookmask(asState(lua)));
     }
+
+    /// Gets information about a local variable of a given activation record. The parameter `info` must have been
+    /// filled by a previous call to `getStack()` or given as an argument to a hook.
+    ///
+    /// The `index` selects which local variable to inspect (1 is the first parameter or active local variable,
+    /// and so on, until the last active local variable).
+    ///
+    /// When the `index` is valid, pushes the variable's value onto the stack and returns its name. Variable names
+    /// starting with '(' (such as the name `(*temporary)`) represent internal variables (loop control variables,
+    /// temporaries, and C function locals).
+    ///
+    /// When the `index` is negative or greater than the number of active local variables, this function returns
+    /// `null` and nothing is pushed onto the stack.
+    ///
+    /// From: `const char *lua_getlocal(lua_State *L, lua_Debug *ar, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_getlocal
+    /// Stack Behavior: `[-0, +(0|1), -]`
+    pub fn getLocal(lua: *Lua, info: *Lua.DebugInfo, index: i32) ?[:0]const u8 {
+        lua.skipIndexValidation(
+            index,
+            "getLocal() is well-behaved and defined to return null when the index is not valid.",
+        );
+
+        const string: ?[*:0]const u8 = @ptrCast(c.lua_getlocal(asState(lua), @ptrCast(info), index));
+        if (string) |s| {
+            return std.mem.sliceTo(s, 0);
+        } else {
+            return null;
+        }
+    }
+
+    /// Sets the value of a local variable during hook execution. The parameter `info` must have been filled by a
+    /// previous call to `getStack()` or given as an argument to a hook.
+    ///
+    /// Always pops the value at the top of the stack.
+    /// * When the `index` is valid, assigns the value at the top oc the stack to the variable at the given index
+    /// * When the `index` is negative or greater than the number of local variables, this function returns `null`.
+    ///
+    /// From: `const char *lua_setlocal(lua_State *L, lua_Debug *ar, int n);`
+    /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_setlocal
+    /// Stack Behavior: `[-1, +0, -]`
+    pub fn setLocal(lua: *Lua, info: *Lua.DebugInfo, index: i32) ?[:0]const u8 {
+        lua.skipIndexValidation(
+            index,
+            "getLocal() is well-behaved and defined to return null when the index is not valid.",
+        );
+
+        const string: ?[*:0]const u8 = @ptrCast(c.lua_setlocal(asState(lua), @ptrCast(info), index));
+        if (string) |s| {
+            return std.mem.sliceTo(s, 0);
+        } else {
+            return null;
+        }
+    }
 };
 
 test "Lua can be initialized with an allocator" {
@@ -5754,4 +5808,137 @@ test "getHookCount() can be used check the current hook function count" {
     const e2 = 42;
     lua.setHook(T.hook, Lua.HookMask.call_and_return, 42);
     try std.testing.expectEqual(e2, lua.getHookCount());
+}
+
+test "getLocal and setLocal can inspect and modify local variables" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        var locals_data = std.ArrayList(struct {
+            name: []const u8,
+            value: i32,
+        }).init(std.testing.allocator);
+
+        fn hookLocalVars(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
+            if (info.event != Lua.HookEventKind.line or info.currentline != 4) {
+                // Restrict the hook to only execute on line 3 where we can modify `y`
+                return;
+            }
+
+            if (!l.getInfo("l", info)) {
+                return l.raiseErrorFormat("Could not get debug info.", .{});
+            }
+
+            var i: i32 = 1;
+            while (true) {
+                const name = l.getLocal(info, i);
+                if (name == null) {
+                    break;
+                }
+
+                const value = l.toIntegerStrict(-1) catch -1;
+                locals_data.append(.{
+                    .name = std.mem.sliceTo(name.?, 0),
+                    .value = @intCast(value),
+                }) catch unreachable;
+
+                l.pop(1);
+                i += 1;
+            }
+
+            if (l.getLocal(info, 2)) |name| {
+                l.pop(1);
+                l.pushInteger(42);
+                const before = l.getTop();
+                const modified_name = l.setLocal(info, 2);
+                std.testing.expectEqual(before - 1, l.getTop()) catch unreachable;
+                std.testing.expectEqualStrings(name, modified_name.?) catch unreachable;
+            }
+        }
+
+        fn cleanup() void {
+            locals_data.deinit();
+        }
+    };
+    defer T.cleanup();
+
+    const test_code =
+        \\function test_locals()
+        \\  local x = 10
+        \\  local y = 20
+        \\  return x + y  -- Should return 10 + 42 = 52 after our hook runs
+        \\end
+    ;
+    try lua.doString(test_code);
+
+    lua.setHook(T.hookLocalVars, .{ .on_line = true }, 0);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("test_locals"));
+    try lua.callProtected(0, 1, 0);
+
+    try std.testing.expect(lua.isInteger(-1));
+    try std.testing.expectEqual(52, try lua.toIntegerStrict(-1)); // Should be 52 because we modified `y` from 20 to 42
+
+    try std.testing.expect(T.locals_data.items.len >= 2); // The variables x and y must be found, there may be other temporary variables as well
+    try std.testing.expectEqualStrings("x", T.locals_data.items[0].name);
+    try std.testing.expectEqual(10, T.locals_data.items[0].value);
+    try std.testing.expectEqualStrings("y", T.locals_data.items[1].name);
+    try std.testing.expectEqual(20, T.locals_data.items[1].value);
+}
+
+test "getLocal() and setLocal() should return null for invalid indices" {
+    const lua = try Lua.init(std.testing.allocator);
+    defer lua.deinit();
+
+    const T = struct {
+        var hook_executed = false;
+
+        fn edgeCaseHook(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
+            if (info.event != Lua.HookEventKind.line or info.currentline != 3) {
+                return;
+            }
+
+            hook_executed = true;
+
+            if (!l.getInfo("l", info)) {
+                return l.raiseErrorFormat("Could not get debug info.", .{});
+            }
+
+            var before = l.getTop();
+            const out_of_bounds = l.getLocal(info, 9999);
+            std.testing.expect(out_of_bounds == null) catch unreachable;
+            std.testing.expectEqual(before, l.getTop()) catch unreachable; // Stack should not change when index is invalid.
+
+            before = l.getTop();
+            const negative_index = l.getLocal(info, -10);
+            std.testing.expect(negative_index == null) catch unreachable;
+            std.testing.expectEqual(before, l.getTop()) catch unreachable; // Stack should not change when index is invalid.
+
+            l.pushInteger(100);
+            before = l.getTop();
+            const out_of_bounds_set_result = l.setLocal(info, 9999);
+            std.testing.expect(out_of_bounds_set_result == null) catch unreachable;
+            std.testing.expectEqual(before - 1, l.getTop()) catch unreachable; // Stack should always be popped even if index is invalid
+
+            l.pushInteger(100);
+            before = l.getTop();
+            const negative_set_result = l.setLocal(info, -10);
+            std.testing.expect(negative_set_result == null) catch unreachable;
+            std.testing.expectEqual(before - 1, l.getTop()) catch unreachable; // Stack should always be popped even if index is invalid
+        }
+    };
+
+    const test_code =
+        \\function test_edge_cases()
+        \\  local x = 10
+        \\  return x
+        \\end
+    ;
+    try lua.doString(test_code);
+
+    lua.setHook(T.edgeCaseHook, .{ .on_line = true }, 0);
+    try std.testing.expectEqual(Lua.Type.function, lua.getGlobal("test_edge_cases"));
+    try lua.callProtected(0, 1, 0);
+
+    try std.testing.expect(T.hook_executed);
 }

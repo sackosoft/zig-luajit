@@ -3052,7 +3052,7 @@ pub const Lua = opaque {
     /// previous call to `getStack()` or given as an argument to a hook.
     ///
     /// Always pops the value at the top of the stack.
-    /// * When the `index` is valid, assigns the value at the top oc the stack to the variable at the given index
+    /// * When the `index` is valid, assigns the value at the top of the stack to the variable at the given index
     /// * When the `index` is negative or greater than the number of local variables, this function returns `null`.
     ///
     /// From: `const char *lua_setlocal(lua_State *L, lua_Debug *ar, int n);`

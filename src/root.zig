@@ -1872,8 +1872,8 @@ pub const Lua = opaque {
     /// From: `int luaL_loadfile(lua_State *L, const char *filename);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_loadfile
     /// Stack Behavior: `[-0, +1, m]`
-    pub fn loadFile(lua: *Lua, filename: [:0]const u8) LoadFileError!void {
-        const res = c.luaL_loadfile(asState(lua), filename);
+    pub fn loadFile(lua: *Lua, filename: ?[:0]const u8) LoadFileError!void {
+        const res = c.luaL_loadfile(asState(lua), if (filename) |f| f.ptr else null);
         return interpretLoadFileRes(res, "loadFile()");
     }
 
@@ -1953,12 +1953,12 @@ pub const Lua = opaque {
 
     /// Loads the Lua chunk in the given file and, if there are no errors, pushes the compiled chunk as a Lua
     /// function on top of the stack before executing it using `callProtected()`. Essentially, `doFile()` executes
-    /// the Lua code in the given file.
+    /// the Lua code in the given file. If `filename` is null, `doFile()` loads from standard input.
     ///
     /// From: `int luaL_dofile(lua_State *L, const char *filename);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_dofile
     /// Stack Behavior: `[-0, +?, m]`
-    pub fn doFile(lua: *Lua, filename: [:0]const u8) DoFileError!void {
+    pub fn doFile(lua: *Lua, filename: ?[:0]const u8) DoFileError!void {
         try lua.loadFile(filename);
         return lua.callProtected(0, Lua.MultipleReturn, 0);
     }

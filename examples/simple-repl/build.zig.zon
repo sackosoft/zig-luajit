@@ -1,5 +1,6 @@
 .{
-    .name = "simple-repl",
+    .name = .simple_repl,
+    .fingerprint = 0x6ab488fc2a85d9ea,
     .version = "0.0.0",
     .dependencies = .{
         .luajit = .{

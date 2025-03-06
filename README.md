@@ -23,7 +23,7 @@ checks in `Debug` and `ReleaseSafe` builds and provides full test coverage of th
 
 ## Zig Version
 
-The `main` branch targets recent builds of Zig's `master` branch (last tested with Zig `0.14.0-dev.3460+6d29ef0ba`).
+The `main` branch targets recent builds of Zig's `master` branch (last tested with Zig `0.14.0`).
 
 ## Installation & Usage
 

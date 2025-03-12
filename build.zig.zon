@@ -1,7 +1,7 @@
 .{
     .name = .luajit,
     .fingerprint = 0xda4bba66d285c19c,
-    .version = "1.5.2",
+    .version = "1.5.3",
     .dependencies = .{
         .luajit_build = .{
             .url = "git+https://github.com/sackosoft/zig-luajit-build#8bb843189b32ada74741c51b7f88c32f45f5f7f2",

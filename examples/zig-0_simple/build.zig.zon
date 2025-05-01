@@ -1,11 +1,9 @@
 .{
-    .name = .simple_repl,
-    .fingerprint = 0x6ab488fc2a85d9ea,
+    .name = .zig_simple,
     .version = "0.0.0",
+    .fingerprint = 0x8d2be68559925fc7,
     .dependencies = .{
-        .luajit = .{
-            .path = "../..",
-        },
+        .luajit = .{ .path = "../.." },
     },
     .paths = .{
         "build.zig",

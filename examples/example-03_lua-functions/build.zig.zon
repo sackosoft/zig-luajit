@@ -1,0 +1,15 @@
+.{
+    .name = .lua_functions,
+    .fingerprint = 0x5b347e5ca7a60eb7,
+    .version = "0.0.0",
+    .dependencies = .{
+        .luajit = .{
+            .path = "../..",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

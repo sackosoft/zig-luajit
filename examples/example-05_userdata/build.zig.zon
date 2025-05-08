@@ -1,0 +1,15 @@
+.{
+    .name = .zig_userdata,
+    .fingerprint = 0x6e4dc29249f8f4c6,
+    .version = "0.0.0",
+    .dependencies = .{
+        .luajit = .{
+            .path = "../..",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

@@ -4,4 +4,6 @@ This example demonstrates the bare minimum to make Zig structs "available" in Lu
 
 For more interactive examples written in C, you can see [Programming in Lua, chapter 28](https://www.lua.org/pil/28.html).
 
-TODO: At some point, I would like to recreate these examples in Zig.
+> [!NOTE]
+>
+> At some point, I would like to recreate these examples in Zig.

@@ -1,7 +1,7 @@
 .{
-    .name = .variables,
+    .name = .example02_variables,
     .version = "0.0.0",
-    .fingerprint = 0x88cb7d11fef03c78,
+    .fingerprint = 0x64256a78fddf2610,
     .dependencies = .{
         .luajit = .{
             .path = "../..",

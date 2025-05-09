@@ -1,6 +1,6 @@
 .{
-    .name = .zig_functions,
-    .fingerprint = 0xae716d6589200459,
+    .name = .example04_zig_functions,
+    .fingerprint = 0xba8dc4da71be23d5,
     .version = "0.0.0",
     .dependencies = .{
         .luajit = .{

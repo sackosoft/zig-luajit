@@ -1,6 +1,6 @@
 .{
-    .name = .simple_repl,
-    .fingerprint = 0x6ab488fc2a85d9ea,
+    .name = .example03_lua_functions,
+    .fingerprint = 0xd4c9d8f983e3ab09,
     .version = "0.0.0",
     .dependencies = .{
         .luajit = .{

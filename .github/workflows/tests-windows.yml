@@ -18,9 +18,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: (Z) Install Zig
-      uses: goto-bus-stop/setup-zig@v2
+      uses: mlugg/setup-zig@v2
       with:
-        version: master
+        version: 0.15.0-dev.565+8e72a2528
 
     - name: ▶️ Run tests
       shell: pwsh

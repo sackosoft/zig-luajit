@@ -2352,8 +2352,9 @@ pub const Lua = opaque {
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#luaL_argcheck
     /// Stack Behavior: `[-0, +0, v]`
     pub fn checkArgument(lua: *Lua, condition: bool, arg_n: i32, extra_message: ?[:0]const u8) void {
-        if (condition) {
+        if (!condition) {
             _ = c.luaL_argerror(asState(lua), arg_n, if (extra_message) |m| m else null);
+            unreachable;
         }
     }
 
@@ -4887,7 +4888,7 @@ test "checkArgument() should return error when argument is invalid and succeed w
     const T = struct {
         fn EchoInteger(l: *Lua) callconv(.c) i32 {
             const val = l.toInteger(1);
-            l.checkArgument(val != 42, 1, "FOOBAR");
+            l.checkArgument(val == 42, 1, "FOOBAR");
             l.pushInteger(val);
             return 1;
         }
@@ -4966,7 +4967,7 @@ test "checkArgument() should return handle null message" {
     const T = struct {
         fn EchoInteger(l: *Lua) callconv(.c) i32 {
             const val = l.toInteger(1);
-            l.checkArgument(val != 42, 1, null);
+            l.checkArgument(val == 42, 1, null);
             l.pushInteger(val);
             return 1;
         }

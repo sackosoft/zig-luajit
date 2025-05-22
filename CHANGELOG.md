@@ -13,4 +13,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Refer to [bug: checkArgument has inverse logic #17](https://github.com/sackosoft/zig-luajit/issues/17)
 
 [2.0.0]: https://github.com/sackosoft/zig-luajit/compare/v1.5.4...v2.0.0
-[1.5.4]: https://github.com/sackosoft/zig-luajit/releases/tag/v2.0.0
+[1.5.4]: https://github.com/sackosoft/zig-luajit/releases/tag/v1.5.4

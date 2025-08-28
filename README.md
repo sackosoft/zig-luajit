@@ -6,7 +6,9 @@
 
 ![Ubuntu Regression Tests Badge](https://img.shields.io/github/actions/workflow/status/sackosoft/zig-luajit/tests-ubuntu.yml?label=Tests%20Ubuntu)
 ![Windows Regression Tests Badge](https://img.shields.io/github/actions/workflow/status/sackosoft/zig-luajit/tests-windows.yml?label=Tests%20Windows)
+<!--
 ![GitHub License](https://img.shields.io/github/license/sackosoft/zig-luajit)
+-->
 
 <!--
 TODO: Capture attention with a visualization, diagram, demo or other visual placeholder here.

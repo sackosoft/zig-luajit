@@ -80,6 +80,25 @@ Some examples are provided in [examples/](./examples/) to aid users in learning 
 small self-contained applications should always be working, please create an issue if they do not work for
 you.
 
+```zig
+const std = @import("std");
+const Lua = @import("luajit").Lua;
+
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const lua = try Lua.init(gpa.allocator());
+    defer lua.deinit();
+
+    lua.openBaseLib();
+
+    try lua.doString(
+        \\ message = "Hello, world!"
+        \\ print(message)
+    );
+}
+```
 
 ## Language Binding Coverage Progress
 

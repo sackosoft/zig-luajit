@@ -3453,9 +3453,13 @@ test "checkStackOrError should raise an error for stack overflow" {
     };
 
     lua.pushCFunction(T.Fn);
+    std.debug.print("pushed\n", .{});
     const actual = lua.callProtected(0, 0, 0);
+    std.debug.print("Called\n", .{});
     try std.testing.expectError(Lua.CallError.Runtime, actual);
+    std.debug.print("errored\n", .{});
     try std.testing.expectEqualSlices(u8, "stack overflow (CUSTOM ERROR MESSAGE)", try lua.toLString(-1));
+    std.debug.print("message\n", .{});
 }
 
 const FailingAllocator = struct {

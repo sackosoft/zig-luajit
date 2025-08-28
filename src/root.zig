@@ -1,5 +1,5 @@
 //! Copyright (c) 2024-2025 Theodore Sackos
-//! SPDX-License-Identifier: AGPL-3.0-or-later
+//! SPDX-License-Identifier: MIT
 
 const std = @import("std");
 const assert = std.debug.assert;
@@ -2100,7 +2100,7 @@ pub const Lua = opaque {
 
                 _ = l;
 
-                const context: *@This() = @alignCast(@ptrCast(ud));
+                const context: *@This() = @ptrCast(@alignCast(ud));
                 const slice: []const u8 = @as([*]const u8, @ptrCast(bytes))[0..size];
                 context.writer.writeAll(slice) catch |err| {
                     return @intCast(@intFromError(err));
@@ -2155,7 +2155,7 @@ pub const Lua = opaque {
             fn loadAdapter(l: *Lua, ud: ?*anyopaque, size: *usize) callconv(.c) [*]const u8 {
                 assert(ud != null);
 
-                const context: *@This() = @alignCast(@ptrCast(ud.?));
+                const context: *@This() = @ptrCast(@alignCast(ud.?));
                 const actual = context.reader.read(context.read_buffer) catch |err| {
                     _ = l.pushFString("Unable to load function, found error '%s' while reading.", .{@errorName(err).ptr});
                     l.raiseError();

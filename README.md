@@ -336,7 +336,7 @@ function or macro in the C API.
 
 ## Licensing
 
-The `zig-luajit` Zig languge bindings are distributed under the terms of the AGPL-3.0 License. The terms of this
+The `zig-luajit` Zig languge bindings are distributed under the terms of the open and permissive MIT License. The terms of this
 license can be found in the [LICENSE](./LICENSE) file.
 
 This project depends on source code and other artifacts from third parties. Information about their respective licenses

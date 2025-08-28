@@ -3441,7 +3441,7 @@ test "checkStack should return StackOverflow when requested space is too large" 
     try std.testing.expectError(error.StackOverflow, lua.checkStack(9000));
 }
 
-test "checkStackOrError should return raise an error for stack overflow" {
+test "checkStackOrError should raise an error for stack overflow" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 

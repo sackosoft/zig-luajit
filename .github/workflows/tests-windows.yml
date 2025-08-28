@@ -20,7 +20,7 @@ jobs:
     - name: (Z) Install Zig
       uses: mlugg/setup-zig@v2
       with:
-        version: 0.15.0-dev.565+8e72a2528
+        version: 0.15.1
 
     - name: ▶️ Run tests
       shell: pwsh

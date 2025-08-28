@@ -5838,11 +5838,14 @@ test "getLocal and setLocal can inspect and modify local variables" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
 
+    const LocalInfo = struct {
+        name: []const u8,
+        value: i32,
+    };
+
     const T = struct {
-        var locals_data = std.ArrayList(struct {
-            name: []const u8,
-            value: i32,
-        }).init(std.testing.allocator);
+        var local_infos: [32]LocalInfo = undefined;
+        var locals_data = std.ArrayList(LocalInfo).initBuffer(&local_infos);
 
         fn hookLocalVars(l: *Lua, info: *Lua.DebugInfo) callconv(.c) void {
             if (info.event != Lua.HookEventKind.line or info.currentline != 4) {
@@ -5862,10 +5865,10 @@ test "getLocal and setLocal can inspect and modify local variables" {
                 }
 
                 const value = l.toIntegerStrict(-1) catch -1;
-                locals_data.append(.{
+                locals_data.appendAssumeCapacity(.{
                     .name = std.mem.sliceTo(name.?, 0),
                     .value = @intCast(value),
-                }) catch unreachable;
+                });
 
                 l.pop(1);
                 i += 1;
@@ -5880,12 +5883,7 @@ test "getLocal and setLocal can inspect and modify local variables" {
                 std.testing.expectEqualStrings(name, modified_name.?) catch unreachable;
             }
         }
-
-        fn cleanup() void {
-            locals_data.deinit();
-        }
     };
-    defer T.cleanup();
 
     const test_code =
         \\function test_locals()

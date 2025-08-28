@@ -15,7 +15,7 @@ pub const AllocFn = fn (
     ptr: ?*anyopaque,
     osize: usize,
     nsize: usize,
-) callconv(.C) ?*align(max_alignment_bytes) anyopaque;
+) callconv(.c) ?*align(max_alignment_bytes) anyopaque;
 
 /// Memory allocation function used by Lua instances. This functino acts as an adaptor from the C API to the
 /// idiomatic Zig `std.mem.Allocator` type. The implementation provides functionality similar to realloc.
@@ -37,7 +37,7 @@ pub const AllocFn = fn (
 ///
 /// From: `void * (*lua_Alloc) (void *ud, void *ptr, size_t osize, size_t nsize);`
 /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_Alloc
-pub fn alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) callconv(.C) ?*align(max_alignment_bytes) anyopaque {
+pub fn alloc(ud: ?*anyopaque, ptr: ?*anyopaque, osize: usize, nsize: usize) callconv(.c) ?*align(max_alignment_bytes) anyopaque {
     std.debug.assert(ud != null);
 
     const user_data: *AllocationUserdata = @ptrCast(@alignCast(ud.?));

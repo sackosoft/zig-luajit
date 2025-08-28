@@ -18,8 +18,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "luajit",
+        .linkage = .static,
         .root_module = lib_mod,
     });
     lib.root_module.addImport("c", luajit_build);

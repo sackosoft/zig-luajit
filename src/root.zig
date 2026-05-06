@@ -2963,7 +2963,7 @@ pub const Lua = opaque {
         on_count: bool = false,
 
         /// Unused and ignored.
-        __padding: u28 = undefined,
+        __padding: u28 = 0,
     };
 
     /// Sets the debugging hook function. Argument `f` is the hook function. `mask` specifies on which events the hook
@@ -3454,13 +3454,9 @@ test "checkStackOrError should raise an error for stack overflow" {
     };
 
     lua.pushCFunction(T.Fn);
-    std.debug.print("pushed\n", .{});
     const actual = lua.callProtected(0, 0, 0);
-    std.debug.print("Called\n", .{});
     try std.testing.expectError(Lua.CallError.Runtime, actual);
-    std.debug.print("errored\n", .{});
     try std.testing.expectEqualSlices(u8, "stack overflow (CUSTOM ERROR MESSAGE)", try lua.toLString(-1));
-    std.debug.print("message\n", .{});
 }
 
 const FailingAllocator = struct {
@@ -5288,7 +5284,7 @@ test "dump() should report the same errors returned by the AnyWriter" {
 
     try lua.doString("return function(x) return x * 2 end");
     const actual = lua.dump(&fbw);
-    try std.testing.expectError(error.NoSpaceLeft, actual);
+    try std.testing.expectError(error.WriteFailed, actual);
 }
 
 test "load() should report syntax errors when loading invalid binary chunk" {
@@ -5809,23 +5805,23 @@ test "getHookMask() can be used check the current hook function subscription" {
 
     const e1 = Lua.HookMask{};
     lua.setHook(T.hook, e1, 0);
-    try std.testing.expectEqual(e1, lua.getHookMask());
+    try std.testing.expectEqual(lua.getHookMask(), e1);
 
     const e2 = Lua.HookMask{ .on_call = true };
     lua.setHook(T.hook, e2, 0);
-    try std.testing.expectEqual(e2, lua.getHookMask());
+    try std.testing.expectEqual(lua.getHookMask(), e2);
 
     const e3 = Lua.HookMask{ .on_call = true, .on_return = true };
     lua.setHook(T.hook, e3, 0);
-    try std.testing.expectEqual(e3, lua.getHookMask());
+    try std.testing.expectEqual(lua.getHookMask(), e3);
 
     const e4 = Lua.HookMask{ .on_line = true };
     lua.setHook(T.hook, e4, 0);
-    try std.testing.expectEqual(e4, lua.getHookMask());
+    try std.testing.expectEqual(lua.getHookMask(), e4);
 
     const e5 = Lua.HookMask{ .on_call = true, .on_return = true, .on_line = true, .on_count = true };
     lua.setHook(T.hook, e5, 0);
-    try std.testing.expectEqual(e5, lua.getHookMask());
+    try std.testing.expectEqual(lua.getHookMask(), e5);
 }
 
 test "getHookCount() can be used check the current hook function count" {

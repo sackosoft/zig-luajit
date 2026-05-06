@@ -3,12 +3,13 @@
 
 const std = @import("std");
 const assert = std.debug.assert;
-
 const builtin = @import("builtin");
-const isSafeBuildTarget: bool = builtin.mode == .ReleaseSafe or builtin.mode == .Debug;
 
 const c = @import("c");
+
 const aa = @import("allocator_adapter.zig");
+
+const isSafeBuildTarget: bool = builtin.mode == .ReleaseSafe or builtin.mode == .Debug;
 
 /// A Lua state represents the entire context of a Lua interpreter.
 /// Each state is completely independent and has no global variables.
@@ -2090,9 +2091,9 @@ pub const Lua = opaque {
     /// From: `int lua_dump(lua_State *L, lua_Writer writer, void *data);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_dump
     /// Stack Behavior: `[-0, +0, m]`
-    pub fn dump(lua: *Lua, writer: std.io.AnyWriter) anyerror!void {
+    pub fn dump(lua: *Lua, writer: std.Io.Writer) anyerror!void {
         const DumpContext = struct {
-            writer: std.io.AnyWriter,
+            writer: std.Io.Writer,
 
             fn dumpAdapter(l: *Lua, bytes: ?*const anyopaque, size: usize, ud: ?*anyopaque) callconv(.c) i32 {
                 assert(bytes != null);
@@ -2147,9 +2148,9 @@ pub const Lua = opaque {
     /// From: `int lua_load(lua_State *L, lua_Reader reader, void *data, const char *chunkname);`
     /// Refer to: https://www.lua.org/manual/5.1/manual.html#lua_load
     /// Stack Behavior: `[-0, +1, -]`
-    pub fn load(lua: *Lua, reader: std.io.AnyReader, chunkname: ?[:0]const u8) LoadError!void {
+    pub fn load(lua: *Lua, reader: std.Io.Reader, chunkname: ?[:0]const u8) LoadError!void {
         const LoadContext = struct {
-            reader: std.io.AnyReader,
+            reader: std.Io.Reader,
             read_buffer: []u8,
 
             fn loadAdapter(l: *Lua, ud: ?*anyopaque, size: *usize) callconv(.c) [*]const u8 {
@@ -5123,17 +5124,17 @@ test "Lua functions can be serialized and restored using dump() and load()" {
     defer lua.deinit();
 
     var buf: [256]u8 = undefined;
-    var fbs_write = std.io.fixedBufferStream(&buf);
+    var fbs_write = std.Io.Writer.fixed(&buf);
 
     try lua.doString("return function(x) return x * 2 end");
     try std.testing.expectEqual(1, lua.getTop()); // The stack should contain one value, a function.
-    try lua.dump(fbs_write.writer().any());
+    try lua.dump(fbs_write);
 
     lua.pop(1);
     try std.testing.expectEqual(0, lua.getTop()); // The stack should be empty, ensuring that the function is fully restored from the binary chunk.
 
-    var fbs_read = std.io.fixedBufferStream(fbs_write.getWritten());
-    try lua.load(fbs_read.reader().any(), null);
+    const fbs_read = std.Io.Reader.fixed(fbs_write.buffered());
+    try lua.load(fbs_read, null);
 
     lua.pushInteger(21);
     try lua.callProtected(1, 1, 0);

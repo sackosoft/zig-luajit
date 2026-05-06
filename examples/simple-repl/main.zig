@@ -2,25 +2,22 @@
 //! SPDX-License-Identifier: MIT
 
 const std = @import("std");
+
 const Lua = @import("luajit").Lua;
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
-    const lua = try Lua.init(allocator);
+pub fn main(init: std.process.Init) !void {
+    const lua = try Lua.init(init.gpa);
     defer lua.deinit();
 
     lua.openBaseLib();
 
     var stdin_buffer: [1024]u8 = undefined;
-    var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
-    const stdin = &stdin_reader.interface;
+    var stdin_reader = std.Io.File.stdin().reader(init.io, &stdin_buffer);
+    var stdin = &stdin_reader.interface;
 
     var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
-    const stdout = &stdout_writer.interface;
+    var stdout_writer = std.Io.File.stdout().writer(init.io, &stdout_buffer);
+    var stdout = &stdout_writer.interface;
 
     var line_buffer: [1025]u8 = undefined;
 

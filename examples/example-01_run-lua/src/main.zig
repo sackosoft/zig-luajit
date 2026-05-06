@@ -5,15 +5,9 @@ const std = @import("std");
 const print = std.debug.print;
 const Lua = @import("luajit").Lua;
 
-pub fn main() !void {
-    // Boilerplate
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
-    const lua = try Lua.init(allocator);
+pub fn main(init: std.process.Init) !void {
+    const lua = try Lua.init(init.gpa);
     defer lua.deinit();
-    // End boilerplate
 
     lua.openBaseLib();
 

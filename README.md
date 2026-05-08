@@ -354,13 +354,3 @@ can be found in the [COPYRIGHT](./COPYRIGHT.md) file.
 This project was inspired by [natecraddock/ziglua](https://github.com/natecraddock/ziglua) which provides great
 functionality if you're looking to use Lua runtimes other than LuaJIT!
 
-
-## Changelog
-
-### v2.0.1 -> v3.0.0 - Upgrade from Zig 0.15.2 to Zig 0.16.0
-
-- Updated `zig-luajit-build` dependency from 1.1.6 to 1.1.8 to adopt Zig 0.16.0 changes.
-- **Changed** API for `Lua.dump()`, `Lua.load()` and all `prettyPrint()` functions to adopt new `std.Io.Reader` and
-  `std.Io.Writer` interfaces. All references to the now deleted  `std.io.AnyReader` and `std.io.AnyWriter` are removed.
-- **Changed** API for `HookMask` struct, it is now zeroed by default instead of containing uninitialized memory.
-

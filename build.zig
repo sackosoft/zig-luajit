@@ -38,7 +38,9 @@ pub fn build(b: *std.Build) void {
         var run_test_steps: std.ArrayListUnmanaged(*std.Build.Step.Run) = .empty;
         run_test_steps.append(b.allocator, run_lib_unit_tests) catch @panic("OOM");
 
-        const kcov_bin = b.findProgram(&.{"kcov"}, &.{}) catch "kcov";
+        const kcov_bin = b.findProgram(
+            .{ .names = &.{ "kcov" } }
+        ) orelse "kcov";
 
         const merge_step = std.Build.Step.Run.create(b, "merge coverage");
         merge_step.addArgs(&.{ kcov_bin, "--merge" });

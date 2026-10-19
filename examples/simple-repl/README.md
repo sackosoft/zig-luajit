@@ -6,7 +6,7 @@ evaluates the expression and prints the result to the output.
 
 ## Version
 
-Last tested with Zig version `0.16.0`.
+Last tested with Zig version `0.17.0`.
 
 ## Usage
 

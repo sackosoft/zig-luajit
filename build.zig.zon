@@ -1,11 +1,11 @@
 .{
     .name = .luajit,
     .fingerprint = 0xda4bba66d285c19c,
-    .version = "3.0.0",
+    .version = "3.1.0",
     .dependencies = .{
         .luajit_build = .{
-            .url = "git+https://github.com/sackosoft/zig-luajit-build#83801ee5c76938eb8704de6ae667437e63744588",
-            .hash = "luajit_build-1.1.8-HFjoU8lBAABZOIYvsm0OATsjlN0Fye4QYA86RuTy6uzl",
+            .url = "git+https://github.com/sackosoft/zig-luajit-build.git?ref=v1.1.11#b2362c83439a021aa08df67e8e05fe530f825a18",
+            .hash = "luajit_build-1.1.11-HFjoU61BAAAI_czl3sUvrIl9d8Z4G5rEiK3UTcMek6a8",
         },
     },
     .paths = .{

@@ -25,7 +25,7 @@ checks in `Debug` and `ReleaseSafe` builds and provides full test coverage of th
 
 ## Zig Version
 
-The `main` branch targets the latest stable Zig version. Currently `0.16.0`.
+The `main` branch targets the latest stable Zig version. Currently `0.17.0`.
 
 For other Zig versions look for branches with the named version.
 

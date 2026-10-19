@@ -9,7 +9,7 @@ const c = @import("c");
 
 const aa = @import("allocator_adapter.zig");
 
-const isSafeBuildTarget: bool = builtin.mode == .ReleaseSafe or builtin.mode == .Debug;
+const isSafeBuildTarget: bool = builtin.mode == .safe or builtin.mode == .debug;
 
 /// A Lua state represents the entire context of a Lua interpreter.
 /// Each state is completely independent and has no global variables.
@@ -2119,7 +2119,7 @@ pub const Lua = opaque {
         return switch (res) {
             0 => return,
             else => |err| {
-                const error_value: std.meta.Int(.unsigned, @bitSizeOf(anyerror)) = @intCast(err);
+                const error_value: @Int(.unsigned, @bitSizeOf(anyerror)) = @intCast(err);
                 return @errorFromInt(error_value);
             },
         };
@@ -5455,6 +5455,11 @@ test "Buffer should be able to build character by character" {
     try std.testing.expectEqualStrings("Hello, world!", try lua.toLString(-1));
 }
 
+fn repeat(comptime s: []const u8, comptime n: usize) [n * s.len]u8 {
+    const unit = s[0..s.len].*;
+    return @bitCast(@as([n][s.len]u8, @splat(unit)));
+}
+
 test "Buffer should handle very long string" {
     const lua = try Lua.init(std.testing.allocator);
     defer lua.deinit();
@@ -5468,7 +5473,7 @@ test "Buffer should handle very long string" {
 
     try std.testing.expectEqual(1, lua.getTop());
     try std.testing.expect(lua.isString(-1));
-    try std.testing.expectEqualStrings("0123456789" ** 25_600, try lua.toLString(-1));
+    try std.testing.expectEqualStrings(&repeat("0123456789", 25_600), try lua.toLString(-1));
 }
 
 test "Buffer can be created by direct writes to the buffer" {
